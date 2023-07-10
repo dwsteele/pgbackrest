@@ -46,6 +46,7 @@ src_test = [
     'command/test/build.c',
     'command/test/define.c',
     'command/test/test.c',
+    'command/vm/build.c',
     'config/load.c',
     'main.c',
 ]

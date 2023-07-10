@@ -19,6 +19,8 @@ command:
   version:
     log-level-default: DEBUG
 
+  vm-build: {}
+
 ####################################################################################################################################
 # Option groups that are not used but must be present for modules to compile
 ####################################################################################################################################
@@ -117,6 +119,7 @@ option:
     default: none
     command:
       test: {}
+      vm-build: {}
 
   vm-id:
     type: integer

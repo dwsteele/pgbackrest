@@ -224,6 +224,14 @@
                 </text>
             </command>
 
+            <command id="vm-build">
+                <summary>Build a container.</summary>
+
+                <text>
+                    <p>!!!</p>
+                </text>
+            </command>
+
             <command id="version">
                 <summary>Get version.</summary>
 

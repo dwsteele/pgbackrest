@@ -9,6 +9,7 @@ Main
 #include "command/exit.h"
 #include "command/help/help.h"
 #include "command/test/test.h"
+#include "command/vm/build.h"
 #include "common/debug.h"
 #include "common/log.h"
 #include "common/macro.h"
@@ -86,6 +87,14 @@ main(int argListSize, const char *argList[])
                     printf(PROJECT_NAME " Test " PROJECT_VERSION "\n");
                     fflush(stdout);
                     break;
+
+                // Build Vm
+                // -----------------------------------------------------------------------------------------------------------------
+                case cfgCmdVmBuild:
+                {
+                    cmdVmBuild(cfgOptionStr(cfgOptVm));
+                    break;
+                }
 
                 // Error on commands that should have already been handled
                 // -----------------------------------------------------------------------------------------------------------------
