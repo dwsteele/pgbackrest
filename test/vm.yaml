@@ -1,0 +1,30 @@
+vm:
+  rh7:
+    os:
+      type: rhel
+      image: centos:7
+    pg:
+      include:
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+
+  u22:
+    os:
+      type: debian
+      image: ubuntu:22.04
+    pg:
+      install:
+        - 9.3
+        - 9.4
+        - 9.5
+        - 9.6
+        - 10
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16

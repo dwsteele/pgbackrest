@@ -11,9 +11,37 @@ testRun(void)
     FUNCTION_HARNESS_VOID();
 
     // *****************************************************************************************************************************
-    if (testBegin("!!!"))
+    if (testBegin("vmRender()"))
     {
-        cmdVmBuild(STRDEF("VM"));
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("render debian");
+
+        StringList *packageList = strLstNew();
+        strLstAddZ(packageList, "package1");
+        strLstAddZ(packageList, "package2");
+
+        TEST_RESULT_STR_Z(
+            vmRender(vmDefinition(STRDEF("u22")), false, packageList),
+            "# Base container\n"
+            "FROM ubuntu:22.04\n"
+            "\n"
+            "# Install packages\n",
+            "render");
+    }
+
+    // *****************************************************************************************************************************
+    if (testBegin("cmdVmBuild()"))
+    {
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("invalid options");
+
+        TEST_ERROR(cmdVmBuild(STRDEF("bogus")), OptionInvalidError, "'bogus' is not valid vm definition");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("valid vm");
+
+        TEST_RESULT_VOID(cmdVmBuild(STRDEF("u22")), "build u22");
+        TEST_RESULT_VOID(cmdVmBuild(STRDEF("rh7")), "build rh7");
     }
 
     FUNCTION_HARNESS_RETURN_VOID();
