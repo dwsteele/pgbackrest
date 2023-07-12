@@ -140,7 +140,6 @@ typedef struct RenderData
     bool debug;                                                     // In debug mode?
     bool commandLast;                                               // Last added was a command
     String *script;                                                 // Script
-
 } RenderData;
 
 // Helper to render a title
@@ -261,6 +260,9 @@ vmRender(
                         "sed -i 's/^\\#create\\_main\\_cluster.*$/create\\_main\\_cluster \\= false/'"
                         " /etc/postgresql-common/createcluster.conf");
 
+                    for (unsigned int pgIdx = 0; pgIdx < strLstSize(pgList); pgIdx++)
+                        vmRenderCommand(&result, zNewFmt("%s postgresql-%s", strZ(packagePre), strZ(strLstGet(pgList, pgIdx))));
+
                     break;
                 }
 
@@ -271,9 +273,6 @@ vmRender(
                     break;
                 }
             }
-
-            for (unsigned int packageIdx = 0; packageIdx < strLstSize(packageList); packageIdx++)
-                vmRenderCommand(&result, zNewFmt("%s %s", strZ(packagePre), strZ(strLstGet(packageList, packageIdx))));
         }
     }
     MEM_CONTEXT_TEMP_END();

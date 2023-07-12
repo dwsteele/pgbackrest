@@ -44,7 +44,9 @@ testRun(void)
             "RUN apt-get update\n"
             "RUN " TEST_DEBIAN_PACKAGE_INSTALL " postgresql-common libpq-dev\n"
             "RUN sed -i 's/^\\#create\\_main\\_cluster.*$/create\\_main\\_cluster \\= false/'"
-            " /etc/postgresql-common/createcluster.conf\n",
+            " /etc/postgresql-common/createcluster.conf\n"
+            "RUN " TEST_DEBIAN_PACKAGE_INSTALL " postgresql-9.6\n"
+            "RUN " TEST_DEBIAN_PACKAGE_INSTALL " postgresql-10\n",
             "render");
     }
 
