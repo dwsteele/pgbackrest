@@ -481,6 +481,7 @@ storageGcsRequestAsync(StorageGcs *this, const String *verb, StorageGcsRequestAs
         if (param.contentList != NULL)
         {
             ASSERT(param.content == NULL);
+            ASSERT(!lstEmpty(param.contentList));
 
             HttpRequestMulti *const requestMulti = httpRequestMultiNew();
 
@@ -971,6 +972,9 @@ storageGcsPathRemoveInternal(StorageGcsPathRemoveData *const data)
 
                     // Use content-id to get content
                     const unsigned int contentIdx = cvtZToUInt(strZ(strSub(contentId, sizeof(GCS_HEADER_CONTENTID_RESPONSE) - 1)));
+                    CHECK_FMT(
+                        FormatError, contentIdx < lstSize(data->requestContentList), "content-id header '%s' is out of range",
+                        strZ(contentId));
                     const StorageGcsRequestPart *const content = lstGet(data->requestContentList, contentIdx);
 
                     // Retry remove

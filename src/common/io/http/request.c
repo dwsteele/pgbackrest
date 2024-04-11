@@ -164,6 +164,10 @@ httpRequestProcess(HttpRequest *this, bool waitForResponse, bool contentCache)
                                     httpRequestVerb(this), httpRequestPath(this), httpRequestQuery(this), httpRequestHeader(this),
                                     true)));
 
+        LOG_INFO_FMT("!!!REQUEST HEADER:\n%s\n", strZ(httpRequestFmt(
+                                    httpRequestVerb(this), httpRequestPath(this), httpRequestQuery(this), httpRequestHeader(this),
+                                    true)));
+
                         // Write out content if any
                         if (this->content != NULL)
                             ioWrite(httpSessionIoWrite(session), this->content);
@@ -434,13 +438,30 @@ httpRequestMultiContent(HttpRequestMulti *const this)
         bufCat(boundary, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
 
         // Add first boundary
-        bufCat(result, boundary);
+        // bufCat(result, boundary);
+        bufCat(result, BUFSTRDEF("--"));
+        bufCat(result, this->boundaryRaw);
+        bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
 
         // Add content and boundaries
         for (unsigned int contentIdx = 0; contentIdx < lstSize(this->contentList); contentIdx++)
         {
             bufCat(result, *(Buffer **)lstGet(this->contentList, contentIdx));
-            bufCat(result, boundary);
+
+            if (contentIdx == lstSize(this->contentList) - 1)
+            {
+                bufCat(result, BUFSTRDEF("--"));
+                bufCat(result, this->boundaryRaw);
+                bufCat(result, BUFSTRDEF("--"));
+                bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
+            }
+            else
+            {
+                bufCat(result, BUFSTRDEF("--"));
+                bufCat(result, this->boundaryRaw);
+                bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
+                // bufCat(result, boundary);
+            }
         }
     }
     MEM_CONTEXT_TEMP_END();

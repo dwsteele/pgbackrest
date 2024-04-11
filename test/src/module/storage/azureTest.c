@@ -34,6 +34,7 @@ typedef struct TestRequestParam
     const char *blobType;
     const char *range;
     const char *tag;
+    bool multiPart;
 } TestRequestParam;
 
 #define testRequestP(write, verb, path, ...)                                                                                       \
@@ -42,7 +43,10 @@ typedef struct TestRequestParam
 static void
 testRequest(IoWrite *write, const char *verb, const char *path, TestRequestParam param)
 {
-    String *request = strCatFmt(strNew(), "%s /" TEST_ACCOUNT "/" TEST_CONTAINER, verb);
+    String *const request = strCatFmt(strNew(), "%s /" TEST_ACCOUNT, verb);
+
+    // if (!param.multiPart)
+        strCatZ(request, "/" TEST_CONTAINER);
 
     // When SAS spit out the query and merge in the SAS key
     if (driver->sasKey != NULL)
@@ -80,6 +84,10 @@ testRequest(IoWrite *write, const char *verb, const char *path, TestRequestParam
             request, "content-md5:%s\r\n", strZ(strNewEncode(encodingBase64, cryptoHashOne(hashTypeMd5, BUFSTRZ(param.content)))));
     }
 
+    // Add multipart content-type
+    if (param.multiPart)
+        strCatZ(request, "content-type:multipart/mixed; boundary=" HTTP_MULTIPART_BOUNDARY "\r\n");
+
     // Add date
     if (driver->sharedKey != NULL)
         strCatZ(request, "date:???, ?? ??? ???? ??:??:?? GMT\r\n");
@@ -101,7 +109,7 @@ testRequest(IoWrite *write, const char *verb, const char *path, TestRequestParam
 
     // Add version
     if (driver->sharedKey != NULL)
-        strCatZ(request, "x-ms-version:2019-12-12\r\n");
+        strCatZ(request, "x-ms-version:2020-04-08\r\n");
 
     // Complete headers
     strCatZ(request, "\r\n");
@@ -122,6 +130,7 @@ typedef struct TestResponseParam
     unsigned int code;
     const char *header;
     const char *content;
+    bool multiPart;
 } TestResponseParam;
 
 #define testResponseP(write, ...)                                                                                                  \
@@ -154,6 +163,10 @@ testResponse(IoWrite *write, TestResponseParam param)
     // Headers
     if (param.header != NULL)
         strCatFmt(response, "%s\r\n", param.header);
+
+    // Add multipart content-type
+    if (param.multiPart)
+        strCatZ(response, "content-type:multipart/mixed; boundary=" HTTP_MULTIPART_BOUNDARY "\r\n");
 
     // Content
     if (param.content != NULL)
@@ -407,12 +420,12 @@ testRun(void)
 
         header = httpHeaderAdd(httpHeaderNew(NULL), HTTP_HEADER_CONTENT_LENGTH_STR, ZERO_STR);
 
-        TEST_RESULT_VOID(storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path"), NULL, dateTime, header), "auth");
+        TEST_RESULT_VOID(storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path"), NULL, dateTime, header, false), "auth");
         TEST_RESULT_VOID(FUNCTION_LOG_OBJECT_FORMAT(header, httpHeaderToLog, logBuf, sizeof(logBuf)), "httpHeaderToLog");
         TEST_RESULT_Z(
             logBuf,
             "{content-length: '0', host: 'account.blob.core.windows.net', date: 'Sun, 21 Jun 2020 12:46:19 GMT'"
-            ", x-ms-version: '2019-12-12', authorization: 'SharedKey account:wZCOnSPB1KkkdjaQMcThkkKyUlfS0pPjwaIfd1cUh4Y='}",
+            ", x-ms-version: '2020-04-08', authorization: 'SharedKey account:6+nHomdqgSsCDy5l7rIDgFqcDadPqvdSy0A/M4/KoDQ='}",
             "check headers");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -423,13 +436,14 @@ testRun(void)
 
         HttpQuery *query = httpQueryAdd(httpQueryNewP(), STRDEF("a"), STRDEF("b"));
 
-        TEST_RESULT_VOID(storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path/file"), query, dateTime, header), "auth");
+        TEST_RESULT_VOID(
+            storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path/file"), query, dateTime, header, false), "auth");
         TEST_RESULT_VOID(FUNCTION_LOG_OBJECT_FORMAT(header, httpHeaderToLog, logBuf, sizeof(logBuf)), "httpHeaderToLog");
         TEST_RESULT_Z(
             logBuf,
             "{content-length: '44', content-md5: 'b64f49553d5c441652e95697a2c5949e', host: 'account.blob.core.windows.net'"
-            ", date: 'Sun, 21 Jun 2020 12:46:19 GMT', x-ms-version: '2019-12-12'"
-            ", authorization: 'SharedKey account:Adr+lyGByiEpKrKPyhY3c1uLBDgB7hw0XW5Do6u79Nw='}",
+            ", date: 'Sun, 21 Jun 2020 12:46:19 GMT', x-ms-version: '2020-04-08'"
+            ", authorization: 'SharedKey account:dnmmw57e27sJn/Acl8BF3a7RY5hA3bwHKQGmqh/wITk='}",
             "check headers");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -446,7 +460,8 @@ testRun(void)
         query = httpQueryAdd(httpQueryNewP(), STRDEF("a"), STRDEF("b"));
         header = httpHeaderAdd(httpHeaderNew(NULL), HTTP_HEADER_CONTENT_LENGTH_STR, STRDEF("66"));
 
-        TEST_RESULT_VOID(storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path/file"), query, dateTime, header), "auth");
+        TEST_RESULT_VOID(
+            storageAzureAuth(storage, HTTP_VERB_GET_STR, STRDEF("/path/file"), query, dateTime, header, false), "auth");
         TEST_RESULT_VOID(FUNCTION_LOG_OBJECT_FORMAT(header, httpHeaderToLog, logBuf, sizeof(logBuf)), "httpHeaderToLog");
         TEST_RESULT_Z(logBuf, "{content-length: '66', host: 'account.blob.core.usgovcloudapi.net'}", "check headers");
         TEST_RESULT_STR_Z(httpQueryRenderP(query), "a=b&sig=key", "check query");
@@ -556,7 +571,7 @@ testRun(void)
                     "content-length: 0\n"
                     "date: <redacted>\n"
                     "host: %s\n"
-                    "x-ms-version: 2019-12-12\n"
+                    "x-ms-version: 2020-04-08\n"
                     "*** Response Headers ***:\n"
                     "content-length: 7\n"
                     "*** Response Content ***:\n"
@@ -584,7 +599,7 @@ testRun(void)
                     "host: %s\n"
                     "x-ms-blob-type: BlockBlob\n"
                     "x-ms-tags: %%20Key%%202=%%20Value%%202&Key1=Value1\n"
-                    "x-ms-version: 2019-12-12",
+                    "x-ms-version: 2020-04-08",
                     strZ(hrnServerHost()));
 
                 // -----------------------------------------------------------------------------------------------------------------
@@ -962,6 +977,10 @@ testRun(void)
                         "            <Name>path1/xxx.zzz</Name>"
                         "            <Properties/>"
                         "        </Blob>"
+                        "        <Blob>"
+                        "            <Name>path2/file2</Name>"
+                        "            <Properties/>"
+                        "        </Blob>"
                         "        <BlobPrefix>"
                         "            <Name>not-deleted/</Name>"
                         "        </BlobPrefix>"
@@ -969,10 +988,55 @@ testRun(void)
                         "    <NextMarker/>"
                         "</EnumerationResults>");
 
-                testRequestP(service, HTTP_VERB_DELETE, "/test1.txt");
-                testResponseP(service);
+                testRequestP(
+                    service, HTTP_VERB_POST, "?comp=batch&restype=container", .multiPart = true,
+                    .content =
+                        "--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-transfer-encoding:binary\r\n"
+                        "content-id:0\r\n"
+                        "\r\n"
+                        "DELETE /account/container/test1.txt?sig=key HTTP/1.1\r\n"
+                        "content-length:0\r\n"
+                        "\r\n"
+                        "--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-transfer-encoding:binary\r\n"
+                        "content-id:1\r\n"
+                        "\r\n"
+                        "DELETE /account/container/path1/xxx.zzz?sig=key HTTP/1.1\r\n"
+                        "content-length:0\r\n"
+                        "\r\n"
+                        "--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-transfer-encoding:binary\r\n"
+                        "content-id:2\r\n"
+                        "\r\n"
+                        "DELETE /account/container/path2/file2?sig=key HTTP/1.1\r\n"
+                        "content-length:0\r\n"
+                        "\r\n"
+                        "--" HTTP_MULTIPART_BOUNDARY "--\r\n");
+                testResponseP(
+                    service, .multiPart = true,
+                    .content =
+                        "\r\n--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-id:0\r\n"
+                        "\r\n"
+                        "HTTP/1.1 404 Missing\r\n\r\n"
+                        "\r\n--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-id:1\r\n"
+                        "\r\n"
+                        "HTTP/1.1 200 OK\r\n\r\n"
+                        "\r\n--" HTTP_MULTIPART_BOUNDARY "\r\n"
+                        "content-type:application/http\r\n"
+                        "content-id:2\r\n"
+                        "\r\n"
+                        "HTTP/1.1 300 Error\r\n\r\n"
+                        "\r\n--" HTTP_MULTIPART_BOUNDARY "\r\n");
 
-                testRequestP(service, HTTP_VERB_DELETE, "/path1/xxx.zzz");
+                testRequestP(service, HTTP_VERB_DELETE, "/path2/file2");
                 testResponseP(service);
 
                 TEST_RESULT_VOID(storagePathRemoveP(storage, STRDEF("/"), .recurse = true), "remove");
