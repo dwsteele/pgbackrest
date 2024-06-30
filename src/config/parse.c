@@ -250,6 +250,8 @@ typedef enum
     PARSE_RULE_U32_1(parseRuleOptionalTypeAllowRange), PARSE_RULE_PACK_SIZE(__VA_ARGS__)
 #define PARSE_RULE_OPTIONAL_DEFAULT(...)                                                                                           \
     PARSE_RULE_U32_1(parseRuleOptionalTypeDefault), PARSE_RULE_PACK_SIZE(__VA_ARGS__)
+#define PARSE_RULE_OPTIONAL_DEFAULT_MAP(...)                                                                                       \
+    0x10, __VA_ARGS__ 0x00
 #define PARSE_RULE_OPTIONAL_REQUIRED(...)                                                                                          \
     PARSE_RULE_U32_1(parseRuleOptionalTypeRequired), PARSE_RULE_PACK_SIZE(__VA_ARGS__)
 #define PARSE_RULE_OPTIONAL_NOT_REQUIRED(...)                       PARSE_RULE_OPTIONAL_REQUIRED(__VA_ARGS__)
@@ -815,6 +817,7 @@ typedef struct CfgParseOptionalRuleState
     // Valid
     const unsigned char *valid;
     size_t validSize;
+    unsigned int matchValue;
 
     // Allow range
     int64_t allowRangeMin;
@@ -991,41 +994,77 @@ cfgParseOptionalRule(
                     {
                         PackRead *const ruleData = pckReadPackReadConstP(optionalRules->pack);
                         pckReadNext(ruleData);
+                        bool mapFound = true;
 
-                        switch (pckReadType(ruleData))
+                        if (pckReadType(ruleData) != pckTypeArray)
                         {
-                            case pckTypeBool:
-                                optionalRules->defaultValue.boolean = pckReadBoolP(ruleData);
-                                optionalRules->defaultRaw = optionalRules->defaultValue.boolean ? Y_STR : N_STR;
-                                break;
+                            mapFound = false;
 
-                            default:
+                            switch (pckReadType(ruleData))
                             {
-                                switch (ruleOption->type)
+                                case pckTypeBool:
+                                    optionalRules->defaultValue.boolean = pckReadBoolP(ruleData);
+                                    optionalRules->defaultRaw = optionalRules->defaultValue.boolean ? Y_STR : N_STR;
+                                    break;
+
+                                default:
                                 {
-                                    case cfgOptTypeInteger:
-                                    case cfgOptTypeTime:
-                                    case cfgOptTypeSize:
+                                    switch (ruleOption->type)
                                     {
-                                        optionalRules->defaultValue.integer = parseRuleValueInt[pckReadU32P(ruleData)];
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                        case cfgOptTypeInteger:
+                                        case cfgOptTypeTime:
+                                        case cfgOptTypeSize:
+                                        {
+                                            optionalRules->defaultValue.integer = parseRuleValueInt[pckReadU32P(ruleData)];
+                                            optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
 
-                                        break;
+                                            break;
+                                        }
+
+                                        case cfgOptTypePath:
+                                        case cfgOptTypeString:
+                                        {
+                                            optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                            optionalRules->defaultValue.string = optionalRules->defaultRaw;
+
+                                            break;
+                                        }
+
+                                        case cfgOptTypeStringId:
+                                            optionalRules->defaultValue.stringId = parseRuleValueStrId[pckReadU32P(ruleData)];
+                                            optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                            break;
                                     }
+                                }
+                            }
+                        }
 
-                                    case cfgOptTypePath:
-                                    case cfgOptTypeString:
-                                    {
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
-                                        optionalRules->defaultValue.string = optionalRules->defaultRaw;
+                        if (!mapFound && !pckReadNullP(ruleData))
+                        {
+                            pckReadNext(ruleData);
+                            mapFound = true;
+                        }
 
-                                        break;
-                                    }
+                        if (mapFound)
+                        {
+                            ASSERT(ruleOption->type == cfgOptTypeInteger);
+                            pckReadArrayBeginP(ruleData);
 
-                                    case cfgOptTypeStringId:
-                                        optionalRules->defaultValue.stringId = parseRuleValueStrId[pckReadU32P(ruleData)];
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
-                                        break;
+                            fprintf(stdout, "!!!MATCH VALUE %u\n", optionalRules->matchValue);fflush(stdout);
+
+                            while (!pckReadNullP(ruleData))
+                            {
+                                const unsigned int map = pckReadU32P(ruleData);
+                                const unsigned int defaultValueIdx = pckReadU32P(ruleData);
+                                const unsigned int defaultRawIdx = pckReadU32P(ruleData);
+
+                                fprintf(stdout, "!!!MAP VALUE %u\n", map);fflush(stdout);
+
+                                if (map == optionalRules->matchValue)
+                                {
+                                    optionalRules->defaultValue.integer = parseRuleValueInt[defaultValueIdx];
+                                    optionalRules->defaultRaw = (const String *)&parseRuleValueStr[defaultRawIdx];
+                                    break;
                                 }
                             }
                         }
@@ -1069,6 +1108,7 @@ typedef struct CfgParseOptionalFilterDependResult
     bool valid;
     bool defaultExists;
     bool defaultValue;
+    unsigned int matchValue;                                        // !!!
 } CfgParseOptionalFilterDependResult;
 
 static CfgParseOptionalFilterDependResult
@@ -1114,12 +1154,17 @@ cfgParseOptionalFilterDepend(PackRead *const filter, const Config *const config,
                     default:
                     {
                         ASSERT(cfgParseOptionDataType(dependId) == cfgOptDataTypeStringId);
+                        result.matchValue = pckReadU32P(filter);
 
-                        if (parseRuleValueStrId[pckReadU32P(filter)] == dependValue->value.stringId)
+                        if (parseRuleValueStrId[result.matchValue] == dependValue->value.stringId)
                             result.valid = true;
+
                         break;
                     }
                 }
+
+                if (result.valid)
+                    break;
             }
             while (pckReadNext(filter));
         }
@@ -2342,6 +2387,9 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                 OptionInvalidError, "option '%s' not valid without option '%s'%s",
                                 cfgParseOptionKeyIdxName(optionId, optionKeyIdx), strZ(dependOptionName), strZ(errorValue));
                         }
+                        else
+                            optionalRules.matchValue = dependResult.matchValue;
+
 
                         pckReadFree(filter);
                     }

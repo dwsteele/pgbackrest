@@ -1746,7 +1746,7 @@ testRun(void)
             BUFSTR(
                 strNewFmt(
                     "[global]\n"
-                    "compress-level=3\n"
+                    "compress-type=gz\n"
                     "spool-path=/path/to/spool\n"
                     "lock-path=/\n"
                     "pg1-path=/not/path/to/db\n"
@@ -1841,8 +1841,8 @@ testRun(void)
         TEST_RESULT_INT(cfgOptionSource(cfgOptRepoHardlink), cfgSourceConfig, "repo-hardlink is source config");
         TEST_RESULT_UINT(cfgOptionUInt(cfgOptRepoRetentionFull), 55, "repo-retention-full is set");
         TEST_RESULT_INT(varInt64(cfgOptionVar(cfgOptRepoRetentionFull)), 55, "repo-retention-full as variant");
-        TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 3, "compress-level is set");
-        TEST_RESULT_INT(cfgOptionSource(cfgOptCompressLevel), cfgSourceConfig, "compress-level is source config");
+        TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 6, "compress-level is set");
+        TEST_RESULT_INT(cfgOptionSource(cfgOptCompressLevel), cfgSourceDefault, "compress-level is source config");
         TEST_RESULT_BOOL(cfgOptionBool(cfgOptBackupStandby), false, "backup-standby not is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptBackupStandby), cfgSourceDefault, "backup-standby is source default");
         TEST_RESULT_BOOL(cfgOptionIdxReset(cfgOptBackupStandby, 0), true, "backup-standby was reset");

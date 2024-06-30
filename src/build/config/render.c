@@ -501,9 +501,40 @@ bldCfgRenderAllowList(const List *const allowList, const String *const optType)
 }
 
 // Helper to render default
+static void
+bldCfgRenderDefaultValue(
+    String *const result, const String *const defaultValue, const bool defaultLiteral, const String *const optType,
+    const bool indent)
+{
+    ASSERT(defaultValue != NULL);
+    ASSERT(optType != NULL);
+
+    if (!strEq(optType, OPT_TYPE_STRING_STR) && !strEq(optType, OPT_TYPE_PATH_STR))
+    {
+        if (indent)
+            strCatZ(result, "    ");
+
+        strCatFmt(result, "                    %s,\n", strZ(bldCfgRenderScalar(defaultValue, optType)));
+    }
+
+    if (!strEq(optType, OPT_TYPE_BOOLEAN_STR))
+    {
+        if (indent)
+            strCatZ(result, "    ");
+
+        strCatFmt(
+            result,
+            "                    %s,\n",
+            strZ(
+                bldCfgRenderScalar(
+                    strNewFmt("%s%s%s", defaultLiteral ? "" : "\"", strZ(defaultValue), defaultLiteral ? "" : "\""),
+                    OPT_TYPE_STRING_STR)));
+    }
+}
+
 static String *
 bldCfgRenderDefault(
-    const String *const defaultValue, const bool defaultLiteral, const String *const optType)
+    const BldCfgOptionDefault *const defaultValue, const bool defaultLiteral, const String *const optType)
 {
     ASSERT(defaultValue != NULL);
     ASSERT(optType != NULL);
@@ -515,18 +546,26 @@ bldCfgRenderDefault(
         "                PARSE_RULE_OPTIONAL_DEFAULT\n"
         "                (\n");
 
-    if (!strEq(optType, OPT_TYPE_STRING_STR) && !strEq(optType, OPT_TYPE_PATH_STR))
-        strCatFmt(result, "                    %s,\n", strZ(bldCfgRenderScalar(defaultValue, optType)));
+    if (defaultValue->value != NULL)
+        bldCfgRenderDefaultValue(result, defaultValue->value, defaultLiteral, optType, false);
 
-    if (!strEq(optType, OPT_TYPE_BOOLEAN_STR))
+    if (defaultValue->mapList != NULL)
     {
-        strCatFmt(
+        strCatZ(
             result,
-            "                    %s,\n",
-            strZ(
-                bldCfgRenderScalar(
-                    strNewFmt("%s%s%s", defaultLiteral ? "" : "\"", strZ(defaultValue), defaultLiteral ? "" : "\""),
-                    OPT_TYPE_STRING_STR)));
+            "                    PARSE_RULE_OPTIONAL_DEFAULT_MAP\n"
+            "                    (\n");
+
+        for (unsigned int mapIdx = 0; mapIdx < lstSize(defaultValue->mapList); mapIdx++)
+        {
+            const BldCfgOptionDefaultMap *const map = lstGet(defaultValue->mapList, mapIdx);
+
+            strCatFmt(result, "                        %s,\n", strZ(bldCfgRenderScalar(map->map, OPT_TYPE_STRING_ID_STR)));
+
+            bldCfgRenderDefaultValue(result, map->value, defaultLiteral, optType, true);
+        }
+
+        strCatZ(result, "                    ),\n");
     }
 
     strCatZ(result, "                )");
@@ -833,10 +872,24 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
 
         if (opt->defaultValue != NULL)
         {
-            kvAdd(optionalDefaultRule, ruleDefault, VARSTR(bldCfgRenderDefault(opt->defaultValue, opt->defaultLiteral, opt->type)));
+            kvAdd(
+                optionalDefaultRule, ruleDefault,
+                VARSTR(bldCfgRenderDefault(opt->defaultValue, opt->defaultLiteral, opt->type)));
 
             if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR))
-                bldCfgRenderValueAdd(opt->type, opt->defaultValue, ruleDataList, ruleStrList);
+            {
+                if (opt->defaultValue->value != NULL)
+                bldCfgRenderValueAdd(opt->type, opt->defaultValue->value, ruleDataList, ruleStrList);
+
+                if (opt->defaultValue->mapList != NULL)
+                {
+                    for (unsigned int mapIdx = 0; mapIdx < lstSize(opt->defaultValue->mapList); mapIdx++)
+                    {
+                        const BldCfgOptionDefaultMap *const map = lstGet(opt->defaultValue->mapList, mapIdx);
+                        bldCfgRenderValueAdd(opt->type, map->value, ruleDataList, ruleStrList);
+                    }
+                }
+            }
         }
 
         // Build command optional rules
@@ -870,8 +923,8 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
                     optionalCmdRuleType, ruleDefault,
                     VARSTR(bldCfgRenderDefault(optCmd->defaultValue, opt->defaultLiteral, opt->type)));
 
-                if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR))
-                    bldCfgRenderValueAdd(opt->type, optCmd->defaultValue, ruleDataList, ruleStrList);
+                if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR) && optCmd->defaultValue->value != NULL)
+                    bldCfgRenderValueAdd(opt->type, optCmd->defaultValue->value, ruleDataList, ruleStrList);
             }
 
             // Requires
