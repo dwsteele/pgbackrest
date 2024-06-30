@@ -9,9 +9,6 @@ Compression Helper Internal
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
-// Default compression level for a compression type, used while loading the configuration
-FN_EXTERN int compressLevelDefault(CompressType type);
-
 // Minimum compression level for a compression type, used while loading the configuration
 FN_EXTERN int compressLevelMin(CompressType type);
 

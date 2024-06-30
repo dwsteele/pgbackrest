@@ -45,15 +45,15 @@ referenceOptionRender(
 
         // Add default value
         StringList *const blockList = strLstNew();
-        const String *const defaultValue =
+        const BldCfgOptionDefault *const defaultValue =
             optCmdCfg != NULL && optCmdCfg->defaultValue != NULL ? optCmdCfg->defaultValue : optCfg->defaultValue;
 
-        if (defaultValue != NULL)
+        if (defaultValue != NULL && defaultValue->value != NULL)
         {
             if (strEq(optCfg->type, OPT_TYPE_BOOLEAN_STR))
-                strLstAddFmt(blockList, "default: %s", strEqZ(defaultValue, "true") ? "y" : "n");
+                strLstAddFmt(blockList, "default: %s", strEqZ(defaultValue->value, "true") ? "y" : "n");
             else
-                strLstAddFmt(blockList, "default: %s", strZ(defaultValue));
+                strLstAddFmt(blockList, "default: %s", strZ(defaultValue->value));
         }
 
         // Add allow range

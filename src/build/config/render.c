@@ -879,7 +879,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
             if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR))
             {
                 if (opt->defaultValue->value != NULL)
-                bldCfgRenderValueAdd(opt->type, opt->defaultValue->value, ruleDataList, ruleStrList);
+                    bldCfgRenderValueAdd(opt->type, opt->defaultValue->value, ruleDataList, ruleStrList);
 
                 if (opt->defaultValue->mapList != NULL)
                 {

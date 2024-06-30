@@ -1050,15 +1050,11 @@ cfgParseOptionalRule(
                             ASSERT(ruleOption->type == cfgOptTypeInteger);
                             pckReadArrayBeginP(ruleData);
 
-                            fprintf(stdout, "!!!MATCH VALUE %u\n", optionalRules->matchValue);fflush(stdout);
-
                             while (!pckReadNullP(ruleData))
                             {
                                 const unsigned int map = pckReadU32P(ruleData);
                                 const unsigned int defaultValueIdx = pckReadU32P(ruleData);
                                 const unsigned int defaultRawIdx = pckReadU32P(ruleData);
-
-                                fprintf(stdout, "!!!MAP VALUE %u\n", map);fflush(stdout);
 
                                 if (map == optionalRules->matchValue)
                                 {
@@ -2389,7 +2385,6 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                         }
                         else
                             optionalRules.matchValue = dependResult.matchValue;
-
 
                         pckReadFree(filter);
                     }
