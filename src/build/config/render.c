@@ -517,8 +517,7 @@ bldCfgRenderDefault(
 
     if (!strEq(optType, OPT_TYPE_STRING_STR) && !strEq(optType, OPT_TYPE_PATH_STR))
         strCatFmt(result, "                    %s,\n", strZ(bldCfgRenderScalar(defaultValue, optType)));
-
-    if (!strEq(optType, OPT_TYPE_BOOLEAN_STR))
+    else
     {
         strCatFmt(
             result,
@@ -537,17 +536,30 @@ bldCfgRenderDefault(
 // Helper to add values to value lists
 static void
 bldCfgRenderValueAdd(
-    const String *const optType, const String *const value, StringList *const ruleDataList, StringList *const ruleStrList)
+    const String *const optType, const String *const value, StringList *const ruleDataList, StringList *const ruleStrList,
+    KeyValue *const ruleStrMap)
 {
+    const String *valueTransform = value;
+
     if (strEq(optType, OPT_TYPE_TIME_STR))
-        strLstAddIfMissing(ruleDataList, strNewFmt("%" PRId64, cfgParseTime(value)));
+        valueTransform = strNewFmt("%" PRId64, cfgParseTime(value));
     else if (strEq(optType, OPT_TYPE_SIZE_STR))
-        strLstAddIfMissing(ruleDataList, strNewFmt("%" PRId64, cfgParseSize(value)));
-    else
-        strLstAddIfMissing(ruleDataList, value);
+        valueTransform = strNewFmt("%" PRId64, cfgParseSize(value));
+
+    strLstAddIfMissing(ruleDataList, valueTransform);
 
     if (ruleStrList != NULL && !strEq(optType, OPT_TYPE_STRING_STR) && !strEq(optType, OPT_TYPE_PATH_STR))
-        strLstAddIfMissing(ruleStrList, strNewFmt("\"%s\"", strZ(value)));
+    {
+        const String *valueStr = strNewFmt("\"%s\"", strZ(value));
+        const Variant *valueVar = kvGet(ruleStrMap, VARSTR(valueTransform));
+        ASSERT(valueVar == NULL || strEq(varStr(valueVar), valueStr));
+
+        if (!strLstExists(ruleStrList, valueStr))
+        {
+            kvPut(ruleStrMap, VARSTR(valueTransform), VARSTR(valueStr));
+            strLstAdd(ruleStrList, valueStr);
+        }
+    }
 }
 
 static void
@@ -558,6 +570,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     StringList *const ruleIntList = strLstNew();
     StringList *const ruleStrList = strLstNew();
     StringList *const ruleStrIdList = strLstNew();
+    KeyValue *const ruleStrMap = kvNew();
 
     // Command parse rules
     // -----------------------------------------------------------------------------------------------------------------------------
@@ -815,8 +828,8 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
                 optionalDefaultRule, ruleAllowRange,
                 VARSTR(bldCfgRenderAllowRange(opt->allowRangeMin, opt->allowRangeMax, opt->type)));
 
-            bldCfgRenderValueAdd(opt->type, opt->allowRangeMin, ruleDataList, NULL);
-            bldCfgRenderValueAdd(opt->type, opt->allowRangeMax, ruleDataList, NULL);
+            bldCfgRenderValueAdd(opt->type, opt->allowRangeMin, ruleDataList, NULL, NULL);
+            bldCfgRenderValueAdd(opt->type, opt->allowRangeMax, ruleDataList, NULL, NULL);
         }
 
         if (opt->allowList != NULL)
@@ -826,7 +839,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
             for (unsigned int allowIdx = 0; allowIdx < lstSize(opt->allowList); allowIdx++)
             {
                 bldCfgRenderValueAdd(
-                    opt->type, ((const BldCfgOptionValue *)lstGet(opt->allowList, allowIdx))->value, ruleDataList, NULL);
+                    opt->type, ((const BldCfgOptionValue *)lstGet(opt->allowList, allowIdx))->value, ruleDataList, NULL, NULL);
             }
         }
 
@@ -835,7 +848,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
             kvAdd(optionalDefaultRule, ruleDefault, VARSTR(bldCfgRenderDefault(opt->defaultValue, opt->defaultLiteral, opt->type)));
 
             if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR))
-                bldCfgRenderValueAdd(opt->type, opt->defaultValue, ruleDataList, ruleStrList);
+                bldCfgRenderValueAdd(opt->type, opt->defaultValue, ruleDataList, ruleStrList, ruleStrMap);
         }
 
         // Build command optional rules
@@ -858,7 +871,8 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
                 for (unsigned int allowIdx = 0; allowIdx < lstSize(optCmd->allowList); allowIdx++)
                 {
                     bldCfgRenderValueAdd(
-                        opt->type, ((const BldCfgOptionValue *)lstGet(optCmd->allowList, allowIdx))->value, ruleDataList, NULL);
+                        opt->type, ((const BldCfgOptionValue *)lstGet(optCmd->allowList, allowIdx))->value, ruleDataList, NULL,
+                        NULL);
                 }
             }
 
@@ -870,7 +884,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
                     VARSTR(bldCfgRenderDefault(optCmd->defaultValue, opt->defaultLiteral, opt->type)));
 
                 if (!strEq(opt->type, OPT_TYPE_BOOLEAN_STR))
-                    bldCfgRenderValueAdd(opt->type, optCmd->defaultValue, ruleDataList, ruleStrList);
+                    bldCfgRenderValueAdd(opt->type, optCmd->defaultValue, ruleDataList, ruleStrList, ruleStrMap);
             }
 
             // Requires
@@ -1232,6 +1246,31 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     strCatZ(
         configVal,
         "\n"
+        "static const uint8_t parseRuleValueStrIdStrMap[] =\n"
+        "{\n");
+
+    String *const configValStrIdStrMap = strNew();
+
+    ASSERT(strLstSize(ruleStrIdList) < 256);
+
+    for (unsigned int ruleStrIdIdx = 0; ruleStrIdIdx < strLstSize(ruleStrIdList); ruleStrIdIdx++)
+    {
+        const String *const ruleStr = strNewFmt("\"%s\"", strZ(strLstGet(ruleStrIdList, ruleStrIdIdx)));
+
+        bldCfgRenderLf(configValStrIdStrMap, ruleStrIdIdx != 0);
+
+        if (strLstExists(ruleStrList, ruleStr))
+            strCatFmt(configValStrIdStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(ruleStr))));
+        else
+            strCatZ(configValStrIdStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+    }
+
+    strCat(configVal, bldCfgRenderLabel(configValStrIdStrMap, label, STRDEF("val/strid/strmap")));
+    strCatZ(configVal, "\n};\n");
+
+    strCatZ(
+        configVal,
+        "\n"
         "typedef enum\n"
         "{\n");
 
@@ -1279,6 +1318,31 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     }
 
     strCat(configVal, bldCfgRenderLabel(configValInt, label, STRDEF("val/int")));
+    strCatZ(configVal, "\n};\n");
+
+    strCatZ(
+        configVal,
+        "\n"
+        "static const uint8_t parseRuleValueIntStrMap[] =\n"
+        "{\n");
+
+    String *const configValIntStrMap = strNew();
+
+    ASSERT(strLstSize(ruleIntList) < 256);
+
+    for (unsigned int ruleIntIdx = 0; ruleIntIdx < strLstSize(ruleIntList); ruleIntIdx++)
+    {
+        const Variant *const ruleStrVar = kvGet(ruleStrMap, VARSTR(strLstGet(ruleIntList, ruleIntIdx)));
+
+        bldCfgRenderLf(configValIntStrMap, ruleIntIdx != 0);
+
+        if (ruleStrVar != NULL)
+            strCatFmt(configValIntStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleStrVar)))));
+        else
+            strCatZ(configValIntStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+    }
+
+    strCat(configVal, bldCfgRenderLabel(configValIntStrMap, label, STRDEF("val/int/strmap")));
     strCatZ(configVal, "\n};\n");
 
     strCatZ(

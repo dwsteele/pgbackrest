@@ -180,6 +180,66 @@ static const StringId parseRuleValueStrId[] =
     STRID5("zst", 0x527a0),                                                                                             // val/strid
 };
 
+static const uint8_t parseRuleValueStrIdStrMap[] =
+{
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_asc_QT,                                                                                    // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_count_QT,                                                                                  // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_default_QT,                                                                                // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_full_QT,                                                                                   // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_gz_QT,                                                                                     // val/strid/strmap
+    parseRuleValStrQT_host_QT,                                                                                   // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_incr_QT,                                                                                   // val/strid/strmap
+    parseRuleValStrQT_info_QT,                                                                                   // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_none_QT,                                                                                   // val/strid/strmap
+    parseRuleValStrQT_off_QT,                                                                                    // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_pause_QT,                                                                                  // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_posix_QT,                                                                                  // val/strid/strmap
+    parseRuleValStrQT_preserve_QT,                                                                               // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_service_QT,                                                                                // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_shared_QT,                                                                                 // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_ssh_QT,                                                                                    // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_strict_QT,                                                                                 // val/strid/strmap
+    parseRuleValStrQT_text_QT,                                                                                   // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    parseRuleValStrQT_warn_QT,                                                                                   // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                       // val/strid/strmap
+};
+
 typedef enum
 {
     parseRuleValStrIdAcceptNew,                                                                                    // val/strid/enum
@@ -293,6 +353,56 @@ static const int64_t parseRuleValueInt[] =
     1099511627776,                                                                                                        // val/int
     1125899906842624,                                                                                                     // val/int
     4503599627370496,                                                                                                     // val/int
+};
+
+static const uint8_t parseRuleValueIntStrMap[] =
+{
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_1_QT,                                                                                        // val/int/strmap
+    parseRuleValStrQT_2_QT,                                                                                        // val/int/strmap
+    parseRuleValStrQT_3_QT,                                                                                        // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_22_QT,                                                                                       // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_443_QT,                                                                                      // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_5432_QT,                                                                                     // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_8432_QT,                                                                                     // val/int/strmap
+    parseRuleValStrQT_15_QT,                                                                                       // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_60_QT,                                                                                       // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_256KiB_QT,                                                                                   // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_1MiB_QT,                                                                                     // val/int/strmap
+    parseRuleValStrQT_1800_QT,                                                                                     // val/int/strmap
+    parseRuleValStrQT_1830_QT,                                                                                     // val/int/strmap
+    parseRuleValStrQT_2MiB_QT,                                                                                     // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_20MiB_QT,                                                                                    // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_128MiB_QT,                                                                                   // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    parseRuleValStrQT_1GiB_QT,                                                                                     // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
+    PARSE_RULE_VAL_NO_MAP,                                                                                         // val/int/strmap
 };
 
 typedef enum
@@ -922,7 +1032,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                             // opt/archive-get-queue-max
                 (                                                                                       // opt/archive-get-queue-max
                     PARSE_RULE_VAL_INT(134217728),                                                      // opt/archive-get-queue-max
-                    PARSE_RULE_VAL_STR(QT_128MiB_QT),                                                   // opt/archive-get-queue-max
                 ),                                                                                      // opt/archive-get-queue-max
             ),                                                                                          // opt/archive-get-queue-max
         ),                                                                                              // opt/archive-get-queue-max
@@ -1011,7 +1120,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                      // opt/archive-mode
                 (                                                                                                // opt/archive-mode
                     PARSE_RULE_VAL_STRID(Preserve),                                                              // opt/archive-mode
-                    PARSE_RULE_VAL_STR(QT_preserve_QT),                                                          // opt/archive-mode
                 ),                                                                                               // opt/archive-mode
             ),                                                                                                   // opt/archive-mode
         ),                                                                                                       // opt/archive-mode
@@ -1117,7 +1225,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                   // opt/archive-timeout
                 (                                                                                             // opt/archive-timeout
                     PARSE_RULE_VAL_INT(60000),                                                                // opt/archive-timeout
-                    PARSE_RULE_VAL_STR(QT_60_QT),                                                             // opt/archive-timeout
                 ),                                                                                            // opt/archive-timeout
             ),                                                                                                // opt/archive-timeout
         ),                                                                                                    // opt/archive-timeout
@@ -1324,7 +1431,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                       // opt/buffer-size
                 (                                                                                                 // opt/buffer-size
                     PARSE_RULE_VAL_INT(1048576),                                                                  // opt/buffer-size
-                    PARSE_RULE_VAL_STR(QT_1MiB_QT),                                                               // opt/buffer-size
                 ),                                                                                                // opt/buffer-size
             ),                                                                                                    // opt/buffer-size
         ),                                                                                                        // opt/buffer-size
@@ -1560,7 +1666,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                            // opt/compress-level-network
                 (                                                                                      // opt/compress-level-network
                     PARSE_RULE_VAL_INT(3),                                                             // opt/compress-level-network
-                    PARSE_RULE_VAL_STR(QT_3_QT),                                                       // opt/compress-level-network
                 ),                                                                                     // opt/compress-level-network
             ),                                                                                         // opt/compress-level-network
         ),                                                                                             // opt/compress-level-network
@@ -1607,7 +1712,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                     // opt/compress-type
                 (                                                                                               // opt/compress-type
                     PARSE_RULE_VAL_STRID(Gz),                                                                   // opt/compress-type
-                    PARSE_RULE_VAL_STR(QT_gz_QT),                                                               // opt/compress-type
                 ),                                                                                              // opt/compress-type
             ),                                                                                                  // opt/compress-type
         ),                                                                                                      // opt/compress-type
@@ -1953,7 +2057,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                        // opt/db-timeout
                 (                                                                                                  // opt/db-timeout
                     PARSE_RULE_VAL_INT(1800000),                                                                   // opt/db-timeout
-                    PARSE_RULE_VAL_STR(QT_1800_QT),                                                                // opt/db-timeout
                 ),                                                                                                 // opt/db-timeout
             ),                                                                                                     // opt/db-timeout
         ),                                                                                                         // opt/db-timeout
@@ -2287,7 +2390,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                        // opt/io-timeout
                 (                                                                                                  // opt/io-timeout
                     PARSE_RULE_VAL_INT(60000),                                                                     // opt/io-timeout
-                    PARSE_RULE_VAL_STR(QT_60_QT),                                                                  // opt/io-timeout
                 ),                                                                                                 // opt/io-timeout
             ),                                                                                                     // opt/io-timeout
         ),                                                                                                         // opt/io-timeout
@@ -2344,7 +2446,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                         // opt/job-retry
                 (                                                                                                   // opt/job-retry
                     PARSE_RULE_VAL_INT(1),                                                                          // opt/job-retry
-                    PARSE_RULE_VAL_STR(QT_1_QT),                                                                    // opt/job-retry
                 ),                                                                                                  // opt/job-retry
             ),                                                                                                      // opt/job-retry
                                                                                                                     // opt/job-retry
@@ -2359,7 +2460,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                         // opt/job-retry
                 (                                                                                                   // opt/job-retry
                     PARSE_RULE_VAL_INT(2),                                                                          // opt/job-retry
-                    PARSE_RULE_VAL_STR(QT_2_QT),                                                                    // opt/job-retry
                 ),                                                                                                  // opt/job-retry
             ),                                                                                                      // opt/job-retry
         ),                                                                                                          // opt/job-retry
@@ -2416,7 +2516,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                // opt/job-retry-interval
                 (                                                                                          // opt/job-retry-interval
                     PARSE_RULE_VAL_INT(1000),                                                              // opt/job-retry-interval
-                    PARSE_RULE_VAL_STR(QT_1_QT),                                                           // opt/job-retry-interval
                 ),                                                                                         // opt/job-retry-interval
             ),                                                                                             // opt/job-retry-interval
                                                                                                            // opt/job-retry-interval
@@ -2431,7 +2530,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                // opt/job-retry-interval
                 (                                                                                          // opt/job-retry-interval
                     PARSE_RULE_VAL_INT(15000),                                                             // opt/job-retry-interval
-                    PARSE_RULE_VAL_STR(QT_15_QT),                                                          // opt/job-retry-interval
                 ),                                                                                         // opt/job-retry-interval
             ),                                                                                             // opt/job-retry-interval
         ),                                                                                                 // opt/job-retry-interval
@@ -2629,7 +2727,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/log-level-console
                 (                                                                                           // opt/log-level-console
                     PARSE_RULE_VAL_STRID(Warn),                                                             // opt/log-level-console
-                    PARSE_RULE_VAL_STR(QT_warn_QT),                                                         // opt/log-level-console
                 ),                                                                                          // opt/log-level-console
             ),                                                                                              // opt/log-level-console
         ),                                                                                                  // opt/log-level-console
@@ -2723,7 +2820,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                    // opt/log-level-file
                 (                                                                                              // opt/log-level-file
                     PARSE_RULE_VAL_STRID(Info),                                                                // opt/log-level-file
-                    PARSE_RULE_VAL_STR(QT_info_QT),                                                            // opt/log-level-file
                 ),                                                                                             // opt/log-level-file
             ),                                                                                                 // opt/log-level-file
         ),                                                                                                     // opt/log-level-file
@@ -2817,7 +2913,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/log-level-stderr
                 (                                                                                            // opt/log-level-stderr
                     PARSE_RULE_VAL_STRID(Off),                                                               // opt/log-level-stderr
-                    PARSE_RULE_VAL_STR(QT_off_QT),                                                           // opt/log-level-stderr
                 ),                                                                                           // opt/log-level-stderr
             ),                                                                                               // opt/log-level-stderr
         ),                                                                                                   // opt/log-level-stderr
@@ -3092,7 +3187,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                           // opt/manifest-save-threshold
                 (                                                                                     // opt/manifest-save-threshold
                     PARSE_RULE_VAL_INT(1073741824),                                                   // opt/manifest-save-threshold
-                    PARSE_RULE_VAL_STR(QT_1GiB_QT),                                                   // opt/manifest-save-threshold
                 ),                                                                                    // opt/manifest-save-threshold
             ),                                                                                        // opt/manifest-save-threshold
         ),                                                                                            // opt/manifest-save-threshold
@@ -3235,7 +3329,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                            // opt/output
                 (                                                                                                      // opt/output
                     PARSE_RULE_VAL_STRID(None),                                                                        // opt/output
-                    PARSE_RULE_VAL_STR(QT_none_QT),                                                                    // opt/output
                 ),                                                                                                     // opt/output
             ),                                                                                                         // opt/output
                                                                                                                        // opt/output
@@ -3250,7 +3343,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                            // opt/output
                 (                                                                                                      // opt/output
                     PARSE_RULE_VAL_STRID(Text),                                                                        // opt/output
-                    PARSE_RULE_VAL_STR(QT_text_QT),                                                                    // opt/output
                 ),                                                                                                     // opt/output
             ),                                                                                                         // opt/output
         ),                                                                                                             // opt/output
@@ -3862,7 +3954,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                      // opt/pg-host-type
                 (                                                                                                // opt/pg-host-type
                     PARSE_RULE_VAL_STRID(Ssh),                                                                   // opt/pg-host-type
-                    PARSE_RULE_VAL_STR(QT_ssh_QT),                                                               // opt/pg-host-type
                 ),                                                                                               // opt/pg-host-type
             ),                                                                                                   // opt/pg-host-type
         ),                                                                                                       // opt/pg-host-type
@@ -4085,7 +4176,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                           // opt/pg-port
                 (                                                                                                     // opt/pg-port
                     PARSE_RULE_VAL_INT(5432),                                                                         // opt/pg-port
-                    PARSE_RULE_VAL_STR(QT_5432_QT),                                                                   // opt/pg-port
                 ),                                                                                                    // opt/pg-port
             ),                                                                                                        // opt/pg-port
         ),                                                                                                            // opt/pg-port
@@ -4317,7 +4407,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                       // opt/process-max
                 (                                                                                                 // opt/process-max
                     PARSE_RULE_VAL_INT(1),                                                                        // opt/process-max
-                    PARSE_RULE_VAL_STR(QT_1_QT),                                                                  // opt/process-max
                 ),                                                                                                // opt/process-max
             ),                                                                                                    // opt/process-max
         ),                                                                                                        // opt/process-max
@@ -4402,7 +4491,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/protocol-timeout
                 (                                                                                            // opt/protocol-timeout
                     PARSE_RULE_VAL_INT(1830000),                                                             // opt/protocol-timeout
-                    PARSE_RULE_VAL_STR(QT_1830_QT),                                                          // opt/protocol-timeout
                 ),                                                                                           // opt/protocol-timeout
             ),                                                                                               // opt/protocol-timeout
         ),                                                                                                   // opt/protocol-timeout
@@ -5034,7 +5122,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                               // opt/repo-azure-key-type
                 (                                                                                         // opt/repo-azure-key-type
                     PARSE_RULE_VAL_STRID(Shared),                                                         // opt/repo-azure-key-type
-                    PARSE_RULE_VAL_STR(QT_shared_QT),                                                     // opt/repo-azure-key-type
                 ),                                                                                        // opt/repo-azure-key-type
             ),                                                                                            // opt/repo-azure-key-type
         ),                                                                                                // opt/repo-azure-key-type
@@ -5125,7 +5212,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                              // opt/repo-azure-uri-style
                 (                                                                                        // opt/repo-azure-uri-style
                     PARSE_RULE_VAL_STRID(Host),                                                          // opt/repo-azure-uri-style
-                    PARSE_RULE_VAL_STR(QT_host_QT),                                                      // opt/repo-azure-uri-style
                 ),                                                                                       // opt/repo-azure-uri-style
             ),                                                                                           // opt/repo-azure-uri-style
         ),                                                                                               // opt/repo-azure-uri-style
@@ -5282,7 +5368,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                             // opt/repo-block-size-super
                 (                                                                                       // opt/repo-block-size-super
                     PARSE_RULE_VAL_INT(262144),                                                         // opt/repo-block-size-super
-                    PARSE_RULE_VAL_STR(QT_256KiB_QT),                                                   // opt/repo-block-size-super
                 ),                                                                                      // opt/repo-block-size-super
             ),                                                                                          // opt/repo-block-size-super
         ),                                                                                              // opt/repo-block-size-super
@@ -5321,7 +5406,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                        // opt/repo-block-size-super-full
                 (                                                                                  // opt/repo-block-size-super-full
                     PARSE_RULE_VAL_INT(1048576),                                                   // opt/repo-block-size-super-full
-                    PARSE_RULE_VAL_STR(QT_1MiB_QT),                                                // opt/repo-block-size-super-full
                 ),                                                                                 // opt/repo-block-size-super-full
             ),                                                                                     // opt/repo-block-size-super-full
         ),                                                                                         // opt/repo-block-size-super-full
@@ -5387,7 +5471,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/repo-bundle-limit
                 (                                                                                           // opt/repo-bundle-limit
                     PARSE_RULE_VAL_INT(2097152),                                                            // opt/repo-bundle-limit
-                    PARSE_RULE_VAL_STR(QT_2MiB_QT),                                                         // opt/repo-bundle-limit
                 ),                                                                                          // opt/repo-bundle-limit
             ),                                                                                              // opt/repo-bundle-limit
         ),                                                                                                  // opt/repo-bundle-limit
@@ -5426,7 +5509,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-bundle-size
                 (                                                                                            // opt/repo-bundle-size
                     PARSE_RULE_VAL_INT(20971520),                                                            // opt/repo-bundle-size
-                    PARSE_RULE_VAL_STR(QT_20MiB_QT),                                                         // opt/repo-bundle-size
                 ),                                                                                           // opt/repo-bundle-size
             ),                                                                                               // opt/repo-bundle-size
         ),                                                                                                   // opt/repo-bundle-size
@@ -5593,7 +5675,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-cipher-type
                 (                                                                                            // opt/repo-cipher-type
                     PARSE_RULE_VAL_STRID(None),                                                              // opt/repo-cipher-type
-                    PARSE_RULE_VAL_STR(QT_none_QT),                                                          // opt/repo-cipher-type
                 ),                                                                                           // opt/repo-cipher-type
             ),                                                                                               // opt/repo-cipher-type
         ),                                                                                                   // opt/repo-cipher-type
@@ -5927,7 +6008,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/repo-gcs-key-type
                 (                                                                                           // opt/repo-gcs-key-type
                     PARSE_RULE_VAL_STRID(Service),                                                          // opt/repo-gcs-key-type
-                    PARSE_RULE_VAL_STR(QT_service_QT),                                                      // opt/repo-gcs-key-type
                 ),                                                                                          // opt/repo-gcs-key-type
             ),                                                                                              // opt/repo-gcs-key-type
         ),                                                                                                  // opt/repo-gcs-key-type
@@ -6623,7 +6703,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                    // opt/repo-host-type
                 (                                                                                              // opt/repo-host-type
                     PARSE_RULE_VAL_STRID(Ssh),                                                                 // opt/repo-host-type
-                    PARSE_RULE_VAL_STR(QT_ssh_QT),                                                             // opt/repo-host-type
                 ),                                                                                             // opt/repo-host-type
             ),                                                                                                 // opt/repo-host-type
         ),                                                                                                     // opt/repo-host-type
@@ -6884,7 +6963,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                       // opt/repo-retention-archive-type
                 (                                                                                 // opt/repo-retention-archive-type
                     PARSE_RULE_VAL_STRID(Full),                                                   // opt/repo-retention-archive-type
-                    PARSE_RULE_VAL_STR(QT_full_QT),                                               // opt/repo-retention-archive-type
                 ),                                                                                // opt/repo-retention-archive-type
             ),                                                                                    // opt/repo-retention-archive-type
         ),                                                                                        // opt/repo-retention-archive-type
@@ -6974,7 +7052,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                          // opt/repo-retention-full-type
                 (                                                                                    // opt/repo-retention-full-type
                     PARSE_RULE_VAL_STRID(Count),                                                     // opt/repo-retention-full-type
-                    PARSE_RULE_VAL_STR(QT_count_QT),                                                 // opt/repo-retention-full-type
                 ),                                                                                   // opt/repo-retention-full-type
             ),                                                                                       // opt/repo-retention-full-type
         ),                                                                                           // opt/repo-retention-full-type
@@ -7416,7 +7493,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-s3-key-type
                 (                                                                                            // opt/repo-s3-key-type
                     PARSE_RULE_VAL_STRID(Shared),                                                            // opt/repo-s3-key-type
-                    PARSE_RULE_VAL_STR(QT_shared_QT),                                                        // opt/repo-s3-key-type
                 ),                                                                                           // opt/repo-s3-key-type
             ),                                                                                               // opt/repo-s3-key-type
         ),                                                                                                   // opt/repo-s3-key-type
@@ -7905,7 +7981,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/repo-s3-uri-style
                 (                                                                                           // opt/repo-s3-uri-style
                     PARSE_RULE_VAL_STRID(Host),                                                             // opt/repo-s3-uri-style
-                    PARSE_RULE_VAL_STR(QT_host_QT),                                                         // opt/repo-s3-uri-style
                 ),                                                                                          // opt/repo-s3-uri-style
             ),                                                                                              // opt/repo-s3-uri-style
         ),                                                                                                  // opt/repo-s3-uri-style
@@ -8157,7 +8232,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                     // opt/repo-sftp-host-key-check-type
                 (                                                                               // opt/repo-sftp-host-key-check-type
                     PARSE_RULE_VAL_STRID(Strict),                                               // opt/repo-sftp-host-key-check-type
-                    PARSE_RULE_VAL_STR(QT_strict_QT),                                           // opt/repo-sftp-host-key-check-type
                 ),                                                                              // opt/repo-sftp-host-key-check-type
             ),                                                                                  // opt/repo-sftp-host-key-check-type
         ),                                                                                      // opt/repo-sftp-host-key-check-type
@@ -8334,7 +8408,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                               // opt/repo-sftp-host-port
                 (                                                                                         // opt/repo-sftp-host-port
                     PARSE_RULE_VAL_INT(22),                                                               // opt/repo-sftp-host-port
-                    PARSE_RULE_VAL_STR(QT_22_QT),                                                         // opt/repo-sftp-host-port
                 ),                                                                                        // opt/repo-sftp-host-port
             ),                                                                                            // opt/repo-sftp-host-port
         ),                                                                                                // opt/repo-sftp-host-port
@@ -9066,7 +9139,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/repo-storage-port
                 (                                                                                           // opt/repo-storage-port
                     PARSE_RULE_VAL_INT(443),                                                                // opt/repo-storage-port
-                    PARSE_RULE_VAL_STR(QT_443_QT),                                                          // opt/repo-storage-port
                 ),                                                                                          // opt/repo-storage-port
             ),                                                                                              // opt/repo-storage-port
         ),                                                                                                  // opt/repo-storage-port
@@ -9415,7 +9487,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                         // opt/repo-type
                 (                                                                                                   // opt/repo-type
                     PARSE_RULE_VAL_STRID(Posix),                                                                    // opt/repo-type
-                    PARSE_RULE_VAL_STR(QT_posix_QT),                                                                // opt/repo-type
                 ),                                                                                                  // opt/repo-type
             ),                                                                                                      // opt/repo-type
         ),                                                                                                          // opt/repo-type
@@ -9719,7 +9790,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                              // opt/sort
                 (                                                                                                        // opt/sort
                     PARSE_RULE_VAL_STRID(Asc),                                                                           // opt/sort
-                    PARSE_RULE_VAL_STR(QT_asc_QT),                                                                       // opt/sort
                 ),                                                                                                       // opt/sort
             ),                                                                                                           // opt/sort
         ),                                                                                                               // opt/sort
@@ -10019,7 +10089,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                     // opt/target-action
                 (                                                                                               // opt/target-action
                     PARSE_RULE_VAL_STRID(Pause),                                                                // opt/target-action
-                    PARSE_RULE_VAL_STR(QT_pause_QT),                                                            // opt/target-action
                 ),                                                                                              // opt/target-action
             ),                                                                                                  // opt/target-action
         ),                                                                                                      // opt/target-action
@@ -10458,7 +10527,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                   // opt/tls-server-port
                 (                                                                                             // opt/tls-server-port
                     PARSE_RULE_VAL_INT(8432),                                                                 // opt/tls-server-port
-                    PARSE_RULE_VAL_STR(QT_8432_QT),                                                           // opt/tls-server-port
                 ),                                                                                            // opt/tls-server-port
             ),                                                                                                // opt/tls-server-port
         ),                                                                                                    // opt/tls-server-port
@@ -10497,7 +10565,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                              // opt/type
                 (                                                                                                        // opt/type
                     PARSE_RULE_VAL_STRID(Incr),                                                                          // opt/type
-                    PARSE_RULE_VAL_STR(QT_incr_QT),                                                                      // opt/type
                 ),                                                                                                       // opt/type
             ),                                                                                                           // opt/type
                                                                                                                          // opt/type
@@ -10541,7 +10608,6 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                              // opt/type
                 (                                                                                                        // opt/type
                     PARSE_RULE_VAL_STRID(Default),                                                                       // opt/type
-                    PARSE_RULE_VAL_STR(QT_default_QT),                                                                   // opt/type
                 ),                                                                                                       // opt/type
             ),                                                                                                           // opt/type
         ),                                                                                                               // opt/type

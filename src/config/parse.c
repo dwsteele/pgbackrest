@@ -229,6 +229,7 @@ typedef enum
 
 #define PARSE_RULE_VAL_BOOL_TRUE                                    PARSE_RULE_BOOL_TRUE
 #define PARSE_RULE_VAL_BOOL_FALSE                                   PARSE_RULE_BOOL_FALSE
+#define PARSE_RULE_VAL_NO_MAP                                       255
 
 #define PARSE_RULE_OPTIONAL(...)                                                                                                   \
     .packSize = sizeof((const unsigned char []){PARSE_RULE_PACK(__VA_ARGS__)}),                                                    \
@@ -998,14 +999,18 @@ cfgParseOptionalRule(
 
                             default:
                             {
+                                const unsigned int valueIdx = pckReadU32P(ruleData);
+                                ASSERT(valueIdx != PARSE_RULE_VAL_NO_MAP);
+
                                 switch (ruleOption->type)
                                 {
                                     case cfgOptTypeInteger:
                                     case cfgOptTypeTime:
                                     case cfgOptTypeSize:
                                     {
-                                        optionalRules->defaultValue.integer = parseRuleValueInt[pckReadU32P(ruleData)];
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                        optionalRules->defaultValue.integer = parseRuleValueInt[valueIdx];
+                                        optionalRules->defaultRaw =
+                                            (const String *)&parseRuleValueStr[parseRuleValueIntStrMap[valueIdx]];
 
                                         break;
                                     }
@@ -1013,16 +1018,20 @@ cfgParseOptionalRule(
                                     case cfgOptTypePath:
                                     case cfgOptTypeString:
                                     {
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[valueIdx];
                                         optionalRules->defaultValue.string = optionalRules->defaultRaw;
 
                                         break;
                                     }
 
                                     case cfgOptTypeStringId:
-                                        optionalRules->defaultValue.stringId = parseRuleValueStrId[pckReadU32P(ruleData)];
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[pckReadU32P(ruleData)];
+                                    {
+                                        optionalRules->defaultValue.stringId = parseRuleValueStrId[valueIdx];
+                                        optionalRules->defaultRaw =
+                                            (const String *)&parseRuleValueStr[parseRuleValueStrIdStrMap[valueIdx]];
+
                                         break;
+                                    }
                                 }
                             }
                         }
