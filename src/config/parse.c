@@ -830,6 +830,7 @@ typedef struct CfgParseOptionalRuleState
     // Default
     const String *defaultRaw;
     ConfigOptionValueType defaultValue;
+    bool defaultFound;
 
     // Required
     bool required;
@@ -999,6 +1000,7 @@ cfgParseOptionalRule(
                         if (pckReadType(ruleData) != pckTypeArray)
                         {
                             mapFound = false;
+                            optionalRules->defaultFound = true;
 
                             switch (pckReadType(ruleData))
                             {
@@ -1060,6 +1062,8 @@ cfgParseOptionalRule(
                                 {
                                     optionalRules->defaultValue.integer = parseRuleValueInt[defaultValueIdx];
                                     optionalRules->defaultRaw = (const String *)&parseRuleValueStr[defaultRawIdx];
+                                    optionalRules->defaultFound = true;
+
                                     break;
                                 }
                             }
@@ -2606,17 +2610,14 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                         // Else try to set a default
                         else
                         {
-                            bool found = false;
-
                             MEM_CONTEXT_BEGIN(config->memContext)
                             {
-                                found = cfgParseOptionalRule(
-                                    &optionalRules, parseRuleOptionalTypeDefault, config->command, optionId);
+                                cfgParseOptionalRule(&optionalRules, parseRuleOptionalTypeDefault, config->command, optionId);
                             }
                             MEM_CONTEXT_END();
 
                             // If the option has a default
-                            if (found)
+                            if (optionalRules.defaultFound)
                             {
                                 configOptionValue->set = true;
                                 configOptionValue->value = optionalRules.defaultValue;
