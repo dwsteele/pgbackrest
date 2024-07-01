@@ -229,7 +229,6 @@ typedef enum
 
 #define PARSE_RULE_VAL_BOOL_TRUE                                    PARSE_RULE_BOOL_TRUE
 #define PARSE_RULE_VAL_BOOL_FALSE                                   PARSE_RULE_BOOL_FALSE
-#define PARSE_RULE_VAL_NO_MAP                                       255
 
 #define PARSE_RULE_OPTIONAL(...)                                                                                                   \
     .packSize = sizeof((const unsigned char []){PARSE_RULE_PACK(__VA_ARGS__)}),                                                    \

@@ -534,6 +534,8 @@ bldCfgRenderDefault(
 }
 
 // Helper to add values to value lists
+#define BLD_CFG_RENDER_VALUE_MAP_MAX                                255
+
 static void
 bldCfgRenderValueAdd(
     const String *const optType, const String *const value, StringList *const ruleDataList, StringList *const ruleStrList,
@@ -1172,6 +1174,8 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
             bldDefineRender(
                 STRDEF("PARSE_RULE_VAL_STR(value)"),
                 strNewFmt("PARSE_RULE_U32_%zu(parseRuleValStr##value)", bldCfgRenderVar128Size(strLstSize(ruleStrList) - 1)))));
+    strCatFmt(
+        configVal, "%s\n", strZ(bldDefineRender(STRDEF("PARSE_RULE_VAL_NO_MAP"), strNewFmt("%d", BLD_CFG_RENDER_VALUE_MAP_MAX))));
 
     strCatZ(
         configVal,
@@ -1253,7 +1257,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
 
     String *const configValStrIdStrMap = strNew();
 
-    ASSERT(strLstSize(ruleStrIdList) < 256);
+    ASSERT(strLstSize(ruleStrIdList) <= BLD_CFG_RENDER_VALUE_MAP_MAX);
 
     for (unsigned int ruleStrIdIdx = 0; ruleStrIdIdx < strLstSize(ruleStrIdList); ruleStrIdIdx++)
     {
@@ -1330,7 +1334,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
 
     String *const configValIntStrMap = strNew();
 
-    ASSERT(strLstSize(ruleIntList) < 256);
+    ASSERT(strLstSize(ruleIntList) <= BLD_CFG_RENDER_VALUE_MAP_MAX);
 
     for (unsigned int ruleIntIdx = 0; ruleIntIdx < strLstSize(ruleIntList); ruleIntIdx++)
     {
