@@ -551,8 +551,10 @@ bldCfgRenderValueAdd(
     if (ruleStrList != NULL && !strEq(optType, OPT_TYPE_STRING_STR) && !strEq(optType, OPT_TYPE_PATH_STR))
     {
         const String *valueStr = strNewFmt("\"%s\"", strZ(value));
-        const Variant *valueVar = kvGet(ruleStrMap, VARSTR(valueTransform));
-        ASSERT(valueVar == NULL || strEq(varStr(valueVar), valueStr));
+        CHECK_FMT(
+            AssertError,
+            kvGet(ruleStrMap, VARSTR(valueTransform)) == NULL || strEq(varStr(kvGet(ruleStrMap, VARSTR(valueTransform))), valueStr),
+            "value '%s' is a duplicate", strZ(value));
 
         if (!strLstExists(ruleStrList, valueStr))
         {
