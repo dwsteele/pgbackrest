@@ -799,6 +799,37 @@ cfgParseOptionDataType(const ConfigOption optionId)
 
     FUNCTION_TEST_RETURN(ENUM, cfgOptDataTypeString);
 }
+/**********************************************************************************************************************************/
+static const String *
+cfgParseOptionValueStr(const ConfigOptionType type, unsigned int valueIdx)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(ENUM, type);
+        FUNCTION_TEST_PARAM(UINT, valueIdx);
+    FUNCTION_TEST_END();
+
+    switch (type)
+    {
+        case cfgOptTypeInteger:
+        case cfgOptTypeSize:
+        case cfgOptTypeTime:
+            valueIdx = parseRuleValueStrMap[type][valueIdx];
+
+        case cfgOptTypePath:
+        case cfgOptTypeString:
+            break;
+
+        default:
+        {
+            ASSERT(type == cfgOptTypeStringId);
+
+            valueIdx = parseRuleValueStrIdStrMap[valueIdx];
+            break;
+        }
+    }
+
+    FUNCTION_TEST_RETURN_CONST(STRING, (const String *)&parseRuleValueStr[valueIdx]);
+}
 
 /***********************************************************************************************************************************
 Find an optional rule
@@ -816,6 +847,8 @@ typedef struct CfgParseOptionalRuleState
     // Allow range
     int64_t allowRangeMin;
     int64_t allowRangeMax;
+    unsigned int allowRangeMinIdx;
+    unsigned int allowRangeMaxIdx;
 
     // Allow list
     const unsigned char *allowList;
@@ -978,8 +1011,10 @@ cfgParseOptionalRule(
                     {
                         PackRead *const ruleData = pckReadPackReadConstP(optionalRules->pack);
 
-                        optionalRules->allowRangeMin = parseRuleValueInt[pckReadU32P(ruleData)];
-                        optionalRules->allowRangeMax = parseRuleValueInt[pckReadU32P(ruleData)];
+                        optionalRules->allowRangeMinIdx = pckReadU32P(ruleData);
+                        optionalRules->allowRangeMaxIdx = pckReadU32P(ruleData);
+                        optionalRules->allowRangeMin = parseRuleValueIntMap[ruleOption->type][optionalRules->allowRangeMinIdx];
+                        optionalRules->allowRangeMax = parseRuleValueIntMap[ruleOption->type][optionalRules->allowRangeMaxIdx];
 
                         break;
                     }
@@ -1004,34 +1039,28 @@ cfgParseOptionalRule(
                                 switch (ruleOption->type)
                                 {
                                     case cfgOptTypeInteger:
-                                    case cfgOptTypeTime:
-                                    case cfgOptTypeSize:
-                                    {
                                         optionalRules->defaultValue.integer = parseRuleValueInt[valueIdx];
-                                        optionalRules->defaultRaw =
-                                            (const String *)&parseRuleValueStr[parseRuleValueIntStrMap[valueIdx]];
-
                                         break;
-                                    }
+
+                                    case cfgOptTypeTime:
+                                        optionalRules->defaultValue.integer = parseRuleValueTime[valueIdx];
+                                        break;
+
+                                    case cfgOptTypeSize:
+                                        optionalRules->defaultValue.integer = parseRuleValueSize[valueIdx];
+                                        break;
 
                                     case cfgOptTypePath:
                                     case cfgOptTypeString:
-                                    {
-                                        optionalRules->defaultRaw = (const String *)&parseRuleValueStr[valueIdx];
-                                        optionalRules->defaultValue.string = optionalRules->defaultRaw;
-
+                                        optionalRules->defaultValue.string = cfgParseOptionValueStr(ruleOption->type, valueIdx);
                                         break;
-                                    }
 
                                     case cfgOptTypeStringId:
-                                    {
                                         optionalRules->defaultValue.stringId = parseRuleValueStrId[valueIdx];
-                                        optionalRules->defaultRaw =
-                                            (const String *)&parseRuleValueStr[parseRuleValueStrIdStrMap[valueIdx]];
-
                                         break;
-                                    }
                                 }
+
+                                optionalRules->defaultRaw = cfgParseOptionValueStr(ruleOption->type, valueIdx);
                             }
                         }
 
@@ -2454,7 +2483,10 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                          configOptionValue->value.integer > optionalRules.allowRangeMax))
                                     {
                                         THROW_FMT(
-                                            OptionInvalidValueError, "'%s' is out of range for '%s' option", strZ(value),
+                                            OptionInvalidValueError,
+                                            "'%s' is out of allowed range (%s-%s) for '%s' option",
+                                            strZ(value), strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMinIdx)),
+                                            strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMaxIdx)),
                                             cfgParseOptionKeyIdxName(optionId, optionKeyIdx));
                                     }
                                 }
@@ -2537,7 +2569,7 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                             {
                                                 ASSERT(ruleOption->type == cfgOptTypeSize);
 
-                                                allowListFound = parseRuleValueInt[valueIdx] == configOptionValue->value.integer;
+                                                allowListFound = parseRuleValueSize[valueIdx] == configOptionValue->value.integer;
                                                 break;
                                             }
                                         }

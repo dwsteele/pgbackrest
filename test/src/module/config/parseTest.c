@@ -1034,7 +1034,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptManifestSaveThreshold, "999t");
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'999t' is out of range for 'manifest-save-threshold' option");
+            "'999t' is out of allowed range (1-1TiB) for 'manifest-save-threshold' option");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("value missing");
@@ -1340,7 +1340,7 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'0' is out of range for 'process-max' option");
+            "'0' is out of allowed range (1-999) for 'process-max' option");
 
         argList = strLstNew();
         strLstAddZ(argList, TEST_BACKREST_EXE);
@@ -1350,7 +1350,7 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'65536' is out of range for 'process-max' option");
+            "'65536' is out of allowed range (1-999) for 'process-max' option");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("character value when integer expected");
@@ -1376,7 +1376,7 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'.01' is out of range for 'protocol-timeout' option");
+            "'.01' is out of allowed range (0.1-604800) for 'protocol-timeout' option");
 
         argList = strLstNew();
         strLstAddZ(argList, TEST_BACKREST_EXE);
