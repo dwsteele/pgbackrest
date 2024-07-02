@@ -799,6 +799,7 @@ cfgParseOptionDataType(const ConfigOption optionId)
 
     FUNCTION_TEST_RETURN(ENUM, cfgOptDataTypeString);
 }
+
 /**********************************************************************************************************************************/
 static const String *
 cfgParseOptionValueStr(const ConfigOptionType type, unsigned int valueIdx)

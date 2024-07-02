@@ -1034,7 +1034,7 @@ testRun(void)
         hrnCfgArgRawZ(argList, cfgOptManifestSaveThreshold, "999t");
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'999t' is out of allowed range (1-1TiB) for 'manifest-save-threshold' option");
+            "'999t' is out of allowed range (1B-1TiB) for 'manifest-save-threshold' option");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("value missing");

@@ -1374,6 +1374,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
 
         bldCfgRenderLf(configValSizeStrMap, ruleValSizeIdx != 0);
 
+        // !!! SHOULD BE FORMATTED AS PRETTY SIZES
         if (ruleSize != NULL)
             strCatFmt(configValSizeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleSize)))));
         else
@@ -1451,6 +1452,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
 
         bldCfgRenderLf(configValTimeStrMap, ruleValTimeIdx != 0);
 
+        // !!! SHOULD BE FORMATTED AS PRETTY TIMES
         if (ruleTime != NULL)
             strCatFmt(configValTimeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleTime)))));
         else
