@@ -534,7 +534,7 @@ bldCfgRenderDefault(
 }
 
 // Helper to add values to value lists
-#define BLD_CFG_RENDER_VALUE_MAP_MAX                                255
+#define BLD_CFG_RENDER_VALUE_MAP_MAX                                UINT8_MAX
 
 static void
 bldCfgRenderValueAdd(

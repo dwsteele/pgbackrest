@@ -577,6 +577,7 @@ testRun(void)
             "Rule Strings\n"
             COMMENT_BLOCK_END "\n"
             "#define PARSE_RULE_VAL_STR(value)                                   PARSE_RULE_U32_1(parseRuleValStr##value)\n"
+            "#define PARSE_RULE_VAL_NO_MAP                                       255\n"
             "\n"
             "static const StringPub parseRuleValueStr[] =\n"
             "{\n"
