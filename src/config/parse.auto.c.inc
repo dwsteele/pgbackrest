@@ -510,18 +510,18 @@ Rule Sizes
 static const int64_t parseRuleValueSize[] =
 {
     0,                                                                                                                   // val/size
-    1,                                                                                                                   // val/size
-    1048576,                                                                                                             // val/size
-    1073741824,                                                                                                          // val/size
-    1099511627776,                                                                                                       // val/size
-    1125899906842624,                                                                                                    // val/size
     131072,                                                                                                              // val/size
     134217728,                                                                                                           // val/size
     16384,                                                                                                               // val/size
     16777216,                                                                                                            // val/size
-    2097152,                                                                                                             // val/size
+    1,                                                                                                                   // val/size
+    1073741824,                                                                                                          // val/size
+    1048576,                                                                                                             // val/size
+    1125899906842624,                                                                                                    // val/size
+    1099511627776,                                                                                                       // val/size
     20971520,                                                                                                            // val/size
     262144,                                                                                                              // val/size
+    2097152,                                                                                                             // val/size
     32768,                                                                                                               // val/size
     4194304,                                                                                                             // val/size
     4503599627370496,                                                                                                    // val/size
@@ -534,18 +534,18 @@ static const int64_t parseRuleValueSize[] =
 static const uint8_t parseRuleValueSizeStrMap[] =
 {
     parseRuleValStrQT_0B_QT,                                                                                      // val/size/strmap
-    parseRuleValStrQT_1B_QT,                                                                                      // val/size/strmap
-    parseRuleValStrQT_1MiB_QT,                                                                                    // val/size/strmap
-    parseRuleValStrQT_1GiB_QT,                                                                                    // val/size/strmap
-    parseRuleValStrQT_1TiB_QT,                                                                                    // val/size/strmap
-    parseRuleValStrQT_1PiB_QT,                                                                                    // val/size/strmap
     parseRuleValStrQT_128KiB_QT,                                                                                  // val/size/strmap
     parseRuleValStrQT_128MiB_QT,                                                                                  // val/size/strmap
     parseRuleValStrQT_16KiB_QT,                                                                                   // val/size/strmap
     parseRuleValStrQT_16MiB_QT,                                                                                   // val/size/strmap
-    parseRuleValStrQT_2MiB_QT,                                                                                    // val/size/strmap
+    parseRuleValStrQT_1B_QT,                                                                                      // val/size/strmap
+    parseRuleValStrQT_1GiB_QT,                                                                                    // val/size/strmap
+    parseRuleValStrQT_1MiB_QT,                                                                                    // val/size/strmap
+    parseRuleValStrQT_1PiB_QT,                                                                                    // val/size/strmap
+    parseRuleValStrQT_1TiB_QT,                                                                                    // val/size/strmap
     parseRuleValStrQT_20MiB_QT,                                                                                   // val/size/strmap
     parseRuleValStrQT_256KiB_QT,                                                                                  // val/size/strmap
+    parseRuleValStrQT_2MiB_QT,                                                                                    // val/size/strmap
     parseRuleValStrQT_32KiB_QT,                                                                                   // val/size/strmap
     parseRuleValStrQT_4MiB_QT,                                                                                    // val/size/strmap
     parseRuleValStrQT_4PiB_QT,                                                                                    // val/size/strmap
@@ -557,26 +557,26 @@ static const uint8_t parseRuleValueSizeStrMap[] =
 
 typedef enum
 {
-    parseRuleValSize0,                                                                                              // val/size/enum
-    parseRuleValSize1,                                                                                              // val/size/enum
-    parseRuleValSize1048576,                                                                                        // val/size/enum
-    parseRuleValSize1073741824,                                                                                     // val/size/enum
-    parseRuleValSize1099511627776,                                                                                  // val/size/enum
-    parseRuleValSize1125899906842624,                                                                               // val/size/enum
-    parseRuleValSize131072,                                                                                         // val/size/enum
-    parseRuleValSize134217728,                                                                                      // val/size/enum
-    parseRuleValSize16384,                                                                                          // val/size/enum
-    parseRuleValSize16777216,                                                                                       // val/size/enum
-    parseRuleValSize2097152,                                                                                        // val/size/enum
-    parseRuleValSize20971520,                                                                                       // val/size/enum
-    parseRuleValSize262144,                                                                                         // val/size/enum
-    parseRuleValSize32768,                                                                                          // val/size/enum
-    parseRuleValSize4194304,                                                                                        // val/size/enum
-    parseRuleValSize4503599627370496,                                                                               // val/size/enum
-    parseRuleValSize524288,                                                                                         // val/size/enum
-    parseRuleValSize65536,                                                                                          // val/size/enum
-    parseRuleValSize8192,                                                                                           // val/size/enum
-    parseRuleValSize8388608,                                                                                        // val/size/enum
+    parseRuleValSize0B,                                                                                             // val/size/enum
+    parseRuleValSize128KiB,                                                                                         // val/size/enum
+    parseRuleValSize128MiB,                                                                                         // val/size/enum
+    parseRuleValSize16KiB,                                                                                          // val/size/enum
+    parseRuleValSize16MiB,                                                                                          // val/size/enum
+    parseRuleValSize1B,                                                                                             // val/size/enum
+    parseRuleValSize1GiB,                                                                                           // val/size/enum
+    parseRuleValSize1MiB,                                                                                           // val/size/enum
+    parseRuleValSize1PiB,                                                                                           // val/size/enum
+    parseRuleValSize1TiB,                                                                                           // val/size/enum
+    parseRuleValSize20MiB,                                                                                          // val/size/enum
+    parseRuleValSize256KiB,                                                                                         // val/size/enum
+    parseRuleValSize2MiB,                                                                                           // val/size/enum
+    parseRuleValSize32KiB,                                                                                          // val/size/enum
+    parseRuleValSize4MiB,                                                                                           // val/size/enum
+    parseRuleValSize4PiB,                                                                                           // val/size/enum
+    parseRuleValSize512KiB,                                                                                         // val/size/enum
+    parseRuleValSize64KiB,                                                                                          // val/size/enum
+    parseRuleValSize8KiB,                                                                                           // val/size/enum
+    parseRuleValSize8MiB,                                                                                           // val/size/enum
 } ParseRuleValueSize;
 
 /***********************************************************************************************************************************
@@ -1218,13 +1218,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                           // opt/archive-get-queue-max
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                         // opt/archive-get-queue-max
                 (                                                                                       // opt/archive-get-queue-max
-                    PARSE_RULE_VAL_SIZE(0),                                                             // opt/archive-get-queue-max
-                    PARSE_RULE_VAL_SIZE(4503599627370496),                                              // opt/archive-get-queue-max
+                    PARSE_RULE_VAL_SIZE(0B),                                                            // opt/archive-get-queue-max
+                    PARSE_RULE_VAL_SIZE(4PiB),                                                          // opt/archive-get-queue-max
                 ),                                                                                      // opt/archive-get-queue-max
                                                                                                         // opt/archive-get-queue-max
                 PARSE_RULE_OPTIONAL_DEFAULT                                                             // opt/archive-get-queue-max
                 (                                                                                       // opt/archive-get-queue-max
-                    PARSE_RULE_VAL_SIZE(134217728),                                                     // opt/archive-get-queue-max
+                    PARSE_RULE_VAL_SIZE(128MiB),                                                        // opt/archive-get-queue-max
                 ),                                                                                      // opt/archive-get-queue-max
             ),                                                                                          // opt/archive-get-queue-max
         ),                                                                                              // opt/archive-get-queue-max
@@ -1382,8 +1382,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                          // opt/archive-push-queue-max
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                        // opt/archive-push-queue-max
                 (                                                                                      // opt/archive-push-queue-max
-                    PARSE_RULE_VAL_SIZE(0),                                                            // opt/archive-push-queue-max
-                    PARSE_RULE_VAL_SIZE(4503599627370496),                                             // opt/archive-push-queue-max
+                    PARSE_RULE_VAL_SIZE(0B),                                                           // opt/archive-push-queue-max
+                    PARSE_RULE_VAL_SIZE(4PiB),                                                         // opt/archive-push-queue-max
                 ),                                                                                     // opt/archive-push-queue-max
             ),                                                                                         // opt/archive-push-queue-max
         ),                                                                                             // opt/archive-push-queue-max
@@ -1608,22 +1608,22 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                                     // opt/buffer-size
                 PARSE_RULE_OPTIONAL_ALLOW_LIST                                                                    // opt/buffer-size
                 (                                                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(16384),                                                                   // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(32768),                                                                   // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(65536),                                                                   // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(131072),                                                                  // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(262144),                                                                  // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(524288),                                                                  // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(1048576),                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(2097152),                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(4194304),                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(8388608),                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(16777216),                                                                // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(16KiB),                                                                   // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(32KiB),                                                                   // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(64KiB),                                                                   // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(128KiB),                                                                  // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(256KiB),                                                                  // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(512KiB),                                                                  // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(1MiB),                                                                    // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(2MiB),                                                                    // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(4MiB),                                                                    // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(8MiB),                                                                    // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(16MiB),                                                                   // opt/buffer-size
                 ),                                                                                                // opt/buffer-size
                                                                                                                   // opt/buffer-size
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                       // opt/buffer-size
                 (                                                                                                 // opt/buffer-size
-                    PARSE_RULE_VAL_SIZE(1048576),                                                                 // opt/buffer-size
+                    PARSE_RULE_VAL_SIZE(1MiB),                                                                    // opt/buffer-size
                 ),                                                                                                // opt/buffer-size
             ),                                                                                                    // opt/buffer-size
         ),                                                                                                        // opt/buffer-size
@@ -3373,13 +3373,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                         // opt/manifest-save-threshold
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                       // opt/manifest-save-threshold
                 (                                                                                     // opt/manifest-save-threshold
-                    PARSE_RULE_VAL_SIZE(1),                                                           // opt/manifest-save-threshold
-                    PARSE_RULE_VAL_SIZE(1099511627776),                                               // opt/manifest-save-threshold
+                    PARSE_RULE_VAL_SIZE(1B),                                                          // opt/manifest-save-threshold
+                    PARSE_RULE_VAL_SIZE(1TiB),                                                        // opt/manifest-save-threshold
                 ),                                                                                    // opt/manifest-save-threshold
                                                                                                       // opt/manifest-save-threshold
                 PARSE_RULE_OPTIONAL_DEFAULT                                                           // opt/manifest-save-threshold
                 (                                                                                     // opt/manifest-save-threshold
-                    PARSE_RULE_VAL_SIZE(1073741824),                                                  // opt/manifest-save-threshold
+                    PARSE_RULE_VAL_SIZE(1GiB),                                                        // opt/manifest-save-threshold
                 ),                                                                                    // opt/manifest-save-threshold
             ),                                                                                        // opt/manifest-save-threshold
         ),                                                                                            // opt/manifest-save-threshold
@@ -5554,13 +5554,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                         // opt/repo-block-size-super
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                         // opt/repo-block-size-super
                 (                                                                                       // opt/repo-block-size-super
-                    PARSE_RULE_VAL_SIZE(32768),                                                         // opt/repo-block-size-super
-                    PARSE_RULE_VAL_SIZE(16777216),                                                      // opt/repo-block-size-super
+                    PARSE_RULE_VAL_SIZE(32KiB),                                                         // opt/repo-block-size-super
+                    PARSE_RULE_VAL_SIZE(16MiB),                                                         // opt/repo-block-size-super
                 ),                                                                                      // opt/repo-block-size-super
                                                                                                         // opt/repo-block-size-super
                 PARSE_RULE_OPTIONAL_DEFAULT                                                             // opt/repo-block-size-super
                 (                                                                                       // opt/repo-block-size-super
-                    PARSE_RULE_VAL_SIZE(262144),                                                        // opt/repo-block-size-super
+                    PARSE_RULE_VAL_SIZE(256KiB),                                                        // opt/repo-block-size-super
                 ),                                                                                      // opt/repo-block-size-super
             ),                                                                                          // opt/repo-block-size-super
         ),                                                                                              // opt/repo-block-size-super
@@ -5592,13 +5592,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                    // opt/repo-block-size-super-full
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                    // opt/repo-block-size-super-full
                 (                                                                                  // opt/repo-block-size-super-full
-                    PARSE_RULE_VAL_SIZE(32768),                                                    // opt/repo-block-size-super-full
-                    PARSE_RULE_VAL_SIZE(16777216),                                                 // opt/repo-block-size-super-full
+                    PARSE_RULE_VAL_SIZE(32KiB),                                                    // opt/repo-block-size-super-full
+                    PARSE_RULE_VAL_SIZE(16MiB),                                                    // opt/repo-block-size-super-full
                 ),                                                                                 // opt/repo-block-size-super-full
                                                                                                    // opt/repo-block-size-super-full
                 PARSE_RULE_OPTIONAL_DEFAULT                                                        // opt/repo-block-size-super-full
                 (                                                                                  // opt/repo-block-size-super-full
-                    PARSE_RULE_VAL_SIZE(1048576),                                                  // opt/repo-block-size-super-full
+                    PARSE_RULE_VAL_SIZE(1MiB),                                                     // opt/repo-block-size-super-full
                 ),                                                                                 // opt/repo-block-size-super-full
             ),                                                                                     // opt/repo-block-size-super-full
         ),                                                                                         // opt/repo-block-size-super-full
@@ -5657,13 +5657,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                             // opt/repo-bundle-limit
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                             // opt/repo-bundle-limit
                 (                                                                                           // opt/repo-bundle-limit
-                    PARSE_RULE_VAL_SIZE(8192),                                                              // opt/repo-bundle-limit
-                    PARSE_RULE_VAL_SIZE(1125899906842624),                                                  // opt/repo-bundle-limit
+                    PARSE_RULE_VAL_SIZE(8KiB),                                                              // opt/repo-bundle-limit
+                    PARSE_RULE_VAL_SIZE(1PiB),                                                              // opt/repo-bundle-limit
                 ),                                                                                          // opt/repo-bundle-limit
                                                                                                             // opt/repo-bundle-limit
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                 // opt/repo-bundle-limit
                 (                                                                                           // opt/repo-bundle-limit
-                    PARSE_RULE_VAL_SIZE(2097152),                                                           // opt/repo-bundle-limit
+                    PARSE_RULE_VAL_SIZE(2MiB),                                                              // opt/repo-bundle-limit
                 ),                                                                                          // opt/repo-bundle-limit
             ),                                                                                              // opt/repo-bundle-limit
         ),                                                                                                  // opt/repo-bundle-limit
@@ -5695,13 +5695,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                              // opt/repo-bundle-size
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                              // opt/repo-bundle-size
                 (                                                                                            // opt/repo-bundle-size
-                    PARSE_RULE_VAL_SIZE(1048576),                                                            // opt/repo-bundle-size
-                    PARSE_RULE_VAL_SIZE(1125899906842624),                                                   // opt/repo-bundle-size
+                    PARSE_RULE_VAL_SIZE(1MiB),                                                               // opt/repo-bundle-size
+                    PARSE_RULE_VAL_SIZE(1PiB),                                                               // opt/repo-bundle-size
                 ),                                                                                           // opt/repo-bundle-size
                                                                                                              // opt/repo-bundle-size
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/repo-bundle-size
                 (                                                                                            // opt/repo-bundle-size
-                    PARSE_RULE_VAL_SIZE(20971520),                                                           // opt/repo-bundle-size
+                    PARSE_RULE_VAL_SIZE(20MiB),                                                              // opt/repo-bundle-size
                 ),                                                                                           // opt/repo-bundle-size
             ),                                                                                               // opt/repo-bundle-size
         ),                                                                                                   // opt/repo-bundle-size
@@ -9499,8 +9499,8 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                // opt/repo-storage-upload-chunk-size
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                // opt/repo-storage-upload-chunk-size
                 (                                                                              // opt/repo-storage-upload-chunk-size
-                    PARSE_RULE_VAL_SIZE(65536),                                                // opt/repo-storage-upload-chunk-size
-                    PARSE_RULE_VAL_SIZE(1099511627776),                                        // opt/repo-storage-upload-chunk-size
+                    PARSE_RULE_VAL_SIZE(64KiB),                                                // opt/repo-storage-upload-chunk-size
+                    PARSE_RULE_VAL_SIZE(1TiB),                                                 // opt/repo-storage-upload-chunk-size
                 ),                                                                             // opt/repo-storage-upload-chunk-size
             ),                                                                                 // opt/repo-storage-upload-chunk-size
         ),                                                                                     // opt/repo-storage-upload-chunk-size

@@ -388,7 +388,7 @@ bldCfgRenderScalar(const String *const scalar, const String *const optType)
         return strNewFmt("PARSE_RULE_VAL_INT(%s)", strZ(scalar));
 
     if (strEq(optType, OPT_TYPE_SIZE_STR))
-        return strNewFmt("PARSE_RULE_VAL_SIZE(%" PRId64 ")", cfgParseSize(scalar));
+        return strNewFmt("PARSE_RULE_VAL_SIZE(%s)", strZ(scalar));
 
     CHECK_FMT(AssertError, strEq(optType, OPT_TYPE_TIME_STR), "invalid type '%s'", strZ(optType));
 
@@ -551,8 +551,6 @@ bldCfgRenderValueAdd(const String *optType, const bool literal, const String *co
 
         if (strEq(optType, OPT_TYPE_TIME_STR))
             valueTransform = strNewFmt("%" PRId64, cfgParseTime(value));
-        else if (strEq(optType, OPT_TYPE_SIZE_STR))
-            valueTransform = strNewFmt("%" PRId64, cfgParseSize(value));
 
         if (kvGet(ruleValMap, VARSTR(optType)) == NULL)
             kvPutKv(ruleValMap, VARSTR(optType));
@@ -1328,6 +1326,8 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     const KeyValue *const ruleValSizeMap = varKv(kvGet(ruleValMap, VARSTR(OPT_TYPE_SIZE_STR)));
     const StringList *const ruleValSizeList = strLstSort(strLstNewVarLst(kvKeyList(ruleValSizeMap)), sortOrderAsc);
 
+    // !!! WOULD BE GREAT TO USE REAL SORT FOR INTEGER TYPES
+
     strCatZ(
         configVal,
         "\n"
@@ -1354,7 +1354,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValSizeIdx = 0; ruleValSizeIdx < strLstSize(ruleValSizeList); ruleValSizeIdx++)
     {
         bldCfgRenderLf(configValSize, ruleValSizeIdx != 0);
-        strCatFmt(configValSize, "    %s,", strZ(strTrim(strLstGet(ruleValSizeList, ruleValSizeIdx))));
+        strCatFmt(configValSize, "    %" PRId64 ",", cfgParseSize(strLstGet(ruleValSizeList, ruleValSizeIdx)));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValSize, label, STRDEF("val/size")));
