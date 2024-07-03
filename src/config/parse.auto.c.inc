@@ -17,22 +17,25 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("/var/log/pgbackrest"),                                                                             // val/str
     PARSE_RULE_STRPUB("/var/spool/pgbackrest"),                                                                           // val/str
     PARSE_RULE_STRPUB("0"),                                                                                               // val/str
-    PARSE_RULE_STRPUB("0.1"),                                                                                             // val/str
     PARSE_RULE_STRPUB("0B"),                                                                                              // val/str
+    PARSE_RULE_STRPUB("0s"),                                                                                              // val/str
     PARSE_RULE_STRPUB("1"),                                                                                               // val/str
+    PARSE_RULE_STRPUB("100ms"),                                                                                           // val/str
     PARSE_RULE_STRPUB("1024"),                                                                                            // val/str
     PARSE_RULE_STRPUB("128KiB"),                                                                                          // val/str
     PARSE_RULE_STRPUB("128MiB"),                                                                                          // val/str
-    PARSE_RULE_STRPUB("15"),                                                                                              // val/str
+    PARSE_RULE_STRPUB("15m"),                                                                                             // val/str
+    PARSE_RULE_STRPUB("15s"),                                                                                             // val/str
     PARSE_RULE_STRPUB("16KiB"),                                                                                           // val/str
     PARSE_RULE_STRPUB("16MiB"),                                                                                           // val/str
-    PARSE_RULE_STRPUB("1800"),                                                                                            // val/str
-    PARSE_RULE_STRPUB("1830"),                                                                                            // val/str
     PARSE_RULE_STRPUB("1B"),                                                                                              // val/str
     PARSE_RULE_STRPUB("1GiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("1MiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("1PiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("1TiB"),                                                                                            // val/str
+    PARSE_RULE_STRPUB("1d"),                                                                                              // val/str
+    PARSE_RULE_STRPUB("1h"),                                                                                              // val/str
+    PARSE_RULE_STRPUB("1m"),                                                                                              // val/str
     PARSE_RULE_STRPUB("2"),                                                                                               // val/str
     PARSE_RULE_STRPUB("20MiB"),                                                                                           // val/str
     PARSE_RULE_STRPUB("22"),                                                                                              // val/str
@@ -40,6 +43,8 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("256KiB"),                                                                                          // val/str
     PARSE_RULE_STRPUB("2MiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("3"),                                                                                               // val/str
+    PARSE_RULE_STRPUB("30m"),                                                                                             // val/str
+    PARSE_RULE_STRPUB("31m"),                                                                                             // val/str
     PARSE_RULE_STRPUB("32"),                                                                                              // val/str
     PARSE_RULE_STRPUB("32KiB"),                                                                                           // val/str
     PARSE_RULE_STRPUB("360"),                                                                                             // val/str
@@ -49,12 +54,10 @@ static const StringPub parseRuleValueStr[] =
     PARSE_RULE_STRPUB("4PiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("512KiB"),                                                                                          // val/str
     PARSE_RULE_STRPUB("5432"),                                                                                            // val/str
-    PARSE_RULE_STRPUB("60"),                                                                                              // val/str
-    PARSE_RULE_STRPUB("604800"),                                                                                          // val/str
     PARSE_RULE_STRPUB("64KiB"),                                                                                           // val/str
     PARSE_RULE_STRPUB("65535"),                                                                                           // val/str
+    PARSE_RULE_STRPUB("7d"),                                                                                              // val/str
     PARSE_RULE_STRPUB("8432"),                                                                                            // val/str
-    PARSE_RULE_STRPUB("86400"),                                                                                           // val/str
     PARSE_RULE_STRPUB("8KiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("8MiB"),                                                                                            // val/str
     PARSE_RULE_STRPUB("9"),                                                                                               // val/str
@@ -135,22 +138,25 @@ typedef enum
     parseRuleValStrQT_FS_var_FS_log_FS_pgbackrest_QT,                                                                // val/str/enum
     parseRuleValStrQT_FS_var_FS_spool_FS_pgbackrest_QT,                                                              // val/str/enum
     parseRuleValStrQT_0_QT,                                                                                          // val/str/enum
-    parseRuleValStrQT_0_DT_1_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_0B_QT,                                                                                         // val/str/enum
+    parseRuleValStrQT_0s_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_1_QT,                                                                                          // val/str/enum
+    parseRuleValStrQT_100ms_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_1024_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_128KiB_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_128MiB_QT,                                                                                     // val/str/enum
-    parseRuleValStrQT_15_QT,                                                                                         // val/str/enum
+    parseRuleValStrQT_15m_QT,                                                                                        // val/str/enum
+    parseRuleValStrQT_15s_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_16KiB_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_16MiB_QT,                                                                                      // val/str/enum
-    parseRuleValStrQT_1800_QT,                                                                                       // val/str/enum
-    parseRuleValStrQT_1830_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_1B_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_1GiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_1MiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_1PiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_1TiB_QT,                                                                                       // val/str/enum
+    parseRuleValStrQT_1d_QT,                                                                                         // val/str/enum
+    parseRuleValStrQT_1h_QT,                                                                                         // val/str/enum
+    parseRuleValStrQT_1m_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_2_QT,                                                                                          // val/str/enum
     parseRuleValStrQT_20MiB_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_22_QT,                                                                                         // val/str/enum
@@ -158,6 +164,8 @@ typedef enum
     parseRuleValStrQT_256KiB_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_2MiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_3_QT,                                                                                          // val/str/enum
+    parseRuleValStrQT_30m_QT,                                                                                        // val/str/enum
+    parseRuleValStrQT_31m_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_32_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_32KiB_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_360_QT,                                                                                        // val/str/enum
@@ -167,12 +175,10 @@ typedef enum
     parseRuleValStrQT_4PiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_512KiB_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_5432_QT,                                                                                       // val/str/enum
-    parseRuleValStrQT_60_QT,                                                                                         // val/str/enum
-    parseRuleValStrQT_604800_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_64KiB_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_65535_QT,                                                                                      // val/str/enum
+    parseRuleValStrQT_7d_QT,                                                                                         // val/str/enum
     parseRuleValStrQT_8432_QT,                                                                                       // val/str/enum
-    parseRuleValStrQT_86400_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_8KiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_8MiB_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_9_QT,                                                                                          // val/str/enum
@@ -591,7 +597,7 @@ static const int64_t parseRuleValueTime[] =
     1000,                                                                                                                // val/time
     15000,                                                                                                               // val/time
     1800000,                                                                                                             // val/time
-    1830000,                                                                                                             // val/time
+    1860000,                                                                                                             // val/time
     3600000,                                                                                                             // val/time
     60000,                                                                                                               // val/time
     604800000,                                                                                                           // val/time
@@ -601,17 +607,17 @@ static const int64_t parseRuleValueTime[] =
 
 static const uint8_t parseRuleValueTimeStrMap[] =
 {
-    parseRuleValStrQT_0_QT,                                                                                       // val/time/strmap
-    parseRuleValStrQT_0_DT_1_QT,                                                                                  // val/time/strmap
+    parseRuleValStrQT_0s_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_100ms_QT,                                                                                   // val/time/strmap
     parseRuleValStrQT_1_QT,                                                                                       // val/time/strmap
-    parseRuleValStrQT_15_QT,                                                                                      // val/time/strmap
-    parseRuleValStrQT_1800_QT,                                                                                    // val/time/strmap
-    parseRuleValStrQT_1830_QT,                                                                                    // val/time/strmap
-    parseRuleValStrQT_3600_QT,                                                                                    // val/time/strmap
-    parseRuleValStrQT_60_QT,                                                                                      // val/time/strmap
-    parseRuleValStrQT_604800_QT,                                                                                  // val/time/strmap
-    parseRuleValStrQT_86400_QT,                                                                                   // val/time/strmap
-    parseRuleValStrQT_900_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_15s_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_30m_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_31m_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_1h_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_1m_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_7d_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_1d_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_15m_QT,                                                                                     // val/time/strmap
 };
 
 typedef enum
@@ -621,7 +627,7 @@ typedef enum
     parseRuleValTime1000,                                                                                           // val/time/enum
     parseRuleValTime15000,                                                                                          // val/time/enum
     parseRuleValTime1800000,                                                                                        // val/time/enum
-    parseRuleValTime1830000,                                                                                        // val/time/enum
+    parseRuleValTime1860000,                                                                                        // val/time/enum
     parseRuleValTime3600000,                                                                                        // val/time/enum
     parseRuleValTime60000,                                                                                          // val/time/enum
     parseRuleValTime604800000,                                                                                      // val/time/enum
@@ -4683,7 +4689,7 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
                                                                                                              // opt/protocol-timeout
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/protocol-timeout
                 (                                                                                            // opt/protocol-timeout
-                    PARSE_RULE_VAL_TIME(1830000),                                                            // opt/protocol-timeout
+                    PARSE_RULE_VAL_TIME(1860000),                                                            // opt/protocol-timeout
                 ),                                                                                           // opt/protocol-timeout
             ),                                                                                               // opt/protocol-timeout
         ),                                                                                                   // opt/protocol-timeout
