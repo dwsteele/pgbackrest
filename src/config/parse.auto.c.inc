@@ -594,45 +594,42 @@ static const int64_t parseRuleValueTime[] =
 {
     0,                                                                                                                   // val/time
     100,                                                                                                                 // val/time
-    1000,                                                                                                                // val/time
+    900000,                                                                                                              // val/time
     15000,                                                                                                               // val/time
-    1800000,                                                                                                             // val/time
-    1860000,                                                                                                             // val/time
+    86400000,                                                                                                            // val/time
     3600000,                                                                                                             // val/time
     60000,                                                                                                               // val/time
+    1800000,                                                                                                             // val/time
+    1860000,                                                                                                             // val/time
     604800000,                                                                                                           // val/time
-    86400000,                                                                                                            // val/time
-    900000,                                                                                                              // val/time
 };
 
 static const uint8_t parseRuleValueTimeStrMap[] =
 {
     parseRuleValStrQT_0s_QT,                                                                                      // val/time/strmap
     parseRuleValStrQT_100ms_QT,                                                                                   // val/time/strmap
-    parseRuleValStrQT_1_QT,                                                                                       // val/time/strmap
+    parseRuleValStrQT_15m_QT,                                                                                     // val/time/strmap
     parseRuleValStrQT_15s_QT,                                                                                     // val/time/strmap
-    parseRuleValStrQT_30m_QT,                                                                                     // val/time/strmap
-    parseRuleValStrQT_31m_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_1d_QT,                                                                                      // val/time/strmap
     parseRuleValStrQT_1h_QT,                                                                                      // val/time/strmap
     parseRuleValStrQT_1m_QT,                                                                                      // val/time/strmap
+    parseRuleValStrQT_30m_QT,                                                                                     // val/time/strmap
+    parseRuleValStrQT_31m_QT,                                                                                     // val/time/strmap
     parseRuleValStrQT_7d_QT,                                                                                      // val/time/strmap
-    parseRuleValStrQT_1d_QT,                                                                                      // val/time/strmap
-    parseRuleValStrQT_15m_QT,                                                                                     // val/time/strmap
 };
 
 typedef enum
 {
-    parseRuleValTime0,                                                                                              // val/time/enum
-    parseRuleValTime100,                                                                                            // val/time/enum
-    parseRuleValTime1000,                                                                                           // val/time/enum
-    parseRuleValTime15000,                                                                                          // val/time/enum
-    parseRuleValTime1800000,                                                                                        // val/time/enum
-    parseRuleValTime1860000,                                                                                        // val/time/enum
-    parseRuleValTime3600000,                                                                                        // val/time/enum
-    parseRuleValTime60000,                                                                                          // val/time/enum
-    parseRuleValTime604800000,                                                                                      // val/time/enum
-    parseRuleValTime86400000,                                                                                       // val/time/enum
-    parseRuleValTime900000,                                                                                         // val/time/enum
+    parseRuleValTime0s,                                                                                             // val/time/enum
+    parseRuleValTime100ms,                                                                                          // val/time/enum
+    parseRuleValTime15m,                                                                                            // val/time/enum
+    parseRuleValTime15s,                                                                                            // val/time/enum
+    parseRuleValTime1d,                                                                                             // val/time/enum
+    parseRuleValTime1h,                                                                                             // val/time/enum
+    parseRuleValTime1m,                                                                                             // val/time/enum
+    parseRuleValTime30m,                                                                                            // val/time/enum
+    parseRuleValTime31m,                                                                                            // val/time/enum
+    parseRuleValTime7d,                                                                                             // val/time/enum
 } ParseRuleValueTime;
 
 /***********************************************************************************************************************************
@@ -644,14 +641,12 @@ static const uint8_t *parseRuleValueStrMap[cfgOptTypeStringId + 1] =
     parseRuleValueSizeStrMap,                                                                                         // val/str/map
     parseRuleValueTimeStrMap,                                                                                         // val/str/map
     parseRuleValueStrIdStrMap,                                                                                        // val/str/map
-                                                                                                                      // val/str/map
 };
 static const int64_t *parseRuleValueIntMap[cfgOptTypeTime + 1] =
 {
     parseRuleValueInt,                                                                                                // val/int/map
     parseRuleValueSize,                                                                                               // val/int/map
     parseRuleValueTime,                                                                                               // val/int/map
-                                                                                                                      // val/int/map
 };
 
 /***********************************************************************************************************************************
@@ -1417,13 +1412,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                                 // opt/archive-timeout
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                               // opt/archive-timeout
                 (                                                                                             // opt/archive-timeout
-                    PARSE_RULE_VAL_TIME(100),                                                                 // opt/archive-timeout
-                    PARSE_RULE_VAL_TIME(86400000),                                                            // opt/archive-timeout
+                    PARSE_RULE_VAL_TIME(100ms),                                                               // opt/archive-timeout
+                    PARSE_RULE_VAL_TIME(1d),                                                                  // opt/archive-timeout
                 ),                                                                                            // opt/archive-timeout
                                                                                                               // opt/archive-timeout
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                   // opt/archive-timeout
                 (                                                                                             // opt/archive-timeout
-                    PARSE_RULE_VAL_TIME(60000),                                                               // opt/archive-timeout
+                    PARSE_RULE_VAL_TIME(1m),                                                                  // opt/archive-timeout
                 ),                                                                                            // opt/archive-timeout
             ),                                                                                                // opt/archive-timeout
         ),                                                                                                    // opt/archive-timeout
@@ -2249,13 +2244,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                                      // opt/db-timeout
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                                    // opt/db-timeout
                 (                                                                                                  // opt/db-timeout
-                    PARSE_RULE_VAL_TIME(100),                                                                      // opt/db-timeout
-                    PARSE_RULE_VAL_TIME(604800000),                                                                // opt/db-timeout
+                    PARSE_RULE_VAL_TIME(100ms),                                                                    // opt/db-timeout
+                    PARSE_RULE_VAL_TIME(7d),                                                                       // opt/db-timeout
                 ),                                                                                                 // opt/db-timeout
                                                                                                                    // opt/db-timeout
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                        // opt/db-timeout
                 (                                                                                                  // opt/db-timeout
-                    PARSE_RULE_VAL_TIME(1800000),                                                                  // opt/db-timeout
+                    PARSE_RULE_VAL_TIME(30m),                                                                      // opt/db-timeout
                 ),                                                                                                 // opt/db-timeout
             ),                                                                                                     // opt/db-timeout
         ),                                                                                                         // opt/db-timeout
@@ -2582,13 +2577,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                                      // opt/io-timeout
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                                    // opt/io-timeout
                 (                                                                                                  // opt/io-timeout
-                    PARSE_RULE_VAL_TIME(100),                                                                      // opt/io-timeout
-                    PARSE_RULE_VAL_TIME(3600000),                                                                  // opt/io-timeout
+                    PARSE_RULE_VAL_TIME(100ms),                                                                    // opt/io-timeout
+                    PARSE_RULE_VAL_TIME(1h),                                                                       // opt/io-timeout
                 ),                                                                                                 // opt/io-timeout
                                                                                                                    // opt/io-timeout
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                        // opt/io-timeout
                 (                                                                                                  // opt/io-timeout
-                    PARSE_RULE_VAL_TIME(60000),                                                                    // opt/io-timeout
+                    PARSE_RULE_VAL_TIME(1m),                                                                       // opt/io-timeout
                 ),                                                                                                 // opt/io-timeout
             ),                                                                                                     // opt/io-timeout
         ),                                                                                                         // opt/io-timeout
@@ -2700,35 +2695,15 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         (                                                                                                  // opt/job-retry-interval
             PARSE_RULE_OPTIONAL_GROUP                                                                      // opt/job-retry-interval
             (                                                                                              // opt/job-retry-interval
-                PARSE_RULE_FILTER_CMD                                                                      // opt/job-retry-interval
-                (                                                                                          // opt/job-retry-interval
-                    PARSE_RULE_VAL_CMD(ArchiveGet),                                                        // opt/job-retry-interval
-                    PARSE_RULE_VAL_CMD(ArchivePush),                                                       // opt/job-retry-interval
-                ),                                                                                         // opt/job-retry-interval
-                                                                                                           // opt/job-retry-interval
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                            // opt/job-retry-interval
                 (                                                                                          // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(0),                                                                // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(900000),                                                           // opt/job-retry-interval
+                    PARSE_RULE_VAL_TIME(0s),                                                               // opt/job-retry-interval
+                    PARSE_RULE_VAL_TIME(15m),                                                              // opt/job-retry-interval
                 ),                                                                                         // opt/job-retry-interval
                                                                                                            // opt/job-retry-interval
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                // opt/job-retry-interval
                 (                                                                                          // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(1000),                                                             // opt/job-retry-interval
-                ),                                                                                         // opt/job-retry-interval
-            ),                                                                                             // opt/job-retry-interval
-                                                                                                           // opt/job-retry-interval
-            PARSE_RULE_OPTIONAL_GROUP                                                                      // opt/job-retry-interval
-            (                                                                                              // opt/job-retry-interval
-                PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                            // opt/job-retry-interval
-                (                                                                                          // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(0),                                                                // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(900000),                                                           // opt/job-retry-interval
-                ),                                                                                         // opt/job-retry-interval
-                                                                                                           // opt/job-retry-interval
-                PARSE_RULE_OPTIONAL_DEFAULT                                                                // opt/job-retry-interval
-                (                                                                                          // opt/job-retry-interval
-                    PARSE_RULE_VAL_TIME(15000),                                                            // opt/job-retry-interval
+                    PARSE_RULE_VAL_TIME(15s),                                                              // opt/job-retry-interval
                 ),                                                                                         // opt/job-retry-interval
             ),                                                                                             // opt/job-retry-interval
         ),                                                                                                 // opt/job-retry-interval
@@ -4683,13 +4658,13 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             (                                                                                                // opt/protocol-timeout
                 PARSE_RULE_OPTIONAL_ALLOW_RANGE                                                              // opt/protocol-timeout
                 (                                                                                            // opt/protocol-timeout
-                    PARSE_RULE_VAL_TIME(100),                                                                // opt/protocol-timeout
-                    PARSE_RULE_VAL_TIME(604800000),                                                          // opt/protocol-timeout
+                    PARSE_RULE_VAL_TIME(100ms),                                                              // opt/protocol-timeout
+                    PARSE_RULE_VAL_TIME(7d),                                                                 // opt/protocol-timeout
                 ),                                                                                           // opt/protocol-timeout
                                                                                                              // opt/protocol-timeout
                 PARSE_RULE_OPTIONAL_DEFAULT                                                                  // opt/protocol-timeout
                 (                                                                                            // opt/protocol-timeout
-                    PARSE_RULE_VAL_TIME(1860000),                                                            // opt/protocol-timeout
+                    PARSE_RULE_VAL_TIME(31m),                                                                // opt/protocol-timeout
                 ),                                                                                           // opt/protocol-timeout
             ),                                                                                               // opt/protocol-timeout
         ),                                                                                                   // opt/protocol-timeout

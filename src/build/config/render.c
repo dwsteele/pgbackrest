@@ -392,7 +392,9 @@ bldCfgRenderScalar(const String *const scalar, const String *const optType)
 
     CHECK_FMT(AssertError, strEq(optType, OPT_TYPE_TIME_STR), "invalid type '%s'", strZ(optType));
 
-    return strNewFmt("PARSE_RULE_VAL_TIME(%" PRId64 ")", cfgParseTime(scalar));
+    return strNewFmt("PARSE_RULE_VAL_TIME(%s)", strZ(scalar));
+
+    // WHERE IS THE 1 TIME COMING FROM?
 }
 
 // Helper to render validity
@@ -547,15 +549,10 @@ bldCfgRenderValueAdd(const String *optType, const bool literal, const String *co
     // Add values other than strings
     if (!strEq(optType, OPT_TYPE_STRING_STR))
     {
-        const String *valueTransform = value;
-
-        if (strEq(optType, OPT_TYPE_TIME_STR))
-            valueTransform = strNewFmt("%" PRId64, cfgParseTime(value));
-
         if (kvGet(ruleValMap, VARSTR(optType)) == NULL)
             kvPutKv(ruleValMap, VARSTR(optType));
 
-        kvPut(varKv(kvGet(ruleValMap, VARSTR(optType))), VARSTR(valueTransform), VARSTR(valueStr));
+        kvPut(varKv(kvGet(ruleValMap, VARSTR(optType))), VARSTR(value), VARSTR(valueStr));
     }
 
     // Always add to string list
@@ -1371,14 +1368,10 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValSizeIdx = 0; ruleValSizeIdx < strLstSize(ruleValSizeList); ruleValSizeIdx++)
     {
         const Variant *const ruleSize = kvGet(ruleValSizeMap, VARSTR(strLstGet(ruleValSizeList, ruleValSizeIdx)));
+        ASSERT(ruleSize != NULL);
 
         bldCfgRenderLf(configValSizeStrMap, ruleValSizeIdx != 0);
-
-        // !!! SHOULD BE FORMATTED AS PRETTY SIZES
-        if (ruleSize != NULL)
-            strCatFmt(configValSizeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleSize)))));
-        else
-            strCatZ(configValSizeStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+        strCatFmt(configValSizeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleSize)))));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValSizeStrMap, label, STRDEF("val/size/strmap")));
@@ -1432,7 +1425,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValTimeIdx = 0; ruleValTimeIdx < strLstSize(ruleValTimeList); ruleValTimeIdx++)
     {
         bldCfgRenderLf(configValTime, ruleValTimeIdx != 0);
-        strCatFmt(configValTime, "    %s,", strZ(strTrim(strLstGet(ruleValTimeList, ruleValTimeIdx))));
+        strCatFmt(configValTime, "    %" PRId64 ",", cfgParseTime(strLstGet(ruleValTimeList, ruleValTimeIdx)));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValTime, label, STRDEF("val/time")));
@@ -1449,14 +1442,10 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValTimeIdx = 0; ruleValTimeIdx < strLstSize(ruleValTimeList); ruleValTimeIdx++)
     {
         const Variant *const ruleTime = kvGet(ruleValTimeMap, VARSTR(strLstGet(ruleValTimeList, ruleValTimeIdx)));
+        ASSERT(ruleTime != NULL);
 
         bldCfgRenderLf(configValTimeStrMap, ruleValTimeIdx != 0);
-
-        // !!! SHOULD BE FORMATTED AS PRETTY TIMES
-        if (ruleTime != NULL)
-            strCatFmt(configValTimeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleTime)))));
-        else
-            strCatZ(configValTimeStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+        strCatFmt(configValTimeStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleTime)))));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValTimeStrMap, label, STRDEF("val/time/strmap")));
@@ -1494,7 +1483,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
         "    parseRuleValueIntStrMap,\n"
         "    parseRuleValueSizeStrMap,\n"
         "    parseRuleValueTimeStrMap,\n"
-        "    parseRuleValueStrIdStrMap,\n");
+        "    parseRuleValueStrIdStrMap,");
 
     strCat(configVal, bldCfgRenderLabel(configValStrMap, label, STRDEF("val/str/map")));
     strCatZ(
@@ -1506,7 +1495,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     String *const configValIntMap = strNewZ(
         "    parseRuleValueInt,\n"
         "    parseRuleValueSize,\n"
-        "    parseRuleValueTime,\n");
+        "    parseRuleValueTime,");
 
     strCat(configVal, bldCfgRenderLabel(configValIntMap, label, STRDEF("val/int/map")));
     strCatZ(configVal, "\n};\n");

@@ -615,6 +615,7 @@ testRun(void)
         TEST_ERROR(cfgParseTime(STRDEF("")), FormatError, "value '' is not valid");
         TEST_ERROR(cfgParseTime(STRDEF("s")), FormatError, "value 's' is not valid");
         TEST_ERROR(cfgParseTime(STRDEF("999999999999w")), FormatError, "value '999999999999w' is out of range");
+        TEST_RESULT_INT(cfgParseTime(STRDEF("0S")), 0, "0s");
         TEST_RESULT_INT(cfgParseTime(STRDEF("1M")), 60 * 1000, "1m");
         TEST_RESULT_INT(cfgParseTime(STRDEF("2H")), 2 * 60 * 60 * 1000, "2h");
         TEST_RESULT_INT(cfgParseTime(STRDEF("3W")), 3 * 7 * 24 * 60 * 60 * 1000, "3w");
