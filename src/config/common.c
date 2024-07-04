@@ -176,10 +176,8 @@ cfgParseTime(const String *const value)
         // Convert string to time
         const int64_t valueInt = cvtZSubNToInt64Base(valuePtr, 0, size - qualifierSize, 10);
 
-        if (valueInt > INT64_MAX / multiplier)
-            THROW_FMT(FormatError, "value '%s' is out of range", strZ(value));
-
-        FUNCTION_TEST_RETURN(INT64, valueInt * multiplier);
+        if (valueInt <= INT64_MAX / multiplier)
+            FUNCTION_TEST_RETURN(INT64, valueInt * multiplier);
     }
 
     THROW_FMT(FormatError, "value '%s' is not valid", strZ(value));
