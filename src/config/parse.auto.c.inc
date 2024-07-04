@@ -642,6 +642,7 @@ static const uint8_t *parseRuleValueStrMap[cfgOptTypeStringId + 1] =
     parseRuleValueTimeStrMap,                                                                                         // val/str/map
     parseRuleValueStrIdStrMap,                                                                                        // val/str/map
 };
+
 static const int64_t *parseRuleValueIntMap[cfgOptTypeTime + 1] =
 {
     parseRuleValueInt,                                                                                                // val/int/map

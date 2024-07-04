@@ -1213,13 +1213,10 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValStrIdIdx = 0; ruleValStrIdIdx < strLstSize(ruleValStrIdList); ruleValStrIdIdx++)
     {
         const Variant *const ruleStrId = kvGet(ruleValStrIdMap, VARSTR(strLstGet(ruleValStrIdList, ruleValStrIdIdx)));
+        ASSERT(ruleStrId != NULL);
 
         bldCfgRenderLf(configValStrIdStrMap, ruleValStrIdIdx != 0);
-
-        if (ruleStrId != NULL)
-            strCatFmt(configValStrIdStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleStrId)))));
-        else
-            strCatZ(configValStrIdStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+        strCatFmt(configValStrIdStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleStrId)))));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValStrIdStrMap, label, STRDEF("val/strid/strmap")));
@@ -1289,13 +1286,10 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     for (unsigned int ruleValIntIdx = 0; ruleValIntIdx < strLstSize(ruleValIntList); ruleValIntIdx++)
     {
         const Variant *const ruleInt = kvGet(ruleValIntMap, VARSTR(strLstGet(ruleValIntList, ruleValIntIdx)));
+        ASSERT(ruleInt != NULL);
 
         bldCfgRenderLf(configValIntStrMap, ruleValIntIdx != 0);
-
-        if (ruleInt != NULL)
-            strCatFmt(configValIntStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleInt)))));
-        else
-            strCatZ(configValIntStrMap, "    PARSE_RULE_VAL_NO_MAP,");
+        strCatFmt(configValIntStrMap, "    %s,", zNewFmt("parseRuleValStr%s", strZ(bldCfgRenderEnumStr(varStr(ruleInt)))));
     }
 
     strCat(configVal, bldCfgRenderLabel(configValIntStrMap, label, STRDEF("val/int/strmap")));
@@ -1489,7 +1483,7 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     strCatZ(
         configVal,
         "\n};\n"
-        "static const int64_t *parseRuleValueIntMap[cfgOptTypeTime + 1] =\n"
+        "\nstatic const int64_t *parseRuleValueIntMap[cfgOptTypeTime + 1] =\n"
         "{\n");
 
     String *const configValIntMap = strNewZ(
