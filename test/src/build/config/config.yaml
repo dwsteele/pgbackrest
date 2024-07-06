@@ -98,7 +98,7 @@ option:
     type: integer
     internal: true
     default: 1
-    allow-range: [1, 1000000000000]
+    allow-range: [1, 1000000000]
     command:
       test: {}
 
