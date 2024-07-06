@@ -1316,7 +1316,8 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'^bogus' is not allowed for 'type' option");
+            "'^bogus' is not allowed for 'type' option\n"
+            "HINT: allowed values are 'lsn', 'name', 'time', 'xid', 'preserve', 'none', 'immediate', 'default', 'standby'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("option value invalid (size)");
@@ -1329,7 +1330,9 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'777' is not allowed for 'buffer-size' option");
+            "'777' is not allowed for 'buffer-size' option\n"
+            "HINT: allowed values are '16KiB', '32KiB', '64KiB', '128KiB', '256KiB', '512KiB', '1MiB', '2MiB', '4MiB', '8MiB',"
+            " '16MiB'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("option value not in allowed list");
@@ -1342,7 +1345,8 @@ testRun(void)
         strLstAddZ(argList, TEST_COMMAND_RESTORE);
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidValueError,
-            "'bogus' is not allowed for 'type' option");
+            "'bogus' is not allowed for 'type' option\n"
+            "HINT: allowed values are 'lsn', 'name', 'time', 'xid', 'preserve', 'none', 'immediate', 'default', 'standby'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("lower and upper bounds for integer ranges");

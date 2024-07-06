@@ -2367,9 +2367,9 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                             // Build type dependent error data
                             const String *errorValue = EMPTY_STR;
 
-                            switch (cfgParseOptionDataType(dependId))
+                            switch (parseRuleOption[dependId].type)
                             {
-                                case cfgOptDataTypeBoolean:
+                                case cfgOptTypeBoolean:
                                 {
                                     if (!pckReadBoolP(filter))
                                         dependOptionName = strNewFmt("no-%s", strZ(dependOptionName));
@@ -2379,8 +2379,6 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
 
                                 default:
                                 {
-                                    ASSERT(cfgParseOptionDataType(dependId) == cfgOptDataTypeStringId);
-
                                     String *const errorList = strNew();
                                     unsigned int validSize = 0;
 
@@ -2388,7 +2386,7 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                     {
                                         strCatFmt(
                                             errorList, "%s'%s'", validSize != 0 ? ", " : "",
-                                            strZ(strIdToStr(parseRuleValueStrId[pckReadU32P(filter)])));
+                                            strZ(cfgParseOptionValueStr(parseRuleOption[dependId].type, pckReadU32P(filter))));
 
                                         validSize++;
                                     }
@@ -2597,12 +2595,10 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                                 break;
 
                                             default:
-                                            {
-                                                ASSERT(ruleOption->type == cfgOptTypeSize);
-
-                                                allowListFound = parseRuleValueSize[valueIdx] == configOptionValue->value.integer;
+                                                allowListFound =
+                                                    cfgParseOptionValue(ruleOption->type, valueIdx) ==
+                                                        configOptionValue->value.integer;
                                                 break;
-                                            }
                                         }
 
                                         // Stop when allow list is exhausted or value is found
@@ -2619,10 +2615,25 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
 
                                     if (!allowListFound)
                                     {
+                                        PackRead *const allowList = pckReadNewC(
+                                            optionalRules.allowList, optionalRules.allowListSize);
+                                        String *const hintList = strNew();
+
+                                        while (!pckReadNullP(allowList))
+                                        {
+                                            if (!strEmpty(hintList))
+                                                strCatZ(hintList, ", ");
+
+                                            strCatFmt(
+                                                hintList, "'%s'",
+                                                strZ(cfgParseOptionValueStr(ruleOption->type, pckReadU32P(allowList))));
+                                        }
+
                                         THROW_FMT(
-                                            OptionInvalidValueError, "'%s' is not allowed for '%s' option", strZ(valueAllow),
-                                            cfgParseOptionKeyIdxName(optionId, optionKeyIdx));
-                                        // !!! NEED TO RENDER ALLOW LIST HERE
+                                            OptionInvalidValueError,
+                                            "'%s' is not allowed for '%s' option\n"
+                                            "HINT: allowed values are %s",
+                                            strZ(valueAllow), cfgParseOptionKeyIdxName(optionId, optionKeyIdx), strZ(hintList));
                                     }
                                 }
                             }
