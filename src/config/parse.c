@@ -2514,11 +2514,11 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                     {
                                         THROW_FMT(
                                             OptionInvalidValueError,
-                                            "'%s' is out of allowed range (%s-%s) for '%s' option",
-                                            strZ(value), strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMinIdx)),
-                                            strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMaxIdx)),
-                                            cfgParseOptionKeyIdxName(optionId, optionKeyIdx));
-                                        // !!! UPDATE RANGE TO HINT
+                                            "'%s' is out of range for '%s' option\n"
+                                            "HINT: allowed range is %s to %s inclusive",
+                                            strZ(value), cfgParseOptionKeyIdxName(optionId, optionKeyIdx),
+                                            strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMinIdx)),
+                                            strZ(cfgParseOptionValueStr(optionType, optionalRules.allowRangeMaxIdx)));
                                     }
                                 }
                                 // Else if StringId

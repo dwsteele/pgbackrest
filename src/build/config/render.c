@@ -1248,13 +1248,13 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
     strCat(
         configVal, bldCfgRenderValueRender(OPT_TYPE_STRING_STR, ruleValMap, label, "StringPub", "String", "Str", "STR", "val/str"));
     strCat(
-        configVal, bldCfgRenderValueRender(OPT_TYPE_STRING_ID_STR, ruleValMap, label, "StringId", "StringId", "StrId", "STRID",
-        "val/strid"));
+        configVal,
+        bldCfgRenderValueRender(OPT_TYPE_STRING_ID_STR, ruleValMap, label, "StringId", "StringId", "StrId", "STRID", "val/strid"));
     strCat(configVal, bldCfgRenderValueRender(OPT_TYPE_INTEGER_STR, ruleValMap, label, "int", "Int", "Int", "INT", "val/int"));
     strCat(configVal, bldCfgRenderValueRender(OPT_TYPE_SIZE_STR, ruleValMap, label, "int64_t", "Size", "Size", "SIZE", "val/size"));
     strCat(
-        configVal, bldCfgRenderValueRender(OPT_TYPE_TIME_STR, ruleValMap, label, "unsigned int", "Time", "Time", "TIME",
-        "val/time"));
+        configVal,
+        bldCfgRenderValueRender(OPT_TYPE_TIME_STR, ruleValMap, label, "unsigned int", "Time", "Time", "TIME", "val/time"));
 
     // Write to storage
     // -----------------------------------------------------------------------------------------------------------------------------
