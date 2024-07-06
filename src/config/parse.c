@@ -2597,7 +2597,7 @@ cfgParse(const Storage *const storage, const unsigned int argListSize, const cha
                                             default:
                                                 allowListFound =
                                                     cfgParseOptionValue(ruleOption->type, valueIdx) ==
-                                                        configOptionValue->value.integer;
+                                                    configOptionValue->value.integer;
                                                 break;
                                         }
 
