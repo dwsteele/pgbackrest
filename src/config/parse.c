@@ -1120,42 +1120,30 @@ cfgParseOptionalRule(
                     {
                         PackRead *const ruleData = pckReadPackReadConstP(optionalRules->pack);
                         pckReadNext(ruleData);
-                        bool mapFound = true;
 
-                        if (pckReadType(ruleData) != pckTypeArray)
+                        if (pckReadType(ruleData) == pckTypeArray)
                         {
-                            mapFound = false;
-                            optionalRules->defaultFound = true;
-
-                            cfgParseOptionValuePack(
-                                ruleData, ruleOption->type, &optionalRules->defaultValue, &optionalRules->defaultRaw);
-                        }
-
-                        if (!mapFound && !pckReadNullP(ruleData))
-                        {
-                            pckReadNext(ruleData);
-                            mapFound = true;
-                        }
-
-                        if (mapFound)
-                        {
-                            ASSERT(ruleOption->type == cfgOptTypeInteger);
                             pckReadArrayBeginP(ruleData);
 
                             while (!pckReadNullP(ruleData))
                             {
                                 const unsigned int map = pckReadU32P(ruleData);
-                                const unsigned int defaultValueIdx = pckReadU32P(ruleData);
+                                cfgParseOptionValuePack(
+                                    ruleData, ruleOption->type, &optionalRules->defaultValue, &optionalRules->defaultRaw);
 
                                 if (map == optionalRules->matchValue)
                                 {
-                                    optionalRules->defaultValue.integer = cfgParseOptionValue(ruleOption->type, defaultValueIdx);
-                                    optionalRules->defaultRaw = cfgParseOptionValueStr(ruleOption->type, defaultValueIdx);
                                     optionalRules->defaultFound = true;
-
                                     break;
                                 }
                             }
+                        }
+                        else
+                        {
+                            optionalRules->defaultFound = true;
+
+                            cfgParseOptionValuePack(
+                                ruleData, ruleOption->type, &optionalRules->defaultValue, &optionalRules->defaultRaw);
                         }
 
                         break;
