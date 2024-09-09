@@ -687,7 +687,7 @@ storageAzurePathRemoveInternal(StorageAzurePathRemoveData *const data)
         {
             HttpResponse *const response = storageAzureResponseP(data->request);
 
-//            THROW_FMT(AssertError, "!!!RESPONSE:\n%s\n", strZ(strNewBuf(httpResponseContent(response))));
+           LOG_INFO_FMT("!!!RESPONSE:\n%s\n", strZ(strNewBuf(httpResponseContent(response))));
             // httpRequestError(data->request, response);
 
             HttpResponseMulti *const responseMulti = httpResponseMultiNew(
