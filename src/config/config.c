@@ -18,7 +18,7 @@ static Config *configLocal = NULL;
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-cfgInit(Config *config)
+cfgInit(Config *const config)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM_P(VOID, config);
@@ -37,19 +37,27 @@ cfgInit(Config *config)
     FUNCTION_TEST_RETURN_VOID();
 }
 
+FN_EXTERN bool
+cfgInited(void)
+{
+    FUNCTION_TEST_VOID();
+    FUNCTION_TEST_RETURN(ENUM, configLocal != NULL);
+}
+
 /**********************************************************************************************************************************/
 FN_EXTERN ConfigCommand
 cfgCommand(void)
 {
     FUNCTION_TEST_VOID();
-    FUNCTION_TEST_RETURN(ENUM, configLocal == NULL ? cfgCmdNone : configLocal->command);
+    ASSERT(cfgInited());
+    FUNCTION_TEST_RETURN(ENUM, configLocal->command);
 }
 
 FN_EXTERN ConfigCommandRole
 cfgCommandRole(void)
 {
     FUNCTION_TEST_VOID();
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     FUNCTION_TEST_RETURN(ENUM, configLocal->commandRole);
 }
 
@@ -61,8 +69,8 @@ cfgCommandSet(ConfigCommand commandId, ConfigCommandRole commandRoleId)
         FUNCTION_TEST_PARAM(ENUM, commandRoleId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(commandId <= cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(commandId < CFG_COMMAND_TOTAL);
 
     configLocal->command = commandId;
     configLocal->commandRole = commandRoleId;
@@ -85,16 +93,16 @@ cfgCommandJobRetry(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
 
     // Return NULL if no retries
-    unsigned int retryTotal = cfgOptionUInt(cfgOptJobRetry);
+    const unsigned int retryTotal = cfgOptionUInt(cfgOptJobRetry);
 
     if (retryTotal == 0)
         FUNCTION_TEST_RETURN(VARIANT_LIST, NULL);
 
     // Build retry list
-    VariantList *result = varLstNew();
+    VariantList *const result = varLstNew();
 
     MEM_CONTEXT_BEGIN(lstMemContext((List *)result))
     {
@@ -112,8 +120,8 @@ cfgCommandName(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command < cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     FUNCTION_TEST_RETURN_CONST(STRINGZ, cfgParseCommandName(configLocal->command));
 }
@@ -131,7 +139,7 @@ cfgCommandParam(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
 
     if (configLocal->paramList == NULL)
     {
@@ -150,7 +158,7 @@ FN_EXTERN const String *
 cfgExe(void)
 {
     FUNCTION_TEST_VOID();
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     FUNCTION_TEST_RETURN(STRING, configLocal->exe);
 }
 
@@ -160,8 +168,8 @@ cfgLockRequired(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command != cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     // Local roles never take a lock and the remote role has special logic for locking
     FUNCTION_TEST_RETURN(
@@ -178,8 +186,8 @@ cfgLockRemoteRequired(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command != cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     FUNCTION_TEST_RETURN(BOOL, configLocal->lockRemoteRequired);
 }
@@ -190,8 +198,8 @@ cfgLockType(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command != cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     FUNCTION_TEST_RETURN(ENUM, configLocal->lockType);
 }
@@ -202,8 +210,8 @@ cfgLogFile(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command != cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     FUNCTION_TEST_RETURN(
         BOOL,
@@ -221,21 +229,21 @@ cfgLogLevelDefault(void)
 {
     FUNCTION_TEST_VOID();
 
-    ASSERT(configLocal != NULL);
-    ASSERT(configLocal->command != cfgCmdNone);
+    ASSERT(cfgInited());
+    ASSERT(configLocal->command < CFG_COMMAND_TOTAL);
 
     FUNCTION_TEST_RETURN(ENUM, configLocal->logLevelDefault);
 }
 
 /**********************************************************************************************************************************/
 FN_EXTERN bool
-cfgOptionGroup(ConfigOption optionId)
+cfgOptionGroup(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
 
     FUNCTION_TEST_RETURN(BOOL, configLocal->option[optionId].group);
@@ -250,7 +258,7 @@ cfgOptionGroupName(const ConfigOptionGroup groupId, const unsigned int groupIdx)
         FUNCTION_TEST_PARAM(UINT, groupIdx);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(groupId < CFG_OPTION_GROUP_TOTAL);
     ASSERT(groupIdx < configLocal->optionGroup[groupId].indexTotal);
 
@@ -274,13 +282,13 @@ cfgOptionGroupName(const ConfigOptionGroup groupId, const unsigned int groupIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionGroupId(ConfigOption optionId)
+cfgOptionGroupId(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
     ASSERT(configLocal->option[optionId].group);
 
@@ -289,13 +297,13 @@ cfgOptionGroupId(ConfigOption optionId)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionGroupIdxDefault(ConfigOptionGroup groupId)
+cfgOptionGroupIdxDefault(const ConfigOptionGroup groupId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, groupId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(groupId < CFG_OPTION_GROUP_TOTAL);
     ASSERT(configLocal->optionGroup[groupId].indexDefaultExists);
 
@@ -304,14 +312,14 @@ cfgOptionGroupIdxDefault(ConfigOptionGroup groupId)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionGroupIdxToKey(ConfigOptionGroup groupId, unsigned int groupIdx)
+cfgOptionGroupIdxToKey(const ConfigOptionGroup groupId, const unsigned int groupIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, groupId);
         FUNCTION_TEST_PARAM(UINT, groupIdx);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(groupId < CFG_OPTION_GROUP_TOTAL);
     ASSERT(groupIdx < configLocal->optionGroup[groupId].indexTotal);
 
@@ -320,14 +328,14 @@ cfgOptionGroupIdxToKey(ConfigOptionGroup groupId, unsigned int groupIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionKeyToIdx(ConfigOption optionId, unsigned int key)
+cfgOptionKeyToIdx(const ConfigOption optionId, const unsigned int key)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
         FUNCTION_TEST_PARAM(UINT, key);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
 
     unsigned int result = 0;
@@ -335,7 +343,7 @@ cfgOptionKeyToIdx(ConfigOption optionId, unsigned int key)
     // If then option is in a group then search for the key, else the index is 0
     if (cfgOptionGroup(optionId))
     {
-        unsigned int groupId = cfgOptionGroupId(optionId);
+        const unsigned int groupId = cfgOptionGroupId(optionId);
 
         // Seach the group for the key
         for (; result < cfgOptionGroupIdxTotal(groupId); result++)
@@ -354,13 +362,13 @@ cfgOptionKeyToIdx(ConfigOption optionId, unsigned int key)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionGroupIdxTotal(ConfigOptionGroup groupId)
+cfgOptionGroupIdxTotal(const ConfigOptionGroup groupId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, groupId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(groupId < CFG_OPTION_GROUP_TOTAL);
 
     FUNCTION_TEST_RETURN(UINT, configLocal->optionGroup[groupId].indexTotal);
@@ -368,13 +376,13 @@ cfgOptionGroupIdxTotal(ConfigOptionGroup groupId)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionIdxDefault(ConfigOption optionId)
+cfgOptionIdxDefault(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
     ASSERT(
         !configLocal->option[optionId].group || configLocal->optionGroup[configLocal->option[optionId].groupId].indexDefaultExists);
@@ -386,13 +394,13 @@ cfgOptionIdxDefault(ConfigOption optionId)
 
 /**********************************************************************************************************************************/
 FN_EXTERN unsigned int
-cfgOptionIdxTotal(ConfigOption optionId)
+cfgOptionIdxTotal(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
 
     const ConfigOptionData *const option = &configLocal->option[optionId];
@@ -402,13 +410,13 @@ cfgOptionIdxTotal(ConfigOption optionId)
 
 /**********************************************************************************************************************************/
 FN_EXTERN const String *
-cfgOptionDefault(ConfigOption optionId)
+cfgOptionDefault(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(optionId < CFG_OPTION_TOTAL);
 
     ConfigOptionData *const option = &configLocal->option[optionId];
@@ -420,7 +428,7 @@ cfgOptionDefault(ConfigOption optionId)
 }
 
 FN_EXTERN void
-cfgOptionDefaultSet(ConfigOption optionId, const Variant *defaultValue)
+cfgOptionDefaultSet(const ConfigOption optionId, const Variant *defaultValue)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -428,7 +436,7 @@ cfgOptionDefaultSet(ConfigOption optionId, const Variant *defaultValue)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT(configLocal->option[optionId].valid);
     ASSERT(cfgParseOptionDataType(optionId) == cfgOptDataTypeString);
 
@@ -500,7 +508,7 @@ cfgOptionIdxDisplay(const ConfigOption optionId, const unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -539,7 +547,7 @@ cfgOptionDisplay(const ConfigOption optionId)
 Get option name by id
 ***********************************************************************************************************************************/
 FN_EXTERN const char *
-cfgOptionName(ConfigOption optionId)
+cfgOptionName(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -551,7 +559,7 @@ cfgOptionName(ConfigOption optionId)
 }
 
 FN_EXTERN const char *
-cfgOptionIdxName(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxName(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -559,7 +567,7 @@ cfgOptionIdxName(ConfigOption optionId, unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -596,7 +604,7 @@ cfgOptionIdxName(ConfigOption optionId, unsigned int optionIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN bool
-cfgOptionIdxNegate(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxNegate(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -604,7 +612,7 @@ cfgOptionIdxNegate(ConfigOption optionId, unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -614,7 +622,7 @@ cfgOptionIdxNegate(ConfigOption optionId, unsigned int optionIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN bool
-cfgOptionIdxReset(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxReset(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -622,7 +630,7 @@ cfgOptionIdxReset(ConfigOption optionId, unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -644,7 +652,7 @@ cfgOptionIdxInternal(
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -654,8 +662,8 @@ cfgOptionIdxInternal(
         THROW_FMT(AssertError, "option '%s' is not valid for the current command", cfgOptionIdxName(optionId, optionIdx));
 
     // If the option is not NULL then check it is the requested type
-    ConfigOptionData *const option = &configLocal->option[optionId];
-    ConfigOptionValue *const result = &option->index[optionIdx];
+    const ConfigOptionData *const option = &configLocal->option[optionId];
+    const ConfigOptionValue *const result = &option->index[optionIdx];
 
     if (result->set)
     {
@@ -670,7 +678,7 @@ cfgOptionIdxInternal(
     else if (!nullAllowed)
         THROW_FMT(AssertError, "option '%s' is null but non-null was requested", cfgOptionIdxName(optionId, optionIdx));
 
-    FUNCTION_TEST_RETURN_TYPE_P(ConfigOptionValue, result);
+    FUNCTION_TEST_RETURN_TYPE_CONST_P(ConfigOptionValue, result);
 }
 
 FN_EXTERN Variant *
@@ -681,7 +689,7 @@ cfgOptionIdxVar(const ConfigOption optionId, const unsigned int optionIdx)
         FUNCTION_TEST_PARAM(UINT, optionIdx);
     FUNCTION_TEST_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -721,7 +729,7 @@ cfgOptionIdxVar(const ConfigOption optionId, const unsigned int optionIdx)
 }
 
 FN_EXTERN bool
-cfgOptionIdxBool(const ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxBool(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -784,7 +792,7 @@ cfgOptionIdxUInt64(const ConfigOption optionId, const unsigned int optionIdx)
 }
 
 FN_EXTERN const KeyValue *
-cfgOptionIdxKv(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxKv(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -795,7 +803,7 @@ cfgOptionIdxKv(ConfigOption optionId, unsigned int optionIdx)
 }
 
 FN_EXTERN const KeyValue *
-cfgOptionIdxKvNull(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxKvNull(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -806,14 +814,14 @@ cfgOptionIdxKvNull(ConfigOption optionId, unsigned int optionIdx)
 }
 
 FN_EXTERN const VariantList *
-cfgOptionIdxLst(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxLst(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
         FUNCTION_LOG_PARAM(UINT, optionIdx);
     FUNCTION_LOG_END();
 
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
 
     const VariantList *optionValue = cfgOptionIdxInternal(optionId, optionIdx, cfgOptDataTypeList, true)->value.list;
 
@@ -831,7 +839,7 @@ cfgOptionIdxLst(ConfigOption optionId, unsigned int optionIdx)
 }
 
 FN_EXTERN const String *
-cfgOptionIdxStr(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxStr(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -842,7 +850,7 @@ cfgOptionIdxStr(ConfigOption optionId, unsigned int optionIdx)
 }
 
 FN_EXTERN const String *
-cfgOptionIdxStrNull(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxStrNull(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -853,7 +861,7 @@ cfgOptionIdxStrNull(ConfigOption optionId, unsigned int optionIdx)
 }
 
 FN_EXTERN StringId
-cfgOptionIdxStrId(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxStrId(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(ENUM, optionId);
@@ -865,7 +873,7 @@ cfgOptionIdxStrId(ConfigOption optionId, unsigned int optionIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-cfgOptionSet(ConfigOption optionId, ConfigSource source, const Variant *value)
+cfgOptionSet(const ConfigOption optionId, const ConfigSource source, const Variant *const value)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -879,7 +887,8 @@ cfgOptionSet(ConfigOption optionId, ConfigSource source, const Variant *value)
 }
 
 FN_EXTERN void
-cfgOptionIdxSet(ConfigOption optionId, unsigned int optionIdx, ConfigSource source, const Variant *value)
+cfgOptionIdxSet(
+    const ConfigOption optionId, const unsigned int optionIdx, const ConfigSource source, const Variant *const value)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -889,13 +898,13 @@ cfgOptionIdxSet(ConfigOption optionId, unsigned int optionIdx, ConfigSource sour
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
 
     // Set the source
-    ConfigOptionData *const option = &configLocal->option[optionId];
+    const ConfigOptionData *const option = &configLocal->option[optionId];
     ConfigOptionValue *const optionValue = &option->index[optionIdx];
     optionValue->source = source;
 
@@ -966,7 +975,7 @@ cfgOptionIdxSet(ConfigOption optionId, unsigned int optionIdx, ConfigSource sour
 
 /**********************************************************************************************************************************/
 FN_EXTERN ConfigSource
-cfgOptionSource(ConfigOption optionId)
+cfgOptionSource(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -976,7 +985,7 @@ cfgOptionSource(ConfigOption optionId)
 }
 
 FN_EXTERN ConfigSource
-cfgOptionIdxSource(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxSource(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -984,7 +993,7 @@ cfgOptionIdxSource(ConfigOption optionId, unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT((!group && optionIdx == 0) || (group && optionIdx < indexTotal));
@@ -994,7 +1003,7 @@ cfgOptionIdxSource(ConfigOption optionId, unsigned int optionIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN bool
-cfgOptionTest(ConfigOption optionId)
+cfgOptionTest(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -1004,7 +1013,7 @@ cfgOptionTest(ConfigOption optionId)
 }
 
 FN_EXTERN bool
-cfgOptionIdxTest(ConfigOption optionId, unsigned int optionIdx)
+cfgOptionIdxTest(const ConfigOption optionId, const unsigned int optionIdx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
@@ -1012,7 +1021,7 @@ cfgOptionIdxTest(ConfigOption optionId, unsigned int optionIdx)
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
     ASSERT_DECLARE(const bool group = configLocal->option[optionId].group);
     ASSERT_DECLARE(const unsigned int indexTotal = configLocal->optionGroup[configLocal->option[optionId].groupId].indexTotal);
     ASSERT(!cfgOptionValid(optionId) || ((!group && optionIdx == 0) || (group && optionIdx < indexTotal)));
@@ -1022,27 +1031,27 @@ cfgOptionIdxTest(ConfigOption optionId, unsigned int optionIdx)
 
 /**********************************************************************************************************************************/
 FN_EXTERN bool
-cfgOptionValid(ConfigOption optionId)
+cfgOptionValid(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
 
     FUNCTION_TEST_RETURN(BOOL, configLocal->option[optionId].valid);
 }
 
 FN_EXTERN void
-cfgOptionInvalidate(ConfigOption optionId)
+cfgOptionInvalidate(const ConfigOption optionId)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(ENUM, optionId);
     FUNCTION_TEST_END();
 
     ASSERT(optionId < CFG_OPTION_TOTAL);
-    ASSERT(configLocal != NULL);
+    ASSERT(cfgInited());
 
     configLocal->option[optionId].valid = false;
 

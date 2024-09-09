@@ -1,13 +1,15 @@
 /***********************************************************************************************************************************
-Repository Create Command
+JSON Extensions
 ***********************************************************************************************************************************/
-#ifndef COMMAND_REPO_CREATE_H
-#define COMMAND_REPO_CREATE_H
+#ifndef BUILD_COMMON_JSON_H
+#define BUILD_COMMON_JSON_H
+
+#include "common/type/json.h"
 
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
-// Create the repository (create path, bucket, etc.)
-FN_EXTERN void cmdRepoCreate(void);
+// Return true unless specified type found
+bool jsonReadUntil(JsonRead *this, JsonType type);
 
 #endif

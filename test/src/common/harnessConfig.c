@@ -65,7 +65,7 @@ hrnCfgLoad(ConfigCommand commandId, const StringList *argListParam, const HrnCfg
     }
 
     // Insert the command so it does not interfere with parameters
-    if (commandId != cfgCmdNone)
+    if (commandId < CFG_COMMAND_TOTAL)
         strLstInsert(argList, 0, cfgParseCommandRoleName(commandId, param.role));
 
     // Insert the project exe
@@ -108,8 +108,8 @@ hrnCfgLoad(ConfigCommand commandId, const StringList *argListParam, const HrnCfg
     if (cfgOptionValid(cfgOptExecId) && !cfgOptionTest(cfgOptExecId))
         cfgOptionSet(cfgOptExecId, cfgSourceParam, VARSTRDEF("1-test"));
 
-    if (cfgOptionTest(cfgOptExecId) && cfgOptionTest(cfgOptLockPath) && cfgOptionTest(cfgOptStanza))
-        lockInit(cfgOptionStr(cfgOptLockPath), cfgOptionStr(cfgOptExecId), cfgOptionStr(cfgOptStanza), cfgLockType());
+    if (cfgOptionTest(cfgOptExecId) && cfgOptionTest(cfgOptLockPath))
+        lockInit(cfgOptionStr(cfgOptLockPath), cfgOptionStr(cfgOptExecId));
     else
         hrnLockUnInit();
 

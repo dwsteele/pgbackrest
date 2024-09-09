@@ -101,22 +101,14 @@ unit:
           - common/assert: noCode
 
       # ----------------------------------------------------------------------------------------------------------------------------
-      - name: mem-context
-        total: 8
-        feature: memContext
-
-        coverage:
-          - common/memContext
-
-        depend:
-          - common/type/convert
-
-      # ----------------------------------------------------------------------------------------------------------------------------
       - name: type-convert
         total: 12
 
         coverage:
           - common/type/convert
+
+        depend:
+          - common/time
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: time
@@ -130,6 +122,14 @@ unit:
 
         coverage:
           - common/time
+
+      # ----------------------------------------------------------------------------------------------------------------------------
+      - name: mem-context
+        total: 8
+        feature: memContext
+
+        coverage:
+          - common/memContext
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: encode
@@ -254,7 +254,8 @@ unit:
         total: 2
 
         coverage:
-          - common/type/json
+          - build/common/json
+          - common/type/json: included
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: type-key-value
@@ -351,7 +352,10 @@ unit:
       - name: crypto
         total: 4
         feature: STORAGE
-        harness: storage
+        harness:
+          name: storage
+          shim:
+            storage/posix/storage: ~
 
         coverage:
           - common/crypto/cipherBlock
@@ -424,7 +428,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: lock
-        total: 3
+        total: 1
         harness:
           name: config
           shim:
@@ -440,7 +444,7 @@ unit:
           - common/lock
 
         depend:
-          - common/lock
+          - command/lock
           - config/common
           - config/config
           - config/parse
@@ -452,7 +456,6 @@ unit:
           - postgres/interface/crc32
           - postgres/interface/page
           - protocol/client
-          - protocol/command
           - protocol/helper
           - protocol/server
           - storage/helper
@@ -480,7 +483,6 @@ unit:
 
         coverage:
           - protocol/client
-          - protocol/command
           - protocol/helper
           - protocol/parallel
           - protocol/parallelJob
@@ -561,6 +563,7 @@ unit:
           - storage/storage
 
         include:
+          - protocol/client
           - storage/read
           - storage/write
 
@@ -715,6 +718,13 @@ unit:
           - test/command/test/define
           - test/command/test/test
 
+      # ----------------------------------------------------------------------------------------------------------------------------
+      - name: coverage
+        total: 1
+
+        coverage:
+          - test/command/test/coverage
+
   # ********************************************************************************************************************************
   - name: info
 
@@ -781,6 +791,14 @@ unit:
   - name: command
 
     test:
+
+      # ----------------------------------------------------------------------------------------------------------------------------
+      - name: lock
+        total: 1
+
+        coverage:
+          - command/lock
+
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: control
         total: 4
@@ -789,6 +807,9 @@ unit:
           - command/control/common
           - command/control/start
           - command/control/stop
+
+        include:
+          - command/lock
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: annotate
@@ -884,6 +905,9 @@ unit:
         coverage:
           - command/info/info
 
+        include:
+          - command/lock
+
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: backup
         total: 12
@@ -916,7 +940,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: restore
-        total: 15
+        total: 14
 
         coverage:
           - command/restore/blockChecksum
@@ -939,7 +963,7 @@ unit:
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: repo
-        total: 4
+        total: 3
 
         coverage:
           - command/repo/common
@@ -947,11 +971,6 @@ unit:
           - command/repo/ls
           - command/repo/put
           - command/repo/rm
-
-        include:
-          # command/repo/create is currently for testing purposes only so coverage is not provided except in integration. In the
-          # future this will probably be rolled into a custom object store server implementation.
-          - command/repo/create
 
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: verify

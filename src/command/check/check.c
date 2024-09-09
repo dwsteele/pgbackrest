@@ -87,7 +87,7 @@ checkStandby(const DbGetResult dbGroup, const unsigned int pgPathDefinedTotal)
             LOG_INFO_FMT(CFGCMD_CHECK " %s (standby)", cfgOptionGroupName(cfgOptGrpRepo, repoIdx));
 
             // Get the repo storage in case it is remote and encryption settings need to be pulled down (performed here for testing)
-            const Storage *storageRepo = storageRepoIdx(repoIdx);
+            const Storage *const storageRepo = storageRepoIdx(repoIdx);
 
             // Check that the backup and archive info files exist and are valid for the current database of the stanza
             checkStanzaInfoPg(
@@ -101,7 +101,7 @@ checkStandby(const DbGetResult dbGroup, const unsigned int pgPathDefinedTotal)
         dbFree(dbGroup.standby);
     }
     // If backup from standby is true then warn when a standby not found
-    else if (cfgOptionBool(cfgOptBackupStandby))
+    else if (cfgOptionStrId(cfgOptBackupStandby) != CFGOPTVAL_BACKUP_STANDBY_N)
     {
         LOG_WARN("option '" CFGOPT_BACKUP_STANDBY "' is enabled but standby is not properly configured");
     }
@@ -125,7 +125,7 @@ checkPrimary(const DbGetResult dbGroup)
         checkDbConfig(dbPgControl(dbGroup.primary).version, dbGroup.primaryIdx, dbGroup.primary, false);
 
         // Check configuration of each repo
-        const String **repoArchiveId = memNew(sizeof(String *) * cfgOptionGroupIdxTotal(cfgOptGrpRepo));
+        const String **const repoArchiveId = memNew(sizeof(String *) * cfgOptionGroupIdxTotal(cfgOptGrpRepo));
 
         for (unsigned int repoIdx = 0; repoIdx < cfgOptionGroupIdxTotal(cfgOptGrpRepo); repoIdx++)
         {
@@ -225,7 +225,7 @@ cmdCheck(void)
                 }
 
                 // Get the primary/standby connections (standby is only required if backup from standby is enabled)
-                DbGetResult dbGroup = dbGet(false, false, false);
+                DbGetResult dbGroup = dbGet(false, false, CFGOPTVAL_BACKUP_STANDBY_N);
 
                 if (dbGroup.standby == NULL && dbGroup.primary == NULL)
                     THROW(ConfigError, "no database found\nHINT: check indexed pg-path/pg-host configurations");

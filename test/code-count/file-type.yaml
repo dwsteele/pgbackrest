@@ -631,7 +631,23 @@ doc/xml/release/2024/2.51.xml:
   class: doc/source
   type: xml
 
+doc/xml/release/2024/2.52.1.xml:
+  class: doc/source
+  type: xml
+
 doc/xml/release/2024/2.52.xml:
+  class: doc/source
+  type: xml
+
+doc/xml/release/2024/2.53.1.xml:
+  class: doc/source
+  type: xml
+
+doc/xml/release/2024/2.53.xml:
+  class: doc/source
+  type: xml
+
+doc/xml/release/2024/2.54.xml:
   class: doc/source
   type: xml
 
@@ -672,6 +688,14 @@ src/build/common/exec.c:
   type: c
 
 src/build/common/exec.h:
+  class: build
+  type: c/h
+
+src/build/common/json.c:
+  class: build
+  type: c
+
+src/build/common/json.h:
   class: build
   type: c/h
 
@@ -1047,6 +1071,14 @@ src/command/local/local.h:
   class: core
   type: c/h
 
+src/command/lock.c:
+  class: core
+  type: c
+
+src/command/lock.h:
+  class: core
+  type: c/h
+
 src/command/manifest/manifest.c:
   class: core
   type: c
@@ -1068,14 +1100,6 @@ src/command/repo/common.c:
   type: c
 
 src/command/repo/common.h:
-  class: core
-  type: c/h
-
-src/command/repo/create.c:
-  class: core
-  type: c
-
-src/command/repo/create.h:
   class: core
   type: c/h
 
@@ -2147,14 +2171,6 @@ src/protocol/client.h:
   class: core
   type: c/h
 
-src/protocol/command.c:
-  class: core
-  type: c
-
-src/protocol/command.h:
-  class: core
-  type: c/h
-
 src/protocol/helper.c:
   class: core
   type: c
@@ -2503,10 +2519,6 @@ test/lib/pgBackRestTest/Common/ContainerTest.pm:
   class: test/harness
   type: perl
 
-test/lib/pgBackRestTest/Common/CoverageTest.pm:
-  class: test/harness
-  type: perl
-
 test/lib/pgBackRestTest/Common/DbVersion.pm:
   class: test/harness
   type: perl
@@ -2592,6 +2604,14 @@ test/src/command/test/build.c:
   type: c
 
 test/src/command/test/build.h:
+  class: test/harness
+  type: c/h
+
+test/src/command/test/coverage.c:
+  class: test/harness
+  type: c
+
+test/src/command/test/coverage.h:
   class: test/harness
   type: c/h
 
@@ -2771,6 +2791,10 @@ test/src/common/harnessPostgres/harness160.c:
   class: test/harness
   type: c
 
+test/src/common/harnessPostgres/harness170.c:
+  class: test/harness
+  type: c
+
 test/src/common/harnessPostgres/harnessVersion.intern.h:
   class: test/harness
   type: c/h
@@ -2932,6 +2956,10 @@ test/src/module/command/infoTest.c:
   type: c
 
 test/src/module/command/localTest.c:
+  class: test/module
+  type: c
+
+test/src/module/command/lockTest.c:
   class: test/module
   type: c
 
@@ -3196,6 +3224,10 @@ test/src/module/storage/s3Test.c:
   type: c
 
 test/src/module/storage/sftpTest.c:
+  class: test/module
+  type: c
+
+test/src/module/test/coverageTest.c:
   class: test/module
   type: c
 

@@ -497,12 +497,20 @@ testRun(void)
 
                 // Shim the server address to return false one time for write ready. This tests connections that take longer.
                 hrnSckClientOpenWaitShimInstall("127.0.0.1");
+                AddressInfo *addrInfo = addrInfoNew(STRDEF("127.0.0.1"), 443);
+                ASSERT(addrInfoSize(addrInfo) == 1);
 
                 TEST_ASSIGN(session, ioClientOpen(client), "connection established");
-                TEST_RESULT_VOID(
-                    sckClientOpenWait(
-                        &(SckClientOpenData){.name = "test", .fd = ((SocketSession *)session->pub.driver)->fd, .errNo = EINTR}, 99),
-                    "check EINTR wait condition");
+
+                SckClientOpenData openData =
+                {
+                    .name = "test",
+                    .fd = ((SocketSession *)session->pub.driver)->fd,
+                    .address = addrInfoGet(addrInfo, 0)->info,
+                    .errNo = EINTR
+                };
+
+                TEST_RESULT_VOID(sckClientOpenWait(&openData, 99), "check EINTR wait condition");
                 TEST_RESULT_VOID(ioSessionFree(session), "connection closed");
 
                 // -----------------------------------------------------------------------------------------------------------------
@@ -561,9 +569,10 @@ testRun(void)
 
     // Additional coverage not provided by testing with actual certificates
     // *****************************************************************************************************************************
-    if (testBegin("tlsAsn1ToStr(), tlsClientHostVerify(), and tlsClientHostVerifyName()"))
+    if (testBegin("tlsAsn1ToStr/Buf(), tlsClientHostVerify(), tlsClientHostVerifyName(), and tlsClientHostVerifyIpAddr()"))
     {
         TEST_ERROR(tlsAsn1ToStr(NULL), CryptoError, "TLS certificate name entry is missing");
+        TEST_ERROR(tlsAsn1ToBuf(NULL), CryptoError, "TLS certificate name entry is missing");
 
         TEST_ERROR(
             tlsClientHostVerifyName(
@@ -574,6 +583,14 @@ testRun(void)
         TEST_RESULT_BOOL(tlsClientHostVerifyName(STRDEF("host"), STRDEF("**")), false, "invalid pattern");
         TEST_RESULT_BOOL(tlsClientHostVerifyName(STRDEF("host"), STRDEF("*.")), false, "invalid pattern");
         TEST_RESULT_BOOL(tlsClientHostVerifyName(STRDEF("a.bogus.host.com"), STRDEF("*.host.com")), false, "invalid host");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("tlsClientHostVerifyIpAddr()");
+
+        TEST_RESULT_BOOL(tlsClientHostVerifyIPAddr(STRDEF("127.0.0.1"), bufNewC("\x7F\0\0", 3)), false, "invalid len");
+        TEST_RESULT_BOOL(tlsClientHostVerifyIPAddr(STRDEF("127.0.0.1"), bufNewC("\x7F\0\0\x02", 4)), false, "ipv4 no match");
+        TEST_RESULT_BOOL(
+            tlsClientHostVerifyIPAddr(STRDEF("::1"), bufNewC("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x02", 16)), false, "ipv6 no match");
     }
 
     // *****************************************************************************************************************************
@@ -807,6 +824,19 @@ testRun(void)
                     "open connection");
 
                 // -----------------------------------------------------------------------------------------------------------------
+                TEST_TITLE("match ipv4");
+
+                hrnServerScriptAccept(tls);
+                hrnServerScriptClose(tls);
+
+                TEST_RESULT_VOID(
+                    ioClientOpen(
+                        tlsClientNewP(
+                            sckClientNew(STRDEF("127.0.0.1"), testPort, 5000, 5000), STRDEF("127.0.0.1"), 0, 0, true,
+                            .caFile = STRDEF(HRN_SERVER_CA))),
+                    "open connection");
+
+                // -----------------------------------------------------------------------------------------------------------------
                 TEST_TITLE("unable to find matching hostname in certificate");
 
                 hrnServerScriptAccept(tls);
@@ -854,6 +884,47 @@ testRun(void)
         }
         HRN_FORK_END();
 
+        // Server on IPv6
+        // -------------------------------------------------------------------------------------------------------------------------
+        HRN_FORK_BEGIN()
+        {
+            const unsigned int testPort = hrnServerPortNext();
+
+            HRN_FORK_CHILD_BEGIN(.prefix = "test server", .timeout = 5000)
+            {
+                // Start server to test various certificate errors
+                TEST_RESULT_VOID(
+                    hrnServerRunP(
+                        HRN_FORK_CHILD_READ(), hrnServerProtocolTls, testPort, .certificate = STRDEF(HRN_SERVER_CERT),
+                        .key = STRDEF(HRN_SERVER_KEY), .address = STRDEF("::1")),
+                    "tls alt name ipv6 server");
+            }
+            HRN_FORK_CHILD_END();
+
+            HRN_FORK_PARENT_BEGIN(.prefix = "test client", .timeout = 1000)
+            {
+                IoWrite *const tls = hrnServerScriptBegin(HRN_FORK_PARENT_WRITE(0));
+
+                // -----------------------------------------------------------------------------------------------------------------
+                TEST_TITLE("match ipv6");
+
+                hrnServerScriptAccept(tls);
+                hrnServerScriptClose(tls);
+
+                TEST_RESULT_VOID(
+                    ioClientOpen(
+                        tlsClientNewP(
+                            sckClientNew(STRDEF("::1"), testPort, 5000, 5000), STRDEF("::1"), 0, 0, true,
+                            .caFile = STRDEF(HRN_SERVER_CA))),
+                    "open connection");
+
+                // -----------------------------------------------------------------------------------------------------------------
+                hrnServerScriptEnd(tls);
+            }
+            HRN_FORK_PARENT_END();
+        }
+        HRN_FORK_END();
+
         // -------------------------------------------------------------------------------------------------------------------------
         // Put root-owned server key
         storagePutP(
@@ -877,15 +948,15 @@ testRun(void)
             HRN_FORK_CHILD_BEGIN(.prefix = "test server", .timeout = 5000)
             {
                 // TLS server to accept connections
-                IoServer *socketServer = sckServerNew(STRDEF("localhost"), testPort, 5000);
+                IoServer *socketServer = sckServerNew(STRDEF("127.0.0.1"), testPort, 5000);
                 IoServer *tlsServer = tlsServerNew(
-                    STRDEF("localhost"), STRDEF(HRN_SERVER_CA), STRDEF(TEST_PATH "/server-root-perm-link"),
+                    STRDEF("127.0.0.1"), STRDEF(HRN_SERVER_CA), STRDEF(TEST_PATH "/server-root-perm-link"),
                     STRDEF(TEST_PATH "/server-cn-only.crt"), 5000);
                 IoSession *socketSession = NULL;
 
                 TEST_RESULT_STR(
-                    ioServerName(socketServer), strNewFmt("localhost:%u (127.0.0.1)", testPort), "socket server name");
-                TEST_RESULT_STR_Z(ioServerName(tlsServer), "localhost", "tls server name");
+                    ioServerName(socketServer), strNewFmt("127.0.0.1:%u", testPort), "socket server name");
+                TEST_RESULT_STR_Z(ioServerName(tlsServer), "127.0.0.1", "tls server name");
 
                 // Invalid client cert
                 socketSession = ioServerAccept(socketServer, NULL);

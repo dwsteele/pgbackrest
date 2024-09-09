@@ -8,6 +8,7 @@ C Test Harness
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "common/harnessDebug.h"
@@ -153,8 +154,8 @@ testBegin(const char *name)
             // Clear out the test directory so the next test starts clean
             char buffer[2048];
             snprintf(
-                buffer, sizeof(buffer), "%schmod -R 700 %s/" "* > /dev/null 2>&1;%srm -rf %s/" "*", testContainer() ? "sudo " : "",
-                testPath(), testContainer() ? "sudo " : "", testPath());
+                buffer, sizeof(buffer), "%schmod -R 700 %s/" "* > /dev/null 2>&1;%sfind %s -mindepth 1 -delete",
+                testContainer() ? "sudo " : "", testPath(), testContainer() ? "sudo " : "", testPath());
 
             if (system(buffer) != 0)
             {
@@ -165,8 +166,8 @@ testBegin(const char *name)
 
             // Clear out the data directory so the next test starts clean
             snprintf(
-                buffer, sizeof(buffer), "%schmod -R 700 %s/" "* > /dev/null 2>&1;%srm -rf %s/" "*", testContainer() ? "sudo " : "",
-                hrnPath(), testContainer() ? "sudo " : "", hrnPath());
+                buffer, sizeof(buffer), "%schmod -R 700 %s/" "* > /dev/null 2>&1;%sfind %s -mindepth 1 -delete",
+                testContainer() ? "sudo " : "", hrnPath(), testContainer() ? "sudo " : "", hrnPath());
 
             if (system(buffer) != 0)
             {
@@ -324,6 +325,14 @@ hrnDiff(const char *expected, const char *actual)
     harnessDiffBuffer[strlen(harnessDiffBuffer) - 1] = 0;
 
     FUNCTION_HARNESS_RETURN(STRINGZ, harnessDiffBuffer);
+}
+
+/**********************************************************************************************************************************/
+void
+hrnTzSet(const char *const tz)
+{
+    setenv("TZ", tz, true);
+    tzset();
 }
 
 /**********************************************************************************************************************************/

@@ -8,7 +8,7 @@ Azure Storage Read
 #include "common/log.h"
 #include "common/type/object.h"
 #include "storage/azure/read.h"
-#include "storage/read.intern.h"
+#include "storage/read.h"
 
 /***********************************************************************************************************************************
 Object type
@@ -71,7 +71,7 @@ storageReadAzureOpen(THIS_VOID)
 Read from a file
 ***********************************************************************************************************************************/
 static size_t
-storageReadAzure(THIS_VOID, Buffer *buffer, bool block)
+storageReadAzure(THIS_VOID, Buffer *const buffer, const bool block)
 {
     THIS(StorageReadAzure);
 

@@ -34,7 +34,8 @@ typedef struct StorageListInfo
         const char *name;                                           // Name of path/file/link
     } exists;
 
-    // Mode is only provided at detail level but is included here to save space on 64-bit architectures
+    // Set when info type >= storageInfoLevelType (undefined at lower levels). Mode is only provided at higher detail levels but
+    // included here to save space on 64-bit architectures
     struct
     {
         // Set when info type >= storageInfoLevelType (undefined at lower levels)
@@ -156,7 +157,7 @@ storageLstInsert(StorageList *const this, const unsigned int idx, const StorageI
 
 /**********************************************************************************************************************************/
 FN_EXTERN StorageInfo
-storageLstGet(StorageList *const this, const unsigned int idx)
+storageLstGet(const StorageList *const this, const unsigned int idx)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(STORAGE_LIST, this);

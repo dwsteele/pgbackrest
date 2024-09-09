@@ -28,6 +28,7 @@ static HrnHostTestDefine testMatrix[] =
     {.pg =  "14", .repo = "repo", .tls = 0, .stg =   "gcs", .enc = 0, .cmp =  "lz4", .rt = 1, .bnd = 1, .bi = 0},
     {.pg =  "15", .repo =  "pg2", .tls = 0, .stg = "azure", .enc = 0, .cmp = "none", .rt = 2, .bnd = 1, .bi = 1},
     {.pg =  "16", .repo = "repo", .tls = 0, .stg = "posix", .enc = 0, .cmp = "none", .rt = 1, .bnd = 0, .bi = 0},
+    {.pg =  "17", .repo = "repo", .tls = 0, .stg = "posix", .enc = 0, .cmp = "none", .rt = 1, .bnd = 0, .bi = 0},
     // {uncrustify_on}
 };
 
@@ -87,6 +88,11 @@ testRun(void)
         const unsigned int ts1Oid = pckReadU32P(hrnHostSqlValue(pg1, "select oid from pg_tablespace where spcname = 'ts1'"));
         TEST_LOG_FMT("ts1 tablespace oid = %u", ts1Oid);
 
+        // Get the tablespace path to use for this version. We could use our internally stored catalog number but during the beta
+        // period this number will be changing and would need to be updated. Make this less fragile by just reading the path.
+        const String *const tablespacePath = strLstGet(
+            storageListP(hrnHostPgStorage(pg1), strNewFmt(PG_PATH_PGTBLSPC "/%u", ts1Oid)), 0);
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("check hosts (skip pg2 for now)");
         {
@@ -111,8 +117,48 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("standby restore");
         {
-            TEST_HOST_BR(
-                pg2, CFGCMD_RESTORE, .option = zNewFmt("--type=standby --tablespace-map=ts1='%s'", strZ(hrnHostPgTsPath(pg2))));
+            // If the repo is running on pg2 then switch the user to root to test restoring as root. Use this configuration so the
+            // repo is local and root does not need to be configured for TLS or SSH.
+            const char *user = NULL;
+
+            if (pg2 == repo)
+            {
+                user = "root";
+
+                // Create the pg/ts directory so it will not be created with root permissions
+                HRN_STORAGE_PATH_CREATE(hrnHostDataStorage(pg2), strZ(hrnHostPgTsPath(pg2)), .mode = 0700);
+
+                // Create the restore log file so it will not be created with root permissions
+                HRN_STORAGE_PUT_EMPTY(hrnHostDataStorage(pg2), zNewFmt("%s/test-restore.log", strZ(hrnHostLogPath(pg2))));
+            }
+
+            // Run restore
+            const char *option = zNewFmt("--type=standby --tablespace-map=ts1='%s'", strZ(hrnHostPgTsPath(pg2)));
+            TEST_HOST_BR(pg2, CFGCMD_RESTORE, .option = option, .user = user);
+
+            // If the repo is running on pg2 then perform additional ownership tests
+            if (pg2 == repo)
+            {
+                // Update some ownership to root
+                hrnHostExecP(
+                    pg2,
+                    strNewFmt(
+                        "chown %s:%s %s &&"
+                        "chown %s:%s %s/" PG_PATH_GLOBAL " &&"
+                        "chown %s:%s %s/" PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL,
+                        user, user, strZ(hrnHostPgDataPath(pg2)), user, user, strZ(hrnHostPgDataPath(pg2)), user, user,
+                        strZ(hrnHostPgDataPath(pg2))),
+                    .user = STRDEF(user));
+
+                // Expect an error when running without root since permissions cannot be updated
+                TEST_HOST_BR(
+                    pg2, CFGCMD_RESTORE, .option = zNewFmt("--delta %s", option), .user = NULL,
+                    .resultExpect = errorTypeCode(&FileOpenError));
+
+                // Running as root fixes the ownership
+                TEST_HOST_BR(pg2, CFGCMD_RESTORE, .option = zNewFmt("--delta %s", option), .user = user);
+            }
+
             HRN_HOST_PG_START(pg2);
 
             // Check standby
@@ -268,9 +314,7 @@ testRun(void)
             const Buffer *const pgFileNodeMap = storageGetP(
                 storageNewReadP(
                     hrnHostPgStorage(pg1),
-                    strNewFmt(
-                        PG_PATH_PGTBLSPC "/%u/%s/%u/" PG_FILE_PGFILENODEMAP, ts1Oid,
-                        strZ(pgTablespaceId(hrnHostPgVersion(), hrnPgCatalogVersion(hrnHostPgVersion()))), excludeMeOid)));
+                    strNewFmt(PG_PATH_PGTBLSPC "/%u/%s/%u/" PG_FILE_PGFILENODEMAP, ts1Oid, strZ(tablespacePath), excludeMeOid)));
 
             Buffer *const pgFileNodeMapZero = bufNew(bufUsed(pgFileNodeMap));
             memset(bufPtr(pgFileNodeMapZero), 0, bufSize(pgFileNodeMapZero));

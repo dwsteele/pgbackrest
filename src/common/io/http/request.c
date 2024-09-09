@@ -115,7 +115,7 @@ httpRequestFmt(
 Process the request
 ***********************************************************************************************************************************/
 static HttpResponse *
-httpRequestProcess(HttpRequest *this, bool waitForResponse, bool contentCache)
+httpRequestProcess(HttpRequest *const this, const bool waitForResponse, const bool contentCache)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(HTTP_REQUEST, this);
@@ -132,7 +132,7 @@ httpRequestProcess(HttpRequest *this, bool waitForResponse, bool contentCache)
     {
         bool retry;
         ErrorRetry *const errRetry = errRetryNew();
-        Wait *wait = waitNew(httpClientTimeout(this->client));
+        Wait *const wait = waitNew(httpClientTimeout(this->client));
 
         do
         {
@@ -161,10 +161,6 @@ httpRequestProcess(HttpRequest *this, bool waitForResponse, bool contentCache)
                             httpSessionIoWrite(session),
                             BUFSTR(
                                 httpRequestFmt(
-                                    httpRequestVerb(this), httpRequestPath(this), httpRequestQuery(this), httpRequestHeader(this),
-                                    true)));
-
-        LOG_INFO_FMT("!!!REQUEST HEADER:\n%s\n", strZ(httpRequestFmt(
                                     httpRequestVerb(this), httpRequestPath(this), httpRequestQuery(this), httpRequestHeader(this),
                                     true)));
 
@@ -227,7 +223,7 @@ httpRequestProcess(HttpRequest *this, bool waitForResponse, bool contentCache)
 
 /**********************************************************************************************************************************/
 FN_EXTERN HttpRequest *
-httpRequestNew(HttpClient *client, const String *verb, const String *path, HttpRequestNewParam param)
+httpRequestNew(HttpClient *const client, const String *const verb, const String *const path, const HttpRequestNewParam param)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(HTTP_CLIENT, client);
@@ -267,7 +263,7 @@ httpRequestNew(HttpClient *client, const String *verb, const String *path, HttpR
 
 /**********************************************************************************************************************************/
 FN_EXTERN HttpResponse *
-httpRequestResponse(HttpRequest *this, bool contentCache)
+httpRequestResponse(HttpRequest *const this, const bool contentCache)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(HTTP_REQUEST, this);
@@ -281,7 +277,7 @@ httpRequestResponse(HttpRequest *this, bool contentCache)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-httpRequestError(const HttpRequest *this, HttpResponse *response)
+httpRequestError(const HttpRequest *const this, HttpResponse *const response)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(HTTP_REQUEST, this);
@@ -292,7 +288,7 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
     ASSERT(response != NULL);
 
     // Error code
-    String *error = strCatFmt(strNew(), "HTTP request failed with %u", httpResponseCode(response));
+    String *const error = strCatFmt(strNew(), "HTTP request failed with %u", httpResponseCode(response));
 
     // Add reason when present
     if (strSize(httpResponseReason(response)) > 0)
@@ -307,7 +303,7 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
         strCatFmt(error, "?%s", strZ(httpQueryRenderP(httpRequestQuery(this), .redact = true)));
 
     // Output request headers
-    const StringList *requestHeaderList = httpHeaderList(httpRequestHeader(this));
+    const StringList *const requestHeaderList = httpHeaderList(httpRequestHeader(this));
 
     if (!strLstEmpty(requestHeaderList))
     {
@@ -315,7 +311,7 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
 
         for (unsigned int requestHeaderIdx = 0; requestHeaderIdx < strLstSize(requestHeaderList); requestHeaderIdx++)
         {
-            const String *key = strLstGet(requestHeaderList, requestHeaderIdx);
+            const String *const key = strLstGet(requestHeaderList, requestHeaderIdx);
 
             strCatFmt(
                 error, "\n%s: %s", strZ(key),
@@ -324,8 +320,8 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
     }
 
     // Output response headers
-    const HttpHeader *responseHeader = httpResponseHeader(response);
-    const StringList *responseHeaderList = httpHeaderList(responseHeader);
+    const HttpHeader *const responseHeader = httpResponseHeader(response);
+    const StringList *const responseHeaderList = httpHeaderList(responseHeader);
 
     if (!strLstEmpty(responseHeaderList))
     {
@@ -333,7 +329,7 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
 
         for (unsigned int responseHeaderIdx = 0; responseHeaderIdx < strLstSize(responseHeaderList); responseHeaderIdx++)
         {
-            const String *key = strLstGet(responseHeaderList, responseHeaderIdx);
+            const String *const key = strLstGet(responseHeaderList, responseHeaderIdx);
             strCatFmt(error, "\n%s: %s", strZ(key), strZ(httpHeaderGet(responseHeader, key)));
         }
     }
@@ -349,6 +345,8 @@ httpRequestError(const HttpRequest *this, HttpResponse *response)
 }
 
 /**********************************************************************************************************************************/
+#define HTTP_MULTIPART_BOUNDARY_INIT_SIZE                           (sizeof(HTTP_MULTIPART_BOUNDARY_INIT) - 1)
+
 FN_EXTERN HttpRequestMulti *
 httpRequestMultiNew(void)
 {
@@ -358,7 +356,7 @@ httpRequestMultiNew(void)
     {
         *this = (HttpRequestMulti)
         {
-            .boundaryRaw = bufNewC(HTTP_MULTIPART_BOUNDARY, sizeof(HTTP_MULTIPART_BOUNDARY) - 1),
+            .boundaryRaw = bufNewC(HTTP_MULTIPART_BOUNDARY_INIT, HTTP_MULTIPART_BOUNDARY_INIT_SIZE),
             .contentList = lstNewP(sizeof(Buffer *)),
         };
     }
@@ -368,6 +366,8 @@ httpRequestMultiNew(void)
 }
 
 /**********************************************************************************************************************************/
+#define HTTP_MULTIPART_BOUNDARY_EXTRA_SIZE                          (sizeof(HTTP_MULTIPART_BOUNDARY_EXTRA) - 1)
+
 FN_EXTERN void
 httpRequestMultiAdd(
     HttpRequestMulti *const this, const String *const contentId, const String *const verb, const String *const path,
@@ -390,6 +390,7 @@ httpRequestMultiAdd(
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
+        // Construct request header
         String *const request = strNew();
 
         strCatZ(request, HTTP_HEADER_CONTENT_TYPE ":" HTTP_HEADER_CONTENT_TYPE_HTTP "\r\n");
@@ -399,12 +400,25 @@ httpRequestMultiAdd(
 
         MEM_CONTEXT_OBJ_BEGIN(this->contentList)
         {
+            // Add content
             Buffer *const content = bufNew(strSize(request) + (param.content == NULL ? 0 : bufUsed(param.content)));
 
             bufCat(content, BUFSTR(request));
             bufCat(content, param.content);
-            lstAdd(this->contentList, &content);
 
+            // Find a boundary that is not used in the content
+            while (bufFindP(content, this->boundaryRaw) != NULL)
+            {
+                if (bufUsed(this->boundaryRaw) == HTTP_MULTIPART_BOUNDARY_INIT_SIZE + HTTP_MULTIPART_BOUNDARY_EXTRA_SIZE)
+                    THROW(AssertError, "unable to construct unique boundary");
+
+                bufCatC(
+                    this->boundaryRaw, (unsigned char *)HTTP_MULTIPART_BOUNDARY_EXTRA,
+                    bufUsed(this->boundaryRaw) - HTTP_MULTIPART_BOUNDARY_INIT_SIZE, HTTP_MULTIPART_BOUNDARY_NEXT);
+            }
+
+            // Add to list
+            lstAdd(this->contentList, &content);
             this->contentSize += bufUsed(content);
         }
         MEM_CONTEXT_OBJ_END();
@@ -415,6 +429,10 @@ httpRequestMultiAdd(
 }
 
 /**********************************************************************************************************************************/
+#define HTTP_MULTIPART_BOUNDARY_PRE_SIZE                            (sizeof(HTTP_MULTIPART_BOUNDARY_PRE) - 1)
+#define HTTP_MULTIPART_BOUNDARY_POST_SIZE                           (sizeof(HTTP_MULTIPART_BOUNDARY_POST) - 1)
+#define HTTP_MULTIPART_BOUNDARY_POST_LAST_SIZE                      (sizeof(HTTP_MULTIPART_BOUNDARY_POST_LAST) - 1)
+
 FN_EXTERN Buffer *
 httpRequestMultiContent(HttpRequestMulti *const this)
 {
@@ -425,9 +443,10 @@ httpRequestMultiContent(HttpRequestMulti *const this)
     ASSERT(this != NULL);
     ASSERT(!lstEmpty(this->contentList));
 
-    const size_t boundarySize =
-        bufUsed(this->boundaryRaw) + sizeof(HTTP_MULTIPART_BOUNDARY_PRE) - sizeof(HTTP_MULTIPART_BOUNDARY_POST) - 2;
-    Buffer *const result = bufNew(this->contentSize + ((lstSize(this->contentList) + 1) * boundarySize));
+    const size_t boundarySize = bufUsed(this->boundaryRaw) + HTTP_MULTIPART_BOUNDARY_PRE_SIZE;
+    Buffer *const result = bufNew(
+        this->contentSize + (lstSize(this->contentList) * (boundarySize + HTTP_MULTIPART_BOUNDARY_POST_SIZE)) +
+        HTTP_MULTIPART_BOUNDARY_POST_LAST_SIZE);
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
@@ -435,33 +454,21 @@ httpRequestMultiContent(HttpRequestMulti *const this)
         Buffer *const boundary = bufNew(boundarySize);
         bufCat(boundary, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_PRE));
         bufCat(boundary, this->boundaryRaw);
-        bufCat(boundary, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
 
         // Add first boundary
-        // bufCat(result, boundary);
-        bufCat(result, BUFSTRDEF("--"));
-        bufCat(result, this->boundaryRaw);
+        bufCat(result, boundary);
         bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
 
         // Add content and boundaries
         for (unsigned int contentIdx = 0; contentIdx < lstSize(this->contentList); contentIdx++)
         {
             bufCat(result, *(Buffer **)lstGet(this->contentList, contentIdx));
+            bufCat(result, boundary);
 
-            if (contentIdx == lstSize(this->contentList) - 1)
-            {
-                bufCat(result, BUFSTRDEF("--"));
-                bufCat(result, this->boundaryRaw);
-                bufCat(result, BUFSTRDEF("--"));
+            if (contentIdx < lstSize(this->contentList) - 1)
                 bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
-            }
             else
-            {
-                bufCat(result, BUFSTRDEF("--"));
-                bufCat(result, this->boundaryRaw);
-                bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST));
-                // bufCat(result, boundary);
-            }
+                bufCat(result, BUFSTRDEF(HTTP_MULTIPART_BOUNDARY_POST_LAST));
         }
     }
     MEM_CONTEXT_TEMP_END();
