@@ -185,14 +185,14 @@ backupInit(const InfoBackup *const infoBackup)
     *result = (BackupData){0};
 
     // Don't allow backup from standby when offline
-    bool backupStandby = cfgOptionBool(cfgOptBackupStandby);
+    StringId backupStandby = cfgOptionStrId(cfgOptBackupStandby);
     const InfoPgData infoPg = infoPgDataCurrent(infoBackupPg(infoBackup));
 
-    if (!cfgOptionBool(cfgOptOnline) && backupStandby)
+    if (!cfgOptionBool(cfgOptOnline) && backupStandby != CFGOPTVAL_BACKUP_STANDBY_N)
     {
         LOG_WARN(
             "option " CFGOPT_BACKUP_STANDBY " is enabled but backup is offline - backups will be performed from the primary");
-        backupStandby = false;
+        backupStandby = CFGOPTVAL_BACKUP_STANDBY_N;
     }
 
     // Get database info when online
@@ -200,7 +200,11 @@ backupInit(const InfoBackup *const infoBackup)
 
     if (cfgOptionBool(cfgOptOnline))
     {
-        const DbGetResult dbInfo = dbGet(!backupStandby, true, backupStandby);
+        const DbGetResult dbInfo = dbGet(backupStandby == CFGOPTVAL_BACKUP_STANDBY_N, true, backupStandby);
+
+        // If no standby was found but using the primary is allowed then warn and proceed
+        if (backupStandby == CFGOPTVAL_BACKUP_STANDBY_PREFER && dbInfo.standby == NULL)
+            LOG_WARN("unable to find a standby to perform the backup, using primary instead");
 
         result->pgIdxPrimary = dbInfo.primaryIdx;
         result->dbPrimary = dbInfo.primary;
@@ -1951,7 +1955,6 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
         const int queueEnd = queueIdx;
 
         // Create backup job
-        ProtocolCommand *const command = protocolCommandNew(PROTOCOL_COMMAND_BACKUP_FILE);
         PackWrite *param = NULL;
         uint64_t fileTotal = 0;
         uint64_t fileSize = 0;
@@ -1980,7 +1983,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                 // Add common parameters before first file
                 if (param == NULL)
                 {
-                    param = protocolCommandParam(command);
+                    param = protocolPackNew();
 
                     if (bundle && file.size <= jobData->bundleLimit)
                     {
@@ -2068,7 +2071,8 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                 // Assign job to result
                 MEM_CONTEXT_PRIOR_BEGIN()
                 {
-                    result = protocolParallelJobNew(bundle ? VARUINT64(jobData->bundleId) : VARSTR(fileName), command);
+                    result = protocolParallelJobNew(
+                        bundle ? VARUINT64(jobData->bundleId) : VARSTR(fileName), PROTOCOL_COMMAND_BACKUP_FILE, param);
 
                     if (bundle)
                         jobData->bundleId++;

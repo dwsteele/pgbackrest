@@ -82,12 +82,12 @@ testRun(void)
 
     // Config functions that are not tested with parse
     // *****************************************************************************************************************************
-    if (testBegin("cfg*()"))
+    if (testBegin("cfgInited()"))
     {
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("config command defaults to none before cfgInit()");
 
-        TEST_RESULT_UINT(cfgCommand(), cfgCmdNone, "command is none");
+        TEST_RESULT_BOOL(cfgInited(), false, "config is not inited");
     }
 
     // config and config-include-path options
@@ -182,7 +182,7 @@ testRun(void)
         TEST_RESULT_INT(cfgOptionSource(cfgOptRepoHardlink), cfgSourceConfig, "repo-hardlink is source config");
         TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 3, "compress-level is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptCompressLevel), cfgSourceConfig, "compress-level is source config");
-        TEST_RESULT_BOOL(cfgOptionBool(cfgOptBackupStandby), false, "backup-standby not is set");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptBackupStandby), CFGOPTVAL_BACKUP_STANDBY_N, "backup-standby not is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptBackupStandby), cfgSourceDefault, "backup-standby is source default");
         TEST_RESULT_INT(cfgOptionInt64(cfgOptBufferSize), 65536, "buffer-size is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptBufferSize), cfgSourceConfig, "backup-standby is source config");
@@ -914,6 +914,17 @@ testRun(void)
             "command does not allow parameters");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("help not available for roles other than main");
+
+        argList = strLstNew();
+        strLstAddZ(argList, TEST_BACKREST_EXE);
+        strLstAddZ(argList, "help");
+        strLstAddZ(argList, "backup:remote");
+        TEST_ERROR(
+            cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), CommandInvalidError,
+            "help is not available for the 'remote' role");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("help ignores parameters");
 
         argList = strLstNew();
@@ -1536,8 +1547,8 @@ testRun(void)
         hrnLogLevelStdOutSet(logLevelOff);
         hrnLogLevelStdErrSet(logLevelOff);
         TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList)), "no command");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is set");
-        TEST_RESULT_INT(cfgCommand(), cfgCmdNone, "command is none");
+        TEST_RESULT_BOOL(cfgCommandHelp(), false, "help is not set");
+        TEST_RESULT_INT(cfgCommand(), cfgCmdHelp, "command is help");
         TEST_RESULT_INT(hrnLogLevelStdOut(), logLevelWarn, "console logging is warn");
         TEST_RESULT_INT(hrnLogLevelStdErr(), logLevelOff, "stderr logging is off");
         harnessLogLevelReset();
@@ -1550,8 +1561,8 @@ testRun(void)
         strLstAddZ(argList, "help");
 
         TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "help command");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is set");
-        TEST_RESULT_INT(cfgCommand(), cfgCmdNone, "command is help");
+        TEST_RESULT_BOOL(cfgCommandHelp(), false, "command help is not set");
+        TEST_RESULT_INT(cfgCommand(), cfgCmdHelp, "command is help");
 
         argList = strLstNew();
         strLstAddZ(argList, TEST_BACKREST_EXE);
@@ -1560,7 +1571,7 @@ testRun(void)
 
         TEST_RESULT_VOID(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "help for version command");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is set");
+        TEST_RESULT_BOOL(cfgCommandHelp(), true, "command help is set");
         TEST_RESULT_INT(cfgCommand(), cfgCmdVersion, "command is version");
         TEST_RESULT_Z(cfgCommandName(), "version", "command name is version");
 
@@ -1571,7 +1582,7 @@ testRun(void)
 
         TEST_RESULT_VOID(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "load config");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is set");
+        TEST_RESULT_BOOL(cfgCommandHelp(), true, "command help is set");
         TEST_RESULT_INT(cfgCommand(), cfgCmdHelp, "command is help");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -1582,8 +1593,9 @@ testRun(void)
         strLstAddZ(argList, "--help");
 
         TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "load config");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is set");
-        TEST_RESULT_INT(cfgCommand(), cfgCmdNone, "command is none");
+        TEST_RESULT_INT(cfgCommand(), cfgCmdHelp, "command is help");
+        TEST_RESULT_BOOL(cfgCommandHelp(), false, "command help is not set");
+        TEST_RESULT_BOOL(cfgOptionBool(cfgOptHelp), true, "help option is set");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("version option");
@@ -1593,8 +1605,9 @@ testRun(void)
         strLstAddZ(argList, "--version");
 
         TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "load config");
-        TEST_RESULT_BOOL(cfgCommandHelp(), false, "help is not set");
-        TEST_RESULT_INT(cfgCommand(), cfgCmdVersion, "command is version");
+        TEST_RESULT_BOOL(cfgCommandHelp(), false, "command help is not set");
+        TEST_RESULT_UINT(cfgCommand(), cfgCmdHelp, "command is help");
+        TEST_RESULT_BOOL(cfgOptionBool(cfgOptVersion), true, "version option is set");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("help and version options");
@@ -1605,8 +1618,10 @@ testRun(void)
         strLstAddZ(argList, "--version");
 
         TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "load config");
-        TEST_RESULT_BOOL(cfgCommandHelp(), true, "help is not set");
-        TEST_RESULT_INT(cfgCommand(), cfgCmdNone, "command is none");
+        TEST_RESULT_BOOL(cfgCommandHelp(), false, "help is not set");
+        TEST_RESULT_INT(cfgCommand(), cfgCmdHelp, "command is help");
+        TEST_RESULT_BOOL(cfgOptionBool(cfgOptHelp), true, "version option is set");
+        TEST_RESULT_BOOL(cfgOptionBool(cfgOptVersion), true, "version option is set");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on command with --help option");
@@ -1618,7 +1633,7 @@ testRun(void)
 
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidError,
-            "invalid option '--help'");
+            "option 'help' not valid for command 'backup'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on command with --version option");
@@ -1630,7 +1645,7 @@ testRun(void)
 
         TEST_ERROR(
             cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), OptionInvalidError,
-            "invalid option '--version'");
+            "option 'version' not valid for command 'backup'");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("help command - should not fail on missing options");
@@ -1663,6 +1678,33 @@ testRun(void)
             cfgCommandParam(), "000000010000000200000003\n/path/to/wal/RECOVERYWAL\n", "check command arguments");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("bool-like");
+
+        StringList *argListBase = strLstNew();
+        strLstAddZ(argListBase, TEST_BACKREST_EXE);
+        strLstAddZ(argListBase, "backup");
+        strLstAddZ(argListBase, "--stanza=test");
+        strLstAddZ(argListBase, "--pg1-path=/");
+
+        argList = strLstDup(argListBase);
+        strLstAddZ(argList, "--no-backup-standby");
+
+        TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "negate");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptBackupStandby), CFGOPTVAL_BACKUP_STANDBY_N, "backup-standby is n");
+
+        argList = strLstDup(argListBase);
+        strLstAddZ(argList, "--backup-standby");
+
+        TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "no arg");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptBackupStandby), CFGOPTVAL_BACKUP_STANDBY_Y, "backup-standby is y");
+
+        argList = strLstDup(argListBase);
+        strLstAddZ(argList, "--backup-standby=prefer");
+
+        TEST_RESULT_VOID(cfgParseP(storageTest, strLstSize(argList), strLstPtr(argList), .noResetLogLevel = true), "prefer arg");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptBackupStandby), CFGOPTVAL_BACKUP_STANDBY_PREFER, "backup-standby is prefer");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("various configuration settings");
 
         argList = strLstNew();
@@ -1690,7 +1732,7 @@ testRun(void)
         TEST_RESULT_BOOL(cfgLockRemoteRequired(), true, "backup command requires remote lock");
         TEST_RESULT_STRLST_Z(cfgCommandParam(), NULL, "check command arguments");
         TEST_RESULT_UINT(cfgParseCommandRoleEnum(NULL), cfgCmdRoleMain, "command role main enum");
-        TEST_ERROR(cfgParseCommandRoleEnum(STRDEF("bogus")), CommandInvalidError, "invalid command role 'bogus'");
+        TEST_ERROR(cfgParseCommandRoleEnum("bogus"), CommandInvalidError, "invalid command role 'bogus'");
         TEST_RESULT_INT(cfgCommandRole(), cfgCmdRoleMain, "command role is main");
         TEST_RESULT_STR_Z(cfgCommandRoleName(), "backup", "command/role name is backup");
         TEST_RESULT_STR_Z(cfgParseCommandRoleStr(cfgCmdRoleMain), NULL, "main role name is NULL");
@@ -1865,7 +1907,7 @@ testRun(void)
         TEST_RESULT_INT(varInt64(cfgOptionVar(cfgOptRepoRetentionFull)), 55, "repo-retention-full as variant");
         TEST_RESULT_INT(cfgOptionInt(cfgOptCompressLevel), 6, "compress-level is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptCompressLevel), cfgSourceDefault, "compress-level is source config");
-        TEST_RESULT_BOOL(cfgOptionBool(cfgOptBackupStandby), false, "backup-standby not is set");
+        TEST_RESULT_UINT(cfgOptionStrId(cfgOptBackupStandby), CFGOPTVAL_BACKUP_STANDBY_N, "backup-standby not is set");
         TEST_RESULT_INT(cfgOptionSource(cfgOptBackupStandby), cfgSourceDefault, "backup-standby is source default");
         TEST_RESULT_BOOL(cfgOptionIdxReset(cfgOptBackupStandby, 0), true, "backup-standby was reset");
         TEST_RESULT_BOOL(cfgOptionBool(cfgOptDelta), true, "delta is set");
@@ -1920,7 +1962,7 @@ testRun(void)
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("set command to expire");
 
-        TEST_RESULT_VOID(cfgCommandSet(cfgCmdExpire, cfgParseCommandRoleEnum(STRDEF("async"))), "set command");
+        TEST_RESULT_VOID(cfgCommandSet(cfgCmdExpire, cfgParseCommandRoleEnum("async")), "set command");
         TEST_RESULT_STR_Z(cfgCommandRoleName(), "expire:async", "command/role name is expire:async");
 
         // -------------------------------------------------------------------------------------------------------------------------

@@ -193,8 +193,6 @@ bldCfgRenderConfigAutoH(const Storage *const storageRepo, const BldCfg bldCfg)
         strCatFmt(config, "    %s,\n", strZ(bldEnumCmd(cmd->name)));
     }
 
-    strCatFmt(config, "    %s,\n", strZ(bldEnumCmd(STRDEF("none"))));
-
     strCatZ(
         config,
         "} ConfigCommand;\n");
@@ -900,6 +898,9 @@ bldCfgRenderParseAutoC(const Storage *const storageRepo, const BldCfg bldCfg, co
             "        PARSE_RULE_OPTION_NAME(\"%s\"),\n"
             "        PARSE_RULE_OPTION_TYPE(%s),\n",
             strZ(opt->name), strZ(bldEnum("", opt->type)));
+
+        if (opt->boolLike)
+            strCatZ(configOpt, "        PARSE_RULE_OPTION_BOOL_LIKE(true),\n");
 
         if (opt->beta)
             strCatZ(configOpt, "        PARSE_RULE_OPTION_BETA(true),\n");

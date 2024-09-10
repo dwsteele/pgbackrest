@@ -93,12 +93,6 @@ command:
     log-file: false
     log-level-default: DEBUG
 
-  repo-create:
-    command-role:
-      remote: {}
-    internal: true
-    log-file: false
-
   repo-get:
     command-role:
       remote: {}
@@ -218,6 +212,10 @@ optionGroup:
 #      defined for the option command override, then they override command roles defined for the option (rule 2) above)
 #      and all roles defined for the command (rule 1) above).
 #
+# bool-like:
+#   Used to convert a boolean to a string or string-id type. It can be used as a boolean (e.g. --option or option=y) and the
+#   boolean values will be mapped to y/n. Otherwise it is used just as a string or string-id type.
+#
 # required:
 #   In global section:
 #     true - if the option does not have a default, then setting required in the global section means all commands listed in
@@ -306,6 +304,14 @@ option:
     command-role:
       main: {}
 
+  help:
+    type: boolean
+    default: false
+    command:
+      help: {}
+    command-role:
+      main: {}
+
   online:
     type: boolean
     default: true
@@ -386,8 +392,6 @@ option:
       info:
         required: false
       manifest: {}
-      repo-create:
-        required: false
       repo-get:
         required: false
       repo-ls:
@@ -509,6 +513,14 @@ option:
     command-role:
       main: {}
 
+  version:
+    type: boolean
+    default: false
+    command:
+      help: {}
+    command-role:
+      main: {}
+
   # Command-line only local/remote options
   #---------------------------------------------------------------------------------------------------------------------------------
   exec-id:
@@ -529,7 +541,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -572,7 +583,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -692,7 +702,6 @@ option:
       expire: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -716,7 +725,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -827,7 +835,6 @@ option:
       archive-push: {}
       backup: {}
       check: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -913,7 +920,6 @@ option:
       backup: {}
       check: {}
       expire: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -954,7 +960,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -1113,7 +1118,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -1246,8 +1250,13 @@ option:
 
   backup-standby:
     section: global
-    type: boolean
-    default: false
+    type: string-id
+    bool-like: true
+    default: n
+    allow-list:
+      - n
+      - prefer
+      - y
     command:
       backup: {}
       check: {}
@@ -1708,10 +1717,6 @@ option:
         command-role:
           main: {}
           remote: {}
-      repo-create:
-        command-role:
-          main: {}
-          remote: {}
       repo-get:
         command-role:
           main: {}
@@ -1770,7 +1775,6 @@ option:
         internal: true
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}
@@ -1830,10 +1834,6 @@ option:
           main: {}
           remote: {}
       manifest:
-        command-role:
-          main: {}
-          remote: {}
-      repo-create:
         command-role:
           main: {}
           remote: {}
@@ -2164,7 +2164,6 @@ option:
       check: {}
       info: {}
       manifest: {}
-      repo-create: {}
       repo-get: {}
       repo-ls: {}
       repo-put: {}

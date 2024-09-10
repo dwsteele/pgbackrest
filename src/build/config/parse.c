@@ -309,6 +309,7 @@ typedef struct BldCfgOptionRaw
     const String *name;                                             // See BldCfgOption for comments
     const String *type;
     const String *section;
+    bool boolLike;
     bool internal;
     bool beta;
     const Variant *required;
@@ -961,6 +962,10 @@ bldCfgParseOptionList(Yaml *const yaml, const List *const cmdList, const List *c
                     {
                         optRaw.internal = yamlBoolParse(optDefVal);
                     }
+                    else if (strEqZ(optDef.value, "bool-like"))
+                    {
+                        optRaw.boolLike = yamlBoolParse(optDefVal);
+                    }
                     else if (strEqZ(optDef.value, "beta"))
                     {
                         optRaw.beta = yamlBoolParse(optDefVal);
@@ -1008,7 +1013,8 @@ bldCfgParseOptionList(Yaml *const yaml, const List *const cmdList, const List *c
                 if (optRaw.negate == NULL)
                 {
                     optRaw.negate = varNewBool(
-                        strEq(optRaw.type, OPT_TYPE_BOOLEAN_STR) && !strEq(optRaw.section, SECTION_COMMAND_LINE_STR));
+                        (strEq(optRaw.type, OPT_TYPE_BOOLEAN_STR) || optRaw.boolLike) &&
+                        !strEq(optRaw.section, SECTION_COMMAND_LINE_STR));
                 }
 
                 // Build default command list if not defined
@@ -1053,6 +1059,7 @@ bldCfgParseOptionList(Yaml *const yaml, const List *const cmdList, const List *c
                     .name = strDup(optRaw->name),
                     .type = strDup(optRaw->type),
                     .section = strDup(optRaw->section),
+                    .boolLike = optRaw->boolLike,
                     .internal = optRaw->internal,
                     .beta = optRaw->beta,
                     .required = varBool(optRaw->required),
