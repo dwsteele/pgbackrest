@@ -1633,6 +1633,51 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
         ),                                                                                                      // opt/checksum-page
     ),                                                                                                          // opt/checksum-page
     // -----------------------------------------------------------------------------------------------------------------------------
+    PARSE_RULE_OPTION                                                                                     // opt/checksum-page-error
+    (                                                                                                     // opt/checksum-page-error
+        PARSE_RULE_OPTION_NAME("checksum-page-error"),                                                    // opt/checksum-page-error
+        PARSE_RULE_OPTION_TYPE(Boolean),                                                                  // opt/checksum-page-error
+        PARSE_RULE_OPTION_REQUIRED(true),                                                                 // opt/checksum-page-error
+        PARSE_RULE_OPTION_SECTION(CommandLine),                                                           // opt/checksum-page-error
+                                                                                                          // opt/checksum-page-error
+        PARSE_RULE_OPTION_COMMAND_ROLE_MAIN_VALID_LIST                                                    // opt/checksum-page-error
+        (                                                                                                 // opt/checksum-page-error
+            PARSE_RULE_OPTION_COMMAND(Backup)                                                             // opt/checksum-page-error
+            PARSE_RULE_OPTION_COMMAND(Expire)                                                             // opt/checksum-page-error
+            PARSE_RULE_OPTION_COMMAND(Restore)                                                            // opt/checksum-page-error
+        ),                                                                                                // opt/checksum-page-error
+                                                                                                          // opt/checksum-page-error
+        PARSE_RULE_OPTIONAL                                                                               // opt/checksum-page-error
+        (                                                                                                 // opt/checksum-page-error
+            PARSE_RULE_OPTIONAL_GROUP                                                                     // opt/checksum-page-error
+            (                                                                                             // opt/checksum-page-error
+                PARSE_RULE_FILTER_CMD                                                                     // opt/checksum-page-error
+                (                                                                                         // opt/checksum-page-error
+                    PARSE_RULE_VAL_CMD(Backup),                                                           // opt/checksum-page-error
+                ),                                                                                        // opt/checksum-page-error
+                                                                                                          // opt/checksum-page-error
+                PARSE_RULE_OPTIONAL_DEFAULT                                                               // opt/checksum-page-error
+                (                                                                                         // opt/checksum-page-error
+                    PARSE_RULE_VAL_BOOL_FALSE,                                                            // opt/checksum-page-error
+                ),                                                                                        // opt/checksum-page-error
+            ),                                                                                            // opt/checksum-page-error
+                                                                                                          // opt/checksum-page-error
+            PARSE_RULE_OPTIONAL_GROUP                                                                     // opt/checksum-page-error
+            (                                                                                             // opt/checksum-page-error
+                PARSE_RULE_FILTER_CMD                                                                     // opt/checksum-page-error
+                (                                                                                         // opt/checksum-page-error
+                    PARSE_RULE_VAL_CMD(Expire),                                                           // opt/checksum-page-error
+                    PARSE_RULE_VAL_CMD(Restore),                                                          // opt/checksum-page-error
+                ),                                                                                        // opt/checksum-page-error
+                                                                                                          // opt/checksum-page-error
+                PARSE_RULE_OPTIONAL_DEFAULT                                                               // opt/checksum-page-error
+                (                                                                                         // opt/checksum-page-error
+                    PARSE_RULE_VAL_BOOL_TRUE,                                                             // opt/checksum-page-error
+                ),                                                                                        // opt/checksum-page-error
+            ),                                                                                            // opt/checksum-page-error
+        ),                                                                                                // opt/checksum-page-error
+    ),                                                                                                    // opt/checksum-page-error
+    // -----------------------------------------------------------------------------------------------------------------------------
     PARSE_RULE_OPTION                                                                                             // opt/cipher-pass
     (                                                                                                             // opt/cipher-pass
         PARSE_RULE_OPTION_NAME("cipher-pass"),                                                                    // opt/cipher-pass
@@ -10995,6 +11040,7 @@ static const uint8_t optionResolveOrder[] =
     cfgOptBeta,                                                                                                 // opt-resolve-order
     cfgOptBufferSize,                                                                                           // opt-resolve-order
     cfgOptChecksumPage,                                                                                         // opt-resolve-order
+    cfgOptChecksumPageError,                                                                                    // opt-resolve-order
     cfgOptCipherPass,                                                                                           // opt-resolve-order
     cfgOptCmd,                                                                                                  // opt-resolve-order
     cfgOptCmdSsh,                                                                                               // opt-resolve-order

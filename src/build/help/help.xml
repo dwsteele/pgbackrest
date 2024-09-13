@@ -2091,6 +2091,16 @@
                 </text>
 
                 <option-list>
+                    <option id="checksum-page-error" name="Error on Invalid Page Checksums">
+                        <summary>Error on Invalid Page Checksums.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>n</example>
+                    </option>
+
                     <option id="type" name="Type">
                         <summary>Backup type.</summary>
 
@@ -2189,6 +2199,16 @@
                 </text>
 
                 <option-list>
+                    <option id="checksum-page-error" name="!!!">
+                        <summary>!!!.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>n</example>
+                    </option>
+
                     <option id="set" name="Set">
                         <summary>Backup set to expire.</summary>
 
@@ -2411,6 +2431,16 @@
                 </text>
 
                 <option-list>
+                    <option id="checksum-page-error" name="!!!">
+                        <summary>!!!.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>n</example>
+                    </option>
+
                     <option id="set" name="Set">
                         <summary>Backup set to restore.</summary>
 

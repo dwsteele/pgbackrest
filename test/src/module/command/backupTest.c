@@ -2916,9 +2916,7 @@ testRun(void)
             hrnCfgArgRaw(argList, cfgOptPgPath, pg1Path);
             hrnCfgArgRawZ(argList, cfgOptRepoRetentionFull, "1");
             hrnCfgArgRawStrId(argList, cfgOptType, backupTypeFull);
-            hrnCfgArgRawBool(argList, cfgOptRepoHardlink, true);
-            hrnCfgArgRawZ(argList, cfgOptManifestSaveThreshold, "1");
-            hrnCfgArgRawBool(argList, cfgOptArchiveCopy, true);
+            hrnCfgArgRawBool(argList, cfgOptChecksumPageError, true);
             HRN_CFG_LOAD(cfgCmdBackup, argList);
 
             // Move pg1-path and put a link in its place. This tests that backup works when pg1-path is a symlink yet should be
@@ -2983,13 +2981,39 @@ testRun(void)
                 zNewFmt("pg1-tblspc/32768/%s/1/5", strZ(pgTablespaceId(PG_VERSION_11, hrnPgCatalogVersion(PG_VERSION_11)))),
                 .timeModified = backupTimeStart);
 
+            // Run backup with error on invalid checksum
+            hrnBackupPqScriptP(
+                PG_VERSION_11, backupTimeStart, .walCompressType = compressTypeGz, .walTotal = 3, .walSwitch = true,
+                .errorAfterCopyStart = true);
+            TEST_ERROR(
+                hrnCmdBackup(), ChecksumError, "invalid page checksums found in file " TEST_PATH "/pg1/base/1/3 at pages 0, 2-4");
+
+            TEST_RESULT_LOG(
+                "P00   INFO: execute non-exclusive backup start: backup begins after the next regular checkpoint completes\n"
+                "P00   INFO: backup start archive = 0000000105DB5DE000000000, lsn = 5db5de0/0\n"
+                "P00   INFO: check archive for segment 0000000105DB5DE000000000\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/base/1/3 (40KB, [PCT]) checksum [SHA1]");
+
+            HRN_STORAGE_PATH_REMOVE(storageRepoWrite(), STORAGE_REPO_BACKUP "/20191027-181320F", .recurse = true);
+
+            // Run backup
+            argList = strLstNew();
+            hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
+            hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
+            hrnCfgArgRaw(argList, cfgOptPgPath, pg1Path);
+            hrnCfgArgRawZ(argList, cfgOptRepoRetentionFull, "1");
+            hrnCfgArgRawStrId(argList, cfgOptType, backupTypeFull);
+            hrnCfgArgRawBool(argList, cfgOptRepoHardlink, true);
+            hrnCfgArgRawZ(argList, cfgOptManifestSaveThreshold, "1");
+            hrnCfgArgRawBool(argList, cfgOptArchiveCopy, true);
+            HRN_CFG_LOAD(cfgCmdBackup, argList);
+
             // Disable storageFeatureSymLink so tablespace (and latest) symlinks will not be created
             ((Storage *)storageRepoWrite())->pub.interface.feature ^= 1 << storageFeatureSymLink;
 
             // Disable storageFeatureHardLink so hardlinks will not be created
             ((Storage *)storageRepoWrite())->pub.interface.feature ^= 1 << storageFeatureHardLink;
 
-            // Run backup
             hrnBackupPqScriptP(PG_VERSION_11, backupTimeStart, .walCompressType = compressTypeGz, .walTotal = 3, .walSwitch = true);
             TEST_RESULT_VOID(hrnCmdBackup(), "backup");
 

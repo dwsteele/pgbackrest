@@ -1527,13 +1527,14 @@ backupJobResult(
                         if (!pckReadBoolP(checksumPageResult))
                         {
                             checksumPageError = true;
+                            const char *checksumPageErrorMsg = NULL;
 
                             if (!pckReadBoolP(checksumPageResult))
                             {
                                 checksumPageErrorList = NULL;
 
                                 // ??? Update formatting after migration
-                                LOG_WARN_FMT(
+                                checksumPageErrorMsg = zNewFmt(
                                     "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
                                     strZ(fileLog), copySize, pageSize);
                             }
@@ -1579,10 +1580,16 @@ backupJobResult(
                                 const String *const plural = errorTotalMin > 1 ? STRDEF("s") : EMPTY_STR;
 
                                 // ??? Update formatting after migration
-                                LOG_WARN_FMT(
+                                checksumPageErrorMsg = zNewFmt(
                                     "invalid page checksum%s found in file %s at page%s %s", strZ(plural), strZ(fileLog),
                                     strZ(plural), strZ(error));
                             }
+
+                            // Error when requested, otherwise warn
+                            if (cfgOptionBool(cfgOptChecksumPageError))
+                                THROW(ChecksumError, checksumPageErrorMsg);
+                            else
+                                LOG_WARN(checksumPageErrorMsg);
                         }
                     }
 
