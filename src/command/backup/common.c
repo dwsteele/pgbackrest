@@ -17,6 +17,74 @@ Constants
 
 /**********************************************************************************************************************************/
 FN_EXTERN String *
+backupChecksumPageError(
+    const VariantList *const errorList, const String *const fileLog, const uint64_t fileSize, const unsigned int pageSize)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(VARIANT_LIST, errorList);
+    FUNCTION_TEST_END();
+
+    String *result;
+
+    // If no error list then there was a misalignment
+    if (errorList == NULL)
+    {
+        // ??? Update formatting after migration
+        result = strNewFmt(
+            "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
+            strZ(fileLog), fileSize, pageSize);
+    }
+    else
+    {
+        // Format the page checksum errors
+        CHECK(FormatError, errorList != NULL, "page checksum error list is missing");
+        CHECK(FormatError, !varLstEmpty(errorList), "page checksum error list is empty");
+
+        String *const error = strNew();
+        unsigned int errorTotalMin = 0;
+
+        for (unsigned int errorIdx = 0; errorIdx < varLstSize(errorList); errorIdx++)
+        {
+            const Variant *const errorItem = varLstGet(errorList, errorIdx);
+
+            // Add a comma if this is not the first item
+            if (errorIdx != 0)
+                strCatZ(error, ", ");
+
+            // If an error range
+            if (varType(errorItem) == varTypeVariantList)
+            {
+                const VariantList *const errorItemList = varVarLst(errorItem);
+                ASSERT(varLstSize(errorItemList) == 2);
+
+                strCatFmt(
+                    error, "%" PRIu64 "-%" PRIu64, varUInt64(varLstGet(errorItemList, 0)),
+                    varUInt64(varLstGet(errorItemList, 1)));
+                errorTotalMin += 2;
+            }
+            // Else a single error
+            else
+            {
+                ASSERT(varType(errorItem) == varTypeUInt64);
+
+                strCatFmt(error, "%" PRIu64, varUInt64(errorItem));
+                errorTotalMin++;
+            }
+        }
+
+        // Make message plural when appropriate
+        const char *const plural = errorTotalMin > 1 ? "s" : "";
+
+        // ??? Update formatting after migration
+        result = strNewFmt("invalid page checksum%s found in file %s at page%s %s", plural, strZ(fileLog), plural, strZ(error));
+        strFree(error);
+    }
+
+    FUNCTION_TEST_RETURN(STRING, result);
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN String *
 backupFileRepoPath(const String *const backupLabel, const BackupFileRepoPathParam param)
 {
     FUNCTION_TEST_BEGIN();

@@ -24,6 +24,10 @@ Backup constants
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
+// Generate error message for invalid page checksums
+FN_EXTERN String *backupChecksumPageError(
+    const VariantList *errorList, const String *fileLog, uint64_t fileSize, unsigned int pageSize);
+
 // Determine the path/file where the file is backed up in the repo
 typedef struct BackupFileRepoPathParam
 {

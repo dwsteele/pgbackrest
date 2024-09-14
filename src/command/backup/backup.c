@@ -1522,74 +1522,26 @@ backupJobResult(
                     if (checksumPageResult != NULL)
                     {
                         checksumPageErrorList = backupJobResultPageChecksum(checksumPageResult);
+                        const bool checksumPageValid = pckReadBoolP(checksumPageResult);
+                        const bool checksumPageAlign = pckReadBoolP(checksumPageResult);
 
-                        // If the checksum was valid
-                        if (!pckReadBoolP(checksumPageResult))
+                        // If the checksum was invalid
+                        if (!checksumPageValid)
                         {
-                            checksumPageError = true;
-                            const char *checksumPageErrorMsg = NULL;
-
-                            if (!pckReadBoolP(checksumPageResult))
-                            {
+                            // If there was an alignment issue then clear the error list
+                            if (!checksumPageAlign)
                                 checksumPageErrorList = NULL;
 
-                                // ??? Update formatting after migration
-                                checksumPageErrorMsg = zNewFmt(
-                                    "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
-                                    strZ(fileLog), copySize, pageSize);
-                            }
-                            else
-                            {
-                                // Format the page checksum errors
-                                CHECK(FormatError, checksumPageErrorList != NULL, "page checksum error list is missing");
-                                CHECK(FormatError, !varLstEmpty(checksumPageErrorList), "page checksum error list is empty");
-
-                                String *const error = strNew();
-                                unsigned int errorTotalMin = 0;
-
-                                for (unsigned int errorIdx = 0; errorIdx < varLstSize(checksumPageErrorList); errorIdx++)
-                                {
-                                    const Variant *const errorItem = varLstGet(checksumPageErrorList, errorIdx);
-
-                                    // Add a comma if this is not the first item
-                                    if (errorIdx != 0)
-                                        strCatZ(error, ", ");
-
-                                    // If an error range
-                                    if (varType(errorItem) == varTypeVariantList)
-                                    {
-                                        const VariantList *const errorItemList = varVarLst(errorItem);
-                                        ASSERT(varLstSize(errorItemList) == 2);
-
-                                        strCatFmt(
-                                            error, "%" PRIu64 "-%" PRIu64, varUInt64(varLstGet(errorItemList, 0)),
-                                            varUInt64(varLstGet(errorItemList, 1)));
-                                        errorTotalMin += 2;
-                                    }
-                                    // Else a single error
-                                    else
-                                    {
-                                        ASSERT(varType(errorItem) == varTypeUInt64);
-
-                                        strCatFmt(error, "%" PRIu64, varUInt64(errorItem));
-                                        errorTotalMin++;
-                                    }
-                                }
-
-                                // Make message plural when appropriate
-                                const String *const plural = errorTotalMin > 1 ? STRDEF("s") : EMPTY_STR;
-
-                                // ??? Update formatting after migration
-                                checksumPageErrorMsg = zNewFmt(
-                                    "invalid page checksum%s found in file %s at page%s %s", strZ(plural), strZ(fileLog),
-                                    strZ(plural), strZ(error));
-                            }
+                            const String *const checksumPageErrorMsg = backupChecksumPageError(
+                                checksumPageErrorList, fileLog, copySize, pageSize);
 
                             // Error when requested, otherwise warn
                             if (cfgOptionBool(cfgOptChecksumPageError))
-                                THROW(ChecksumError, checksumPageErrorMsg);
+                                THROW(ChecksumError, strZ(checksumPageErrorMsg));
                             else
-                                LOG_WARN(checksumPageErrorMsg);
+                                LOG_WARN(strZ(checksumPageErrorMsg));
+
+                            checksumPageError = true;
                         }
                     }
 
