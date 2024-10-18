@@ -1,14 +1,24 @@
-**June 12, 2023**: [Crunchy Data](https://www.crunchydata.com) is pleased to announce the release of [pgBackRest](https://pgbackrest.org/) 2.46, the latest version of the reliable, easy-to-use backup and restore solution that can seamlessly scale up to the largest databases and workloads.
+**October !!!, 2024**: [Crunchy Data](https://www.crunchydata.com) is pleased to announce the release of [pgBackRest](https://pgbackrest.org/) 2.54.0, the latest version of the reliable, easy-to-use backup and restore solution that can seamlessly scale up to the largest databases and workloads.
 
-Over the last year pgBackRest has introduced many exciting new features including block incremental backup, file bundling, repository verification, backup annotations, and SFTP repository storage.
+XXX Over the last year pgBackRest has introduced many exciting new features including malware protection, concurrent backups, and object tagging.
 
-IMPORTANT NOTE: pgBackRest 2.44 is the last version to support PostgreSQL 9.0/9.1/9.2.
-
-pgBackRest supports a robust set of features for managing your backup and recovery infrastructure, including: parallel backup/restore, full/differential/incremental backups, block incremental backup, multiple repositories, delta restore, parallel asynchronous archiving, per-file checksums, page checksums (when enabled) validated during backup, multiple compression types, encryption, partial/failed backup resume, backup from standby, tablespace and link support, S3/Azure/GCS/SFTP support, backup expiration, local/remote operation via SSH or TLS, flexible configuration, and more.
+pgBackRest supports a robust set of features for managing your backup and recovery infrastructure, including: parallel backup/restore, full/differential/incremental backups, block incremental backup, malware protection, multiple repositories, delta restore, parallel asynchronous archiving, per-file checksums, page checksums (when enabled) validated during backup, multiple compression types, encryption, partial/failed backup resume, backup from standby, tablespace and link support, S3/Azure/GCS/SFTP support, backup expiration, local/remote operation via SSH or TLS, flexible configuration, and more.
 
 pgBackRest can be installed from the [PostgreSQL Yum Repository](https://yum.postgresql.org/) or the [PostgreSQL APT Repository](https://apt.postgresql.org). Source code can be downloaded from [releases](https://github.com/pgbackrest/pgbackrest/releases).
 
 ## Major New Features
+
+### Allow repositories on versioned storage to be read at a target time.
+
+### Allow backups to run concurrently on different repositories.
+
+### Allow requested standby backup to proceed with no standby.
+
+### Add --repo-storage-tag option to create object tags.
+
+### S3 SSE-C encryption support.
+
+
 
 ### Block Incremental Backup
 
