@@ -192,12 +192,14 @@ protocolServerRequest(ProtocolServer *const this)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-protocolServerProcess(ProtocolServer *const this, const VariantList *const retryInterval, const List *const handlerList)
+protocolServerProcess(
+    ProtocolServer *const this, const VariantList *const retryInterval, const List *const handlerList, const String *const lockFile)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(PROTOCOL_SERVER, this);
         FUNCTION_LOG_PARAM(VARIANT_LIST, retryInterval);
         FUNCTION_LOG_PARAM(LIST, handlerList);
+        FUNCTION_LOG_PARAM(STRING, lockFile);
     FUNCTION_LOG_END();
 
     ASSERT(this != NULL);
@@ -466,6 +468,28 @@ protocolServerProcess(ProtocolServer *const this, const VariantList *const retry
                         case PROTOCOL_COMMAND_EXIT:
                             exit = true;
                             break;
+
+                        case PROTOCOL_COMMAND_LOCK_WRITE:
+                        {
+                            ASSERT(lockFile != NULL);
+
+                            LockWriteParam param = {0};
+                            PackRead *const paramPack = pckReadNew(request.param);
+
+                            if (!pckReadNullP(paramPack))
+                                param.percentComplete = varNewUInt(pckReadU32P(paramPack));
+
+                            if (!pckReadNullP(paramPack))
+                                param.sizeComplete = varNewUInt64(pckReadU64P(paramPack));
+
+                            if (!pckReadNullP(paramPack))
+                                param.size = varNewUInt64(pckReadU64P(paramPack));
+
+                            lockWrite(lockFile, param);
+
+                            protocolServerResponseP(this);
+                            break;
+                        }
 
                         case PROTOCOL_COMMAND_NOOP:
                             protocolServerResponseP(this);

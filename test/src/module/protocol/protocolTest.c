@@ -561,7 +561,7 @@ testRun(void)
                 const ProtocolServerHandler commandHandler[] = {TEST_PROTOCOL_SERVER_HANDLER_LIST};
 
                 TEST_ERROR(
-                    protocolServerProcess(server, NULL, LSTDEF(commandHandler)), ProtocolError,
+                    protocolServerProcess(server, NULL, LSTDEF(commandHandler), NULL), ProtocolError,
                     "invalid request 'BOGUS' (0x38eacd271)");
 
                 // -----------------------------------------------------------------------------------------------------------------
@@ -569,13 +569,13 @@ testRun(void)
 
                 // This does not run in a TEST* macro because tests are run by the command handlers
                 TEST_ERROR(
-                    protocolServerProcess(server, NULL, LSTDEF(commandHandler)), AssertError, "ERR_MESSAGE");
+                    protocolServerProcess(server, NULL, LSTDEF(commandHandler), NULL), AssertError, "ERR_MESSAGE");
 
                 // -----------------------------------------------------------------------------------------------------------------
                 TEST_TITLE("server restart");
 
                 // This does not run in a TEST* macro because tests are run by the command handlers
-                protocolServerProcess(server, NULL, LSTDEF(commandHandler));
+                protocolServerProcess(server, NULL, LSTDEF(commandHandler), NULL);
 
                 // -----------------------------------------------------------------------------------------------------------------
                 TEST_TITLE("server with retries");
@@ -589,7 +589,7 @@ testRun(void)
                     "new server");
 
                 // This does not run in a TEST* macro because tests are run by the command handlers
-                protocolServerProcess(server, retryList, LSTDEF(commandHandler));
+                protocolServerProcess(server, retryList, LSTDEF(commandHandler), NULL);
             }
             HRN_FORK_CHILD_END();
 

@@ -35,7 +35,7 @@ testRun(void)
                     STRDEF("test"), STRDEF("config"), HRN_FORK_CHILD_READ(), HRN_FORK_CHILD_WRITE());
 
                 static const ProtocolServerHandler commandHandler[] = {PROTOCOL_SERVER_HANDLER_OPTION_LIST};
-                protocolServerProcess(server, NULL, LSTDEF(commandHandler));
+                protocolServerProcess(server, NULL, LSTDEF(commandHandler), NULL);
             }
             HRN_FORK_CHILD_END();
 

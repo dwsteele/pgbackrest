@@ -110,7 +110,7 @@ protocolLocalExec(
             ProtocolServer *server = protocolServerNew(
                 name, PROTOCOL_SERVICE_LOCAL_STR, ioFdReadNewOpen(name, pipeWrite[0], 5000),
                 ioFdWriteNewOpen(name, pipeRead[1], 5000));
-            protocolServerProcess(server, cfgCommandJobRetry(), hrnProtocolStatic.localHandlerList);
+            protocolServerProcess(server, cfgCommandJobRetry(), hrnProtocolStatic.localHandlerList, NULL);
 
             // Exit when done
             exit(0);
@@ -205,7 +205,7 @@ protocolRemoteExec(
             ProtocolServer *server = protocolServerNew(
                 name, PROTOCOL_SERVICE_REMOTE_STR, ioFdReadNewOpen(name, pipeWrite[0], 10000),
                 ioFdWriteNewOpen(name, pipeRead[1], 10000));
-            protocolServerProcess(server, NULL, hrnProtocolStatic.remoteHandlerList);
+            protocolServerProcess(server, NULL, hrnProtocolStatic.remoteHandlerList, NULL);
 
             // Put an end message here to sync with the client to ensure that coverage data is written before exiting
             protocolServerResponseP(server);

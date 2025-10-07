@@ -67,6 +67,7 @@ cmdRemote(ProtocolServer *const server)
         // handshake to return an error. We can't take a lock earlier than this because we want the error to go back through the
         // protocol layer.
         volatile bool success = false;
+        volatile bool lock = false;
 
         TRY_BEGIN()
         {
@@ -84,11 +85,12 @@ cmdRemote(ProtocolServer *const server)
 
                     // Acquire the lock
                     cmdLockAcquireP();
+                    lock = true;
                 }
             }
 
             // Notify the client of success
-            protocolServerResponseP(server);
+            protocolServerResponseP(server, .data = pckWriteBoolP(protocolPackNew(), lock));
             success = true;
         }
         CATCH_ANY()
@@ -99,7 +101,7 @@ cmdRemote(ProtocolServer *const server)
 
         // If not successful we'll just exit
         if (success)
-            protocolServerProcess(server, NULL, commandRemoteHandlerList);
+            protocolServerProcess(server, NULL, commandRemoteHandlerList, lock ? cmdLockFile() : NULL);
     }
     MEM_CONTEXT_TEMP_END();
 

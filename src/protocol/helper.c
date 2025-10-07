@@ -45,6 +45,7 @@ typedef struct ProtocolHelperClient
     ProtocolStorageType storageType;                                // Storage type
     unsigned int hostIdx;                                           // Host index
     unsigned int processId;                                         // Process id displayed in logs
+    bool lock;                                                      // Did the server acquire a lock?
     Exec *exec;                                                     // Executed client
     IoClient *ioClient;                                             // Io client, e.g. TlsClient
     IoSession *ioSession;                                           // Io session, e.g. TlsSession
@@ -821,7 +822,8 @@ protocolRemoteGet(const ProtocolStorageType protocolStorageType, const unsigned 
             protocolHelperClient = lstAdd(protocolHelper.clientList, &protocolHelperClientAdd);
 
             // Send noop to catch initialization errors
-            protocolClientNoOp(protocolHelperClient->client);
+            protocolHelperClient->lock = pckReadBoolP(
+                protocolClientRequestP(protocolHelperClient->client, PROTOCOL_COMMAND_NOOP));
 
             // Get cipher options from the remote if none are locally configured
             if (isRepo && cfgOptionIdxStrId(cfgOptRepoCipherType, hostIdx) == cipherTypeNone)
@@ -879,7 +881,7 @@ protocolKeepAlive(void)
 {
     FUNCTION_LOG_VOID(logLevelTrace);
 
-    if (protocolHelper.clientList)
+    if (protocolHelper.clientList != NULL)
     {
         for (unsigned int clientIdx = 0; clientIdx < lstSize(protocolHelper.clientList); clientIdx++)
         {
@@ -887,6 +889,30 @@ protocolKeepAlive(void)
 
             if (match->type == protocolClientRemote)
                 protocolClientNoOp(match->client);
+        }
+    }
+
+    FUNCTION_LOG_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+protocolLockWrite(const LockWriteParam param)
+{
+    FUNCTION_LOG_BEGIN(logLevelTrace);
+        FUNCTION_LOG_PARAM(VARIANT, param.percentComplete);
+        FUNCTION_LOG_PARAM(VARIANT, param.sizeComplete);
+        FUNCTION_LOG_PARAM(VARIANT, param.size);
+    FUNCTION_LOG_END();
+
+    if (protocolHelper.clientList != NULL)
+    {
+        for (unsigned int clientIdx = 0; clientIdx < lstSize(protocolHelper.clientList); clientIdx++)
+        {
+            ProtocolHelperClient *const match = lstGet(protocolHelper.clientList, clientIdx);
+
+            if (match->lock)
+                protocolClientLockWrite(match->client, param);
         }
     }
 

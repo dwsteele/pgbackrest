@@ -75,7 +75,8 @@ FN_EXTERN void protocolServerResponse(ProtocolServer *const this, ProtocolServer
 FN_EXTERN void protocolServerError(ProtocolServer *this, int code, const String *message, const String *stack);
 
 // Process requests
-FN_EXTERN void protocolServerProcess(ProtocolServer *this, const VariantList *retryInterval, const List *handlerList);
+FN_EXTERN void protocolServerProcess(
+    ProtocolServer *this, const VariantList *retryInterval, const List *handlerList, const String *lockFile);
 
 // Move to a new parent mem context
 FN_INLINE_ALWAYS ProtocolServer *

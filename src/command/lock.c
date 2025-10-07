@@ -7,6 +7,7 @@ Command Lock Handler
 #include "common/debug.h"
 #include "common/log.h"
 #include "config/config.h"
+#include "protocol/helper.h"
 
 /***********************************************************************************************************************************
 Local variables
@@ -113,6 +114,19 @@ cmdLockAcquire(const LockAcquireParam param)
 }
 
 /**********************************************************************************************************************************/
+FN_EXTERN String *
+cmdLockFile(void)
+{
+    FUNCTION_LOG_VOID(logLevelTrace);
+
+    FUNCTION_LOG_RETURN(
+        STRING,
+        cmdLockFileName(
+            cfgOptionStr(cfgOptStanza), cfgLockType(),
+            cfgOptionGroupIdxToKey(cfgOptGrpRepo, cfgOptionGroupIdxDefault(cfgOptGrpRepo))));
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN void
 cmdLockWrite(const LockWriteParam param)
 {
@@ -122,11 +136,12 @@ cmdLockWrite(const LockWriteParam param)
         FUNCTION_LOG_PARAM(VARIANT, param.size);
     FUNCTION_LOG_END();
 
-    String *const lockFileName = cmdLockFileName(
-        cfgOptionStr(cfgOptStanza), cfgLockType(), cfgOptionGroupIdxToKey(cfgOptGrpRepo, cfgOptionGroupIdxDefault(cfgOptGrpRepo)));
+    String *const lockFileName = cmdLockFile();
 
     lockWrite(lockFileName, param);
     strFree(lockFileName);
+
+    protocolLockWrite(param);
 
     FUNCTION_LOG_RETURN_VOID();
 }

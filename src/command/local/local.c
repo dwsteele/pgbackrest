@@ -38,7 +38,7 @@ cmdLocal(ProtocolServer *const server)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        protocolServerProcess(server, cfgCommandJobRetry(), commandLocalHandlerList);
+        protocolServerProcess(server, cfgCommandJobRetry(), commandLocalHandlerList, NULL);
     }
     MEM_CONTEXT_TEMP_END();
 

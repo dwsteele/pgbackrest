@@ -437,6 +437,43 @@ protocolClientNoOp(ProtocolClient *const this)
     FUNCTION_LOG_RETURN_VOID();
 }
 
+/**********************************************************************************************************************************/
+FN_EXTERN void
+protocolClientLockWrite(ProtocolClient *const this, const LockWriteParam param)
+{
+    FUNCTION_LOG_BEGIN(logLevelTrace);
+        FUNCTION_LOG_PARAM(PROTOCOL_CLIENT, this);
+        FUNCTION_LOG_PARAM(VARIANT, param.percentComplete);
+        FUNCTION_LOG_PARAM(VARIANT, param.sizeComplete);
+        FUNCTION_LOG_PARAM(VARIANT, param.size);
+    FUNCTION_LOG_END();
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        PackWrite *const commandParam = protocolPackNew();
+
+        if (param.percentComplete != NULL)
+            pckWriteU32P(commandParam, varUInt(param.percentComplete));
+        else
+            pckWriteNullP(commandParam);
+
+        if (param.sizeComplete != NULL)
+            pckWriteU64P(commandParam, varUInt64(param.sizeComplete));
+        else
+            pckWriteNullP(commandParam);
+
+        if (param.size != NULL)
+            pckWriteU64P(commandParam, varUInt64(param.size));
+        else
+            pckWriteNullP(commandParam);
+
+        protocolClientRequestP(this, PROTOCOL_COMMAND_LOCK_WRITE, .param = commandParam);
+    }
+    MEM_CONTEXT_TEMP_END();
+
+    FUNCTION_LOG_RETURN_VOID();
+}
+
 /***********************************************************************************************************************************
 Free client session
 ***********************************************************************************************************************************/

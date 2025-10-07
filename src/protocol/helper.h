@@ -15,6 +15,7 @@ typedef enum
     protocolStorageTypeRepo = STRID5("repo", 0x7c0b20),
 } ProtocolStorageType;
 
+#include "common/lock.h"
 #include "common/io/server.h"
 #include "protocol/server.h"
 
@@ -43,6 +44,9 @@ Functions
 ***********************************************************************************************************************************/
 // Send keepalives to all remotes
 FN_EXTERN void protocolKeepAlive(void);
+
+// Write info to the lock file on the remote
+FN_EXTERN void protocolLockWrite(LockWriteParam param);
 
 // Local protocol client
 FN_EXTERN ProtocolClient *protocolLocalGet(ProtocolStorageType protocolStorageType, unsigned int hostId, unsigned int protocolId);

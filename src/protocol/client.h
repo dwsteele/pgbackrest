@@ -61,6 +61,7 @@ typedef struct ProtocolClientSession ProtocolClientSession;
 
 #include "common/io/read.h"
 #include "common/io/write.h"
+#include "common/lock.h"
 #include "common/type/object.h"
 
 /***********************************************************************************************************************************
@@ -72,6 +73,7 @@ Constants
 
 #define PROTOCOL_COMMAND_CONFIG                                     STRID5("config", 0xe9339e30)
 #define PROTOCOL_COMMAND_EXIT                                       STRID5("exit", 0xa27050)
+#define PROTOCOL_COMMAND_LOCK_WRITE                                 STRID5("lckw", 0xbac6c0)
 #define PROTOCOL_COMMAND_NOOP                                       STRID5("noop", 0x83dee0)
 
 /***********************************************************************************************************************************
@@ -126,6 +128,9 @@ protocolClientNoExit(ProtocolClient *const this)
 
 // Send noop to test connection or keep it alive
 FN_EXTERN void protocolClientNoOp(ProtocolClient *this);
+
+// Write info to the lock file
+FN_EXTERN void protocolClientLockWrite(ProtocolClient *const this, LockWriteParam param);
 
 // Simple request that does not require a session or async
 typedef struct ProtocolClientRequestParam
