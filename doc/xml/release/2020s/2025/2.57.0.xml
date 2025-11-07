@@ -1,4 +1,4 @@
-<release date="XXXX-XX-XX" version="2.57.0dev" title="Under Development">
+<release date="2025-10-18" version="2.57.0" title="Suppress Repository Symlinks">
     <release-core-list>
         <release-bug-list>
             <release-item>
@@ -24,6 +24,21 @@
                 <p>Fix possible segfault in page checksum error message.</p>
             </release-item>
         </release-bug-list>
+
+        <release-feature-list>
+            <release-item>
+                <github-issue id="2673"/>
+                <github-pull-request id="2674"/>
+
+                <release-item-contributor-list>
+                    <release-item-ideator id="ron.johnson"/>
+                    <release-item-contributor id="david.steele"/>
+                    <release-item-reviewer id="douglas.j.hunley"/>
+                </release-item-contributor-list>
+
+                <p>Add <setting>repo-symlink</setting> option to suppress creation of repository symlinks.</p>
+            </release-item>
+        </release-feature-list>
 
         <release-improvement-list>
             <release-item>
