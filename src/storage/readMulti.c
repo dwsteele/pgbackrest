@@ -215,7 +215,7 @@ storageReadMultiAdd(StorageReadMulti *const this, const String *const fileExp, c
     {
         const StorageReadMultiRequest request =
         {
-            .fileExp = strDup(fileExp),
+            .fileExp = requestPrior != NULL && strEq(requestPrior->fileExp, fileExp) ? requestPrior->fileExp : strDup(fileExp),
             .compressible = param.compressible,
             .offset = param.offset,
             .limit = param.limit == NULL ? STORAGE_READ_MULTI_NO_LIMIT : varUInt64(param.limit),
