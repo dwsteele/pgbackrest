@@ -563,29 +563,55 @@ testRun(void)
                 const size_t ioBufferSizeDefault = ioBufferSize();
                 ioBufferSizeSet(20);
 
-                TEST_RESULT_STR_Z(
-                    strNewBuf(storageGetP(storageNewReadP(s3, STRDEF("file.txt")))),
-                    "123456789112345678921234567893", "get file");
+                StorageReadMulti *readMulti;
+                TEST_ASSIGN(readMulti, storageNewReadMultiP(s3), "new read multi");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 0, .limit = NULL), "add read");
+                TEST_RESULT_VOID(ioReadOpen(storageReadMultiIo(readMulti)), "open read");
+
+                Buffer *buffer = bufNew(256);
+                TEST_RESULT_VOID(ioRead(storageReadMultiIo(readMulti), buffer), "read");
+                TEST_RESULT_STR_Z(strNewBuf(buffer), "123456789112345678921234567893", "check read");
+                TEST_RESULT_VOID(ioReadClose(storageReadMultiIo(readMulti)), "close read");
 
                 ioBufferSizeSet(ioBufferSizeDefault);
 
                 // -----------------------------------------------------------------------------------------------------------------
-                TEST_TITLE("get file with retry, offset, and limit");
+                TEST_TITLE("get file with retry and ranges");
 
                 testRequestP(service, s3, HTTP_VERB_GET, "/file.txt", .range = "1-29");
-                testResponseP(service, .content = "23456789112345678921X", .contentSize = VARUINT(30));
+                testResponseP(service, .content = "12345678901234567890X", .contentSize = VARUINT(30));
 
                 hrnServerScriptAbort(service);
                 hrnServerScriptAccept(service);
 
                 testRequestP(service, s3, HTTP_VERB_GET, "/file.txt", .range = "21-29");
-                testResponseP(service, .content = "23456789");
+                testResponseP(service, .content = "ABCDEFGH");
+
+                testRequestP(service, s3, HTTP_VERB_GET, "/file.txt", .range = "35-37");
+                testResponseP(service, .content = "YYY");
+
+                testRequestP(service, s3, HTTP_VERB_GET, "/file.txt", .range = "50-53");
+                testResponseP(service, .content = "ZZZZ");
 
                 ioBufferSizeSet(20);
 
-                TEST_RESULT_STR_Z(
-                    strNewBuf(storageGetP(storageNewReadP(s3, STRDEF("file.txt"), .offset = 1, .limit = VARUINT64(29)))),
-                    "2345678911234567892123456789", "get file");
+                TEST_ASSIGN(readMulti, storageNewReadMultiP(s3), "new read multi");
+                readMulti->queueMax = 1;
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 1, .limit = VARUINT64(20)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 21, .limit = VARUINT64(9)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 35, .limit = VARUINT64(3)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 50, .limit = VARUINT64(4)), "add read");
+                TEST_RESULT_VOID(ioReadOpen(storageReadMultiIo(readMulti)), "open read");
+
+                buffer = bufNew(256);
+                TEST_RESULT_VOID(ioRead(storageReadMultiIo(readMulti), buffer), "read");
+                TEST_RESULT_STR_Z(strNewBuf(buffer), "12345678901234567890ABCDEFGHYYYZZZZ", "check read");
+                TEST_RESULT_VOID(ioReadClose(storageReadMultiIo(readMulti)), "close read");
 
                 ioBufferSizeSet(ioBufferSizeDefault);
 

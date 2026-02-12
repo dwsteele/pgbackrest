@@ -538,6 +538,19 @@ storageNewRead(const Storage *const this, const String *const fileExp, const Sto
 }
 
 /**********************************************************************************************************************************/
+FN_EXTERN StorageReadMulti *
+storageNewReadMulti(const Storage *const this)
+{
+    FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(STORAGE, this);
+    FUNCTION_LOG_END();
+
+    ASSERT(this != NULL);
+
+    FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, storageReadMultiNew(this));
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN StorageWrite *
 storageNewWrite(const Storage *const this, const String *const fileExp, const StorageNewWriteParam param)
 {
