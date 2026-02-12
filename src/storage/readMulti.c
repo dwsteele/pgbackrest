@@ -19,7 +19,7 @@ struct StorageReadMulti
     const Storage *storage;                                         // Storage
     List *requestList;                                              // List of read requests
     List *queue;                                                    // Queue of reads
-    size_t readOver;                                                // Bytes to read over rather than open file with new offset
+    uint64_t readOver;                                              // Bytes to read over rather than open file with new offset
     unsigned int queueMax;                                          // Max size of read queue
     bool eof;                                                       // End-of-file indicator
 };
@@ -320,12 +320,12 @@ static const IoReadInterface storageIoReadMultiInterface =
 };
 
 FN_EXTERN StorageReadMulti *
-storageReadMultiNew(const Storage *const storage, const unsigned int concurrency, const size_t readOver)
+storageReadMultiNew(const Storage *const storage, const unsigned int concurrency, const uint64_t readOver)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(STORAGE, storage);
         FUNCTION_LOG_PARAM(UINT, concurrency);
-        FUNCTION_LOG_PARAM(SIZE, readOver);
+        FUNCTION_LOG_PARAM(UINT64, readOver);
     FUNCTION_LOG_END();
 
     ASSERT(storage != NULL);
