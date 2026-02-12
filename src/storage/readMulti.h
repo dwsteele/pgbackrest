@@ -48,7 +48,7 @@ storageReadMultiIo(const StorageReadMulti *const this)
 Destructor
 ***********************************************************************************************************************************/
 FN_INLINE_ALWAYS void
-storageReadMultiFree(StorageRead *const this)
+storageReadMultiFree(StorageReadMulti *const this)
 {
     objFree(this);
 }
