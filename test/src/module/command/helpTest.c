@@ -360,6 +360,7 @@ testRun(void)
             "  --repo-sftp-public-key-file         SFTP public key file\n"
             "  --repo-storage-ca-file              repository storage CA file\n"
             "  --repo-storage-ca-path              repository storage CA path\n"
+            "  --repo-storage-concurrency          repository storage concurrency\n"
             "  --repo-storage-host                 repository storage host\n"
             "  --repo-storage-port                 repository storage port\n"
             "  --repo-storage-tag                  repository storage tag(s)\n"

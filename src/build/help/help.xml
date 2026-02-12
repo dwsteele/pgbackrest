@@ -1256,6 +1256,17 @@
                         <example>/etc/pki/tls/certs</example>
                     </config-key>
 
+                    <config-key id="repo-storage-concurrency" name="Repository Storage Concurrency">
+                        <summary>Repository storage concurrency.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>8</example>
+                    </config-key>
+
+
                     <config-key id="repo-storage-host" name="Repository Storage Host">
                         <summary>Repository storage host.</summary>
 
