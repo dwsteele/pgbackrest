@@ -363,6 +363,7 @@ testRun(void)
             "  --repo-storage-concurrency          repository storage concurrency\n"
             "  --repo-storage-host                 repository storage host\n"
             "  --repo-storage-port                 repository storage port\n"
+            "  --repo-storage-read-over            repository storage read over\n"
             "  --repo-storage-tag                  repository storage tag(s)\n"
             "  --repo-storage-upload-chunk-size    repository storage upload chunk size\n"
             "  --repo-storage-verify-tls           repository storage certificate verify\n"

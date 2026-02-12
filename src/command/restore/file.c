@@ -380,7 +380,7 @@ restoreFile(
             StorageReadMulti *const blockRead = storageNewReadMultiP(storageRepoIdx(repoIdx));
 
             // Collate block deltas in the order that they need to be read. The idea is to read sequentially across each bundle a
-            // single time. There may be gaps but some of those can be read !!! over.
+            // single time. There may be gaps but some of those can be read over.
             MEM_CONTEXT_TEMP_BEGIN()
             {
                 // Sort the reference list descending. This is an arbitrary choice as the order does not matter.
@@ -396,6 +396,7 @@ restoreFile(
                         const RestoreFileBlockDelta *const blockDelta = lstGet(blockReference->deltaList, blockDeltaIdx);
                         const RestoreFile *const file = lstGet(fileList, blockDelta->fileIdx);
                         const BlockDeltaRead *const read = blockDelta->read;
+                        // !!! Make this better -- is manifestFile needed here?
                         const String *const repoFileName = backupFileRepoPathP(
                             strLstGet(referenceList, blockReference->reference), .manifestName = file->manifestFile,
                             .bundleId = read->bundleId, .blockIncr = true);

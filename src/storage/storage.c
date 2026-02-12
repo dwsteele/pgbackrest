@@ -548,7 +548,8 @@ storageNewReadMulti(const Storage *const this)
 
     ASSERT(this != NULL);
 
-    FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, storageReadMultiNew(this, this->pub.interface.concurrency));
+    FUNCTION_LOG_RETURN(
+        STORAGE_READ_MULTI, storageReadMultiNew(this, this->pub.interface.concurrency, this->pub.interface.readOver));
 }
 
 /**********************************************************************************************************************************/

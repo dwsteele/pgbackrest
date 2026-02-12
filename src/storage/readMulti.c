@@ -4,6 +4,8 @@ Storage Read Multi
 #include "build.auto.h"
 
 #include "common/debug.h"
+#include "common/io/io.h"
+#include "common/io/limitRead.h"
 #include "common/log.h"
 #include "common/memContext.h"
 #include "storage/readMulti.h"
@@ -17,12 +19,13 @@ struct StorageReadMulti
     const Storage *storage;                                         // Storage
     List *requestList;                                              // List of read requests
     List *queue;                                                    // Queue of reads
+    size_t readOver;                                                // Bytes to read over rather than open file with new offset
     unsigned int queueMax;                                          // Max size of read queue
     bool eof;                                                       // End-of-file indicator
 };
 
 /***********************************************************************************************************************************
-Structure to store read requests before they are opened
+Structure to store read requests
 ***********************************************************************************************************************************/
 typedef struct StorageReadMultiRequest
 {
@@ -30,7 +33,18 @@ typedef struct StorageReadMultiRequest
     uint64_t compressible;                                          // Is the file compressible?
     uint64_t offset;                                                // Where to start reading in the file
     uint64_t limit;                                                 // Limit bytes to read from the file
+    List *rangeList;                                                // Ranges for read over
+    uint64_t rangeRead;                                             // Bytes read in the current range
 } StorageReadMultiRequest;
+
+/***********************************************************************************************************************************
+Structure to ranges for read over
+***********************************************************************************************************************************/
+typedef struct StorageReadMultiRange
+{
+    uint64_t offset;                                                // Where to start reading in the file
+    uint64_t limit;                                                 // Limit bytes to read from the file
+} StorageReadMultiRange;
 
 /***********************************************************************************************************************************
 Constant to indicate that there is no limit
@@ -120,10 +134,43 @@ storageReadMulti(THIS_VOID, Buffer *const buffer, const bool block)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
+        StorageReadMultiRequest *const request = lstGet(this->requestList, 0);
+        const StorageReadMultiRange *const range = request->rangeList == NULL ? NULL : lstGet(request->rangeList, 0);
         StorageRead *const read = *(StorageRead **)lstGet(this->queue, 0);
         IoRead *const readIo = storageReadIo(read);
 
+        // !!!
+        bufLimitClear(buffer);
+
+        if (range != NULL && lstSize(request->rangeList) > 1)
+        {
+            uint64_t rangeRemains = range->limit - request->rangeRead;
+
+            if (bufRemains(buffer) > rangeRemains)
+                bufLimitSet(buffer, (size_t)rangeRemains);
+        }
+
         result = ioRead(readIo, buffer);
+
+        // !!!
+        if (range != NULL)
+        {
+            request->rangeRead += result;
+
+            // If range is complete and there are more ranges to process
+            if (range->limit - request->rangeRead == 0 && lstSize(request->rangeList) > 1)
+            {
+                // Read over unused bytes
+                StorageReadMultiRange *const rangeNext = lstGet(request->rangeList, 1);
+                IoRead *const readOver = ioLimitReadNew(readIo, rangeNext->offset - (range->offset + range->limit));
+
+                ioReadDrain(readOver);
+
+                // Remove range and reset read
+                lstRemoveIdx(request->rangeList, 0);
+                request->rangeRead = 0;
+            }
+        }
 
         // On eof close read and update queue
         if (ioReadEof(readIo))
@@ -202,10 +249,42 @@ storageReadMultiAdd(StorageReadMulti *const this, const String *const fileExp, c
             "new request offset %" PRIu64 " must be after prior request (offset %" PRIu64 ", limit %" PRIu64 ")", param.offset,
             requestPrior->offset, requestPrior->limit);
 
-        // If new request continues the prior request then combine them
-        if (param.offset == requestPrior->offset + requestPrior->limit)
+        // If the new offset is within the allowed gap from prior range end then extend the prior range
+        const uint64_t limit = varUInt64(param.limit);
+        const uint64_t requestPriorEnd = requestPrior->offset + requestPrior->limit;
+
+        if (param.offset - requestPriorEnd <= this->readOver)
         {
-            requestPrior->limit = requestPrior->limit + varUInt64(param.limit);
+            // If the new range offset is not exactly after the prior range end then add to the subrange list
+            if (param.offset != requestPriorEnd)
+            {
+                // If the subrange list does not exist then add it
+                if (requestPrior->rangeList == NULL)
+                {
+                    MEM_CONTEXT_OBJ_BEGIN(this)
+                    {
+                        requestPrior->rangeList = lstNewP(sizeof(StorageReadMultiRange));
+                    }
+                    MEM_CONTEXT_OBJ_END();
+
+                    // Add the prior range to the range list
+                    lstAdd(
+                        requestPrior->rangeList,
+                        &(StorageReadMultiRange){.offset = requestPrior->offset, .limit = requestPrior->limit});
+                }
+
+                lstAdd(requestPrior->rangeList, &(StorageReadMultiRange){.offset = param.offset, .limit = limit});
+            }
+            // Else combine with prior range if it exists
+            else if (requestPrior->rangeList != NULL)
+            {
+                StorageReadMultiRange *const range = lstGetLast(requestPrior->rangeList);
+                range->limit = param.offset - range->offset + limit;
+            }
+
+            // Combine limit with prior limit
+            requestPrior->limit = param.offset - requestPrior->offset + limit;
+
             FUNCTION_LOG_RETURN_VOID();
         }
     }
@@ -241,11 +320,12 @@ static const IoReadInterface storageIoReadMultiInterface =
 };
 
 FN_EXTERN StorageReadMulti *
-storageReadMultiNew(const Storage *const storage, const unsigned int concurrency)
+storageReadMultiNew(const Storage *const storage, const unsigned int concurrency, const size_t readOver)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(STORAGE, storage);
         FUNCTION_LOG_PARAM(UINT, concurrency);
+        FUNCTION_LOG_PARAM(SIZE, readOver);
     FUNCTION_LOG_END();
 
     ASSERT(storage != NULL);
@@ -259,6 +339,7 @@ storageReadMultiNew(const Storage *const storage, const unsigned int concurrency
             .requestList = lstNewP(sizeof(StorageReadMultiRequest), .comparator = lstComparatorStr),
             .queue = lstNewP(sizeof(StorageRead *)),
             .queueMax = concurrency,
+            .readOver = readOver,
             .pub =
             {
                 .io = ioReadNew(this, storageIoReadMultiInterface),
@@ -276,5 +357,5 @@ storageReadMultiToLog(const StorageReadMulti *const this, StringStatic *const de
 {
     strStcCat(debugLog, "{storage: ");
     storageToLog(this->storage, debugLog);
-    strStcFmt(debugLog, ", size: %u}", (unsigned int)0 /* !!! */);
+    strStcFmt(debugLog, ", size: %u}", lstSize(this->requestList));
 }

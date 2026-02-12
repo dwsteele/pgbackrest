@@ -1287,6 +1287,16 @@
                         <example>9000</example>
                     </config-key>
 
+                    <config-key id="repo-storage-read-over" name="Repository Storage Read Over">
+                        <summary>Repository storage read over.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>16KiB</example>
+                    </config-key>
+
                     <config-key id="repo-storage-tag" name="Repository Storage Tag">
                         <summary>Repository storage tag(s).</summary>
 
