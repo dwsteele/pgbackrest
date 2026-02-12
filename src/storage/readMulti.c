@@ -193,7 +193,7 @@ storageReadMultiAdd(StorageReadMulti *const this, const String *const fileExp, c
     // Check if new request can be combined with prior request
     StorageReadMultiRequest *const requestPrior = lstEmpty(this->requestList) ? NULL : lstGetLast(this->requestList);
 
-    if (requestPrior != NULL)
+    if (requestPrior != NULL && strEq(requestPrior->fileExp, fileExp))
     {
         CHECK(AssertError, requestPrior->limit != STORAGE_READ_MULTI_NO_LIMIT, "cannot add request after request with no limit");
         CHECK(AssertError, param.limit != NULL, "request with no limit must be first");
@@ -206,7 +206,6 @@ storageReadMultiAdd(StorageReadMulti *const this, const String *const fileExp, c
         if (param.offset == requestPrior->offset + requestPrior->limit)
         {
             requestPrior->limit = requestPrior->limit + varUInt64(param.limit);
-
             FUNCTION_LOG_RETURN_VOID();
         }
     }

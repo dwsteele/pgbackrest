@@ -594,6 +594,9 @@ testRun(void)
                 testRequestP(service, s3, HTTP_VERB_GET, "/file.txt", .range = "50-53");
                 testResponseP(service, .content = "ZZZZ");
 
+                testRequestP(service, s3, HTTP_VERB_GET, "/file2.txt");
+                testResponseP(service, .content = "X");
+
                 ioBufferSizeSet(20);
 
                 TEST_ASSIGN(readMulti, storageNewReadMultiP(s3), "new read multi");
@@ -606,11 +609,12 @@ testRun(void)
                     storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 35, .limit = VARUINT64(3)), "add read");
                 TEST_RESULT_VOID(
                     storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 50, .limit = VARUINT64(4)), "add read");
+                TEST_RESULT_VOID(storageReadMultiAddP(readMulti, STRDEF("file2.txt")), "add read");
                 TEST_RESULT_VOID(ioReadOpen(storageReadMultiIo(readMulti)), "open read");
 
                 buffer = bufNew(256);
                 TEST_RESULT_VOID(ioRead(storageReadMultiIo(readMulti), buffer), "read");
-                TEST_RESULT_STR_Z(strNewBuf(buffer), "12345678901234567890ABCDEFGHYYYZZZZ", "check read");
+                TEST_RESULT_STR_Z(strNewBuf(buffer), "12345678901234567890ABCDEFGHYYYZZZZX", "check read");
                 TEST_RESULT_VOID(ioReadClose(storageReadMultiIo(readMulti)), "close read");
 
                 ioBufferSizeSet(ioBufferSizeDefault);
