@@ -241,13 +241,15 @@ static const IoReadInterface storageIoReadMultiInterface =
 };
 
 FN_EXTERN StorageReadMulti *
-storageReadMultiNew(const Storage *const storage)
+storageReadMultiNew(const Storage *const storage, const unsigned int concurrency)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(STORAGE, storage);
+        FUNCTION_LOG_PARAM(UINT, concurrency);
     FUNCTION_LOG_END();
 
     ASSERT(storage != NULL);
+    ASSERT(concurrency != 0);
 
     OBJ_NEW_BEGIN(StorageReadMulti, .childQty = MEM_CONTEXT_QTY_MAX)
     {
@@ -256,7 +258,7 @@ storageReadMultiNew(const Storage *const storage)
             .storage = storage,
             .requestList = lstNewP(sizeof(StorageReadMultiRequest), .comparator = lstComparatorStr),
             .queue = lstNewP(sizeof(StorageRead *)),
-            .queueMax = 4,
+            .queueMax = concurrency,
             .pub =
             {
                 .io = ioReadNew(this, storageIoReadMultiInterface),

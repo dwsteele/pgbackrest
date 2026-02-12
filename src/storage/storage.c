@@ -67,6 +67,7 @@ storageNew(
     ASSERT(interface.newWrite != NULL);
     ASSERT(interface.pathRemove != NULL);
     ASSERT(interface.remove != NULL);
+    ASSERT(interface.concurrency != 0);
 
     OBJ_NEW_BEGIN(Storage, .childQty = MEM_CONTEXT_QTY_MAX)
     {
@@ -547,7 +548,7 @@ storageNewReadMulti(const Storage *const this)
 
     ASSERT(this != NULL);
 
-    FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, storageReadMultiNew(this));
+    FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, storageReadMultiNew(this, this->pub.interface.concurrency));
 }
 
 /**********************************************************************************************************************************/

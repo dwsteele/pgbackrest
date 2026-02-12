@@ -281,7 +281,9 @@ restoreFile(
                         const BlockMap *const blockMap = blockMapNewRead(
                             blockMapRead, file->blockIncrSize, file->blockIncrChecksumSize);
 
-                        // Generate a list of blocks that need to be fetched
+                        // Generate a list of blocks that need to be fetched to process block deltas for this file. The block lists
+                        // for all files are combined by reference so they can later be reordered to get the most efficient scans
+                        // across bundles.
                         MEM_CONTEXT_OBJ_BEGIN(blockDeltaList)
                         {
                             BlockDelta *const blockDelta = blockDeltaNew(
@@ -368,7 +370,7 @@ restoreFile(
             }
         }
 
-        // !!!
+        // Free read of whole files and block maps
         ioReadClose(storageReadMultiIo(repoFileRead));
         storageReadMultiFree(repoFileRead);
 
@@ -377,7 +379,8 @@ restoreFile(
         {
             StorageReadMulti *const blockRead = storageNewReadMultiP(storageRepoIdx(repoIdx));
 
-            // Collate block deltas in the order that they need to be read
+            // Collate block deltas in the order that they need to be read. The idea is to read sequentially across each bundle a
+            // single time. There may be gaps but some of those can be read !!! over.
             MEM_CONTEXT_TEMP_BEGIN()
             {
                 // Sort the reference list descending. This is an arbitrary choice as the order does not matter.

@@ -1226,6 +1226,9 @@ storageGcsNew(
             .userProject = strDup(userProject),
         };
 
+        // Set concurrency
+        this->interface.concurrency = 1;
+
         // Create tag JSON buffer
         if (write && tag != NULL)
         {
