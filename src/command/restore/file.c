@@ -246,6 +246,7 @@ restoreFile(
         List *const blockReferenceList = lstNewP(sizeof(RestoreFileBlockReference), .comparator = lstComparatorUInt);
         List *const blockDeltaList = lstNewP(sizeof(RestoreFileBlockDelta));
 
+        LOG_DEBUG_FMT("!!!MULTI WHOLE/MAP");
         ioReadOpen(storageReadMultiIo(repoFileRead));
 
         for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
@@ -417,6 +418,7 @@ restoreFile(
             String *const pgFileName = strNew();
             StorageWrite *pgFileWrite = NULL;
 
+            LOG_DEBUG_FMT("!!!MULTI BLOCK DELTA");
             ioReadOpen(storageReadMultiIo(blockRead));
 
             for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockDeltaList); blockDeltaIdx++)
