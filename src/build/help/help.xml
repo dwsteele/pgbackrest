@@ -611,6 +611,16 @@
                         <example>y</example>
                     </config-key>
 
+                    <config-key id="repo-block-map" name="Block Incremental Map Location">
+                        <summary>Block incremental map location.</summary>
+
+                        <text>
+                            <p>!!!</p>
+                        </text>
+
+                        <example>split</example>
+                    </config-key>
+
                     <config-key id="repo-block-age-map" name="Block Incremental Age Map">
                         <summary>Block incremental age map.</summary>
 
