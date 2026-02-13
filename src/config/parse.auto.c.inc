@@ -79,6 +79,7 @@ static const StringPubConst parseRuleValueStr[] =
     PARSE_RULE_STRPUB("auto"),                                                                                            // val/str
     PARSE_RULE_STRPUB("azure"),                                                                                           // val/str
     PARSE_RULE_STRPUB("blob.core.windows.net"),                                                                           // val/str
+    PARSE_RULE_STRPUB("both"),                                                                                            // val/str
     PARSE_RULE_STRPUB("bz2"),                                                                                             // val/str
     PARSE_RULE_STRPUB("cifs"),                                                                                            // val/str
     PARSE_RULE_STRPUB("count"),                                                                                           // val/str
@@ -96,6 +97,7 @@ static const StringPubConst parseRuleValueStr[] =
     PARSE_RULE_STRPUB("immediate"),                                                                                       // val/str
     PARSE_RULE_STRPUB("incr"),                                                                                            // val/str
     PARSE_RULE_STRPUB("info"),                                                                                            // val/str
+    PARSE_RULE_STRPUB("inline"),                                                                                          // val/str
     PARSE_RULE_STRPUB("json"),                                                                                            // val/str
     PARSE_RULE_STRPUB("latest"),                                                                                          // val/str
     PARSE_RULE_STRPUB("localhost"),                                                                                       // val/str
@@ -127,6 +129,7 @@ static const StringPubConst parseRuleValueStr[] =
     PARSE_RULE_STRPUB("sha256"),                                                                                          // val/str
     PARSE_RULE_STRPUB("shared"),                                                                                          // val/str
     PARSE_RULE_STRPUB("shutdown"),                                                                                        // val/str
+    PARSE_RULE_STRPUB("split"),                                                                                           // val/str
     PARSE_RULE_STRPUB("ssh"),                                                                                             // val/str
     PARSE_RULE_STRPUB("standby"),                                                                                         // val/str
     PARSE_RULE_STRPUB("storage.googleapis.com"),                                                                          // val/str
@@ -215,6 +218,7 @@ typedef enum
     parseRuleValStrQT_auto_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_azure_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_blob_DT_core_DT_windows_DT_net_QT,                                                             // val/str/enum
+    parseRuleValStrQT_both_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_bz2_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_cifs_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_count_QT,                                                                                      // val/str/enum
@@ -232,6 +236,7 @@ typedef enum
     parseRuleValStrQT_immediate_QT,                                                                                  // val/str/enum
     parseRuleValStrQT_incr_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_info_QT,                                                                                       // val/str/enum
+    parseRuleValStrQT_inline_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_json_QT,                                                                                       // val/str/enum
     parseRuleValStrQT_latest_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_localhost_QT,                                                                                  // val/str/enum
@@ -263,6 +268,7 @@ typedef enum
     parseRuleValStrQT_sha256_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_shared_QT,                                                                                     // val/str/enum
     parseRuleValStrQT_shutdown_QT,                                                                                   // val/str/enum
+    parseRuleValStrQT_split_QT,                                                                                      // val/str/enum
     parseRuleValStrQT_ssh_QT,                                                                                        // val/str/enum
     parseRuleValStrQT_standby_QT,                                                                                    // val/str/enum
     parseRuleValStrQT_storage_DT_googleapis_DT_com_QT,                                                               // val/str/enum
@@ -5576,6 +5582,46 @@ static const ParseRuleOption parseRuleOption[CFG_OPTION_TOTAL] =
             ),                                                                                   // opt/repo-block-checksum-size-map
         ),                                                                                       // opt/repo-block-checksum-size-map
     ),                                                                                           // opt/repo-block-checksum-size-map
+    // -----------------------------------------------------------------------------------------------------------------------------
+    PARSE_RULE_OPTION                                                                                          // opt/repo-block-map
+    (                                                                                                          // opt/repo-block-map
+        PARSE_RULE_OPTION_NAME("repo-block-map"),                                                              // opt/repo-block-map
+        PARSE_RULE_OPTION_TYPE(StringId),                                                                      // opt/repo-block-map
+        PARSE_RULE_OPTION_SEQUENCE(true),                                                                      // opt/repo-block-map
+        PARSE_RULE_OPTION_RESET(true),                                                                         // opt/repo-block-map
+        PARSE_RULE_OPTION_REQUIRED(true),                                                                      // opt/repo-block-map
+        PARSE_RULE_OPTION_SECTION(Global),                                                                     // opt/repo-block-map
+        PARSE_RULE_OPTION_GROUP_ID(Repo),                                                                      // opt/repo-block-map
+                                                                                                               // opt/repo-block-map
+        PARSE_RULE_OPTION_COMMAND_ROLE_MAIN_VALID_LIST                                                         // opt/repo-block-map
+        (                                                                                                      // opt/repo-block-map
+            PARSE_RULE_OPTION_COMMAND(Backup)                                                                  // opt/repo-block-map
+        ),                                                                                                     // opt/repo-block-map
+                                                                                                               // opt/repo-block-map
+        PARSE_RULE_OPTIONAL                                                                                    // opt/repo-block-map
+        (                                                                                                      // opt/repo-block-map
+            PARSE_RULE_OPTIONAL_GROUP                                                                          // opt/repo-block-map
+            (                                                                                                  // opt/repo-block-map
+                PARSE_RULE_OPTIONAL_DEPEND                                                                     // opt/repo-block-map
+                (                                                                                              // opt/repo-block-map
+                    PARSE_RULE_VAL_OPT(RepoBlock),                                                             // opt/repo-block-map
+                    PARSE_RULE_VAL_BOOL_TRUE,                                                                  // opt/repo-block-map
+                ),                                                                                             // opt/repo-block-map
+                                                                                                               // opt/repo-block-map
+                PARSE_RULE_OPTIONAL_ALLOW_LIST                                                                 // opt/repo-block-map
+                (                                                                                              // opt/repo-block-map
+                    PARSE_RULE_VAL_STRID(both),                                                                // opt/repo-block-map
+                    PARSE_RULE_VAL_STRID(inline),                                                              // opt/repo-block-map
+                    PARSE_RULE_VAL_STRID(split),                                                               // opt/repo-block-map
+                ),                                                                                             // opt/repo-block-map
+                                                                                                               // opt/repo-block-map
+                PARSE_RULE_OPTIONAL_DEFAULT                                                                    // opt/repo-block-map
+                (                                                                                              // opt/repo-block-map
+                    PARSE_RULE_VAL_STRID(both),                                                                // opt/repo-block-map
+                ),                                                                                             // opt/repo-block-map
+            ),                                                                                                 // opt/repo-block-map
+        ),                                                                                                     // opt/repo-block-map
+    ),                                                                                                         // opt/repo-block-map
     // -----------------------------------------------------------------------------------------------------------------------------
     PARSE_RULE_OPTION                                                                                     // opt/repo-block-size-map
     (                                                                                                     // opt/repo-block-size-map
@@ -11921,6 +11967,7 @@ static const uint8_t optionResolveOrder[] =
     cfgOptRepoBlock,                                                                                            // opt-resolve-order
     cfgOptRepoBlockAgeMap,                                                                                      // opt-resolve-order
     cfgOptRepoBlockChecksumSizeMap,                                                                             // opt-resolve-order
+    cfgOptRepoBlockMap,                                                                                         // opt-resolve-order
     cfgOptRepoBlockSizeMap,                                                                                     // opt-resolve-order
     cfgOptRepoBlockSizeSuper,                                                                                   // opt-resolve-order
     cfgOptRepoBlockSizeSuperFull,                                                                               // opt-resolve-order

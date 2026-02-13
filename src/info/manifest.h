@@ -153,6 +153,7 @@ typedef struct ManifestFile
     uint64_t bundleOffset;                                          // Bundle offset
     size_t blockIncrSize;                                           // Size of incremental blocks
     size_t blockIncrChecksumSize;                                   // Size of incremental block checksum
+    uint64_t blockIncrMapOffset;                                    // Block incremental map offset
     uint64_t blockIncrMapSize;                                      // Block incremental map size
 
     // After manifest build size is either equal to sizeOriginal or it is copied from the prior file. After the file is backed up

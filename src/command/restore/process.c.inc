@@ -64,6 +64,12 @@ restoreProcessQueueComparator(const void *const item1, const void *const item2)
             FUNCTION_TEST_RETURN(INT, backupLabelCmp);
     }
 
+    // Order by map offset !!!
+    if (file1.blockIncrMapOffset < file2.blockIncrMapOffset)
+        FUNCTION_TEST_RETURN(INT, 1);
+    else if (file1.blockIncrMapOffset > file2.blockIncrMapOffset)
+        FUNCTION_TEST_RETURN(INT, -1);
+
     // Finally order by bundle offset
     ASSERT(file1.bundleOffset != file2.bundleOffset);
 
@@ -448,7 +454,10 @@ restoreJobCallback(void *const data, const unsigned int clientIdx)
                 if (file.blockIncrMapSize != 0)
                 {
                     pckWriteBoolP(param, true);
-                    pckWriteU64P(param, file.bundleOffset + file.sizeRepo - file.blockIncrMapSize);
+                    pckWriteU64P(
+                        param,
+                        file.blockIncrMapOffset != 0 ?
+                            file.blockIncrMapOffset : file.bundleOffset + file.sizeRepo - file.blockIncrMapSize);
                     pckWriteU64P(param, file.blockIncrMapSize);
                 }
                 // Else write bundle offset/size

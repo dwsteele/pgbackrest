@@ -144,7 +144,7 @@ Option constants
 #define CFGOPT_VERBOSE                                              "verbose"
 #define CFGOPT_VERSION                                              "version"
 
-#define CFG_OPTION_TOTAL                                            194
+#define CFG_OPTION_TOTAL                                            195
 
 /***********************************************************************************************************************************
 Option value constants
@@ -297,6 +297,16 @@ Option value constants
 #define CFGOPTVAL_REPO_AZURE_URI_STYLE_PATH                         1
 #define CFGOPTVAL_REPO_AZURE_URI_STYLE_PATH_STRID                   STRID5S("path", 1, 0x450304)
 #define CFGOPTVAL_REPO_AZURE_URI_STYLE_PATH_Z                       "path"
+
+#define CFGOPTVAL_REPO_BLOCK_MAP_BOTH                               0
+#define CFGOPTVAL_REPO_BLOCK_MAP_BOTH_STRID                         STRID5S("both", 0, 0x451e22)
+#define CFGOPTVAL_REPO_BLOCK_MAP_BOTH_Z                             "both"
+#define CFGOPTVAL_REPO_BLOCK_MAP_INLINE                             1
+#define CFGOPTVAL_REPO_BLOCK_MAP_INLINE_STRID                       STRID5S("inline", 1, 0xae4b1c94)
+#define CFGOPTVAL_REPO_BLOCK_MAP_INLINE_Z                           "inline"
+#define CFGOPTVAL_REPO_BLOCK_MAP_SPLIT                              2
+#define CFGOPTVAL_REPO_BLOCK_MAP_SPLIT_STRID                        STRID5S("split", 2, 0x144b2136)
+#define CFGOPTVAL_REPO_BLOCK_MAP_SPLIT_Z                            "split"
 
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC                      STRID5("aes-256-cbc", 0xc43dfbbcdcca10)
 #define CFGOPTVAL_REPO_CIPHER_TYPE_AES_256_CBC_Z                    "aes-256-cbc"
@@ -573,6 +583,7 @@ typedef enum
     cfgOptRepoBlock,
     cfgOptRepoBlockAgeMap,
     cfgOptRepoBlockChecksumSizeMap,
+    cfgOptRepoBlockMap,
     cfgOptRepoBlockSizeMap,
     cfgOptRepoBlockSizeSuper,
     cfgOptRepoBlockSizeSuperFull,

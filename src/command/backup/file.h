@@ -22,6 +22,16 @@ typedef enum
 } BackupCopyResult;
 
 /***********************************************************************************************************************************
+Block map position types
+***********************************************************************************************************************************/
+typedef enum BlockMapPosition
+{
+    blockMapPositionBoth = 0,
+    blockMapPositionInline = 1,
+    blockMapPositionSplit = 2,
+} BlockMapPosition;
+
+/***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
 // Copy a file from the PostgreSQL data directory to the repository
@@ -59,13 +69,14 @@ typedef struct BackupFileResult
     const Buffer *repoChecksum;                                     // Checksum of repo file (including compression, etc.)
     uint64_t bundleOffset;                                          // Offset in bundle if any
     uint64_t repoSize;
+    uint64_t blockIncrMapOffset;                                    // Offset of block incremental map
     uint64_t blockIncrMapSize;                                      // Size of block incremental map (0 if no map)
     Pack *pageChecksumResult;
 } BackupFileResult;
 
 FN_EXTERN List *backupFile(
-    const String *repoFile, uint64_t bundleId, bool bundleRaw, unsigned int blockIncrReference, CompressType repoFileCompressType,
-    int repoFileCompressLevel, CipherType cipherType, const String *cipherPass, const String *pgVersionForce, PgPageSize pageSize,
-    const List *fileList);
+    const String *repoFile, uint64_t bundleId, bool bundleRaw, BlockMapPosition blockIncrMapPos, unsigned int blockIncrReference,
+    CompressType repoFileCompressType, int repoFileCompressLevel, CipherType cipherType, const String *cipherPass,
+    const String *pgVersionForce, PgPageSize pageSize, const List *fileList);
 
 #endif

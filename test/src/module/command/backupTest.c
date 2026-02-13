@@ -81,7 +81,8 @@ testBackupValidateFile(
         // Read block map
         StorageRead *read = storageNewReadP(
             storage, strNewFmt("%s/%s", strZ(path), strZ(fileName)),
-            .offset = file.bundleOffset + file.sizeRepo - file.blockIncrMapSize,
+            .offset =
+                file.blockIncrMapOffset != 0 ? file.blockIncrMapOffset : file.bundleOffset + file.sizeRepo - file.blockIncrMapSize,
             .limit = VARUINT64(file.blockIncrMapSize));
 
         if (cipherType != cipherTypeNone)
@@ -190,16 +191,20 @@ testBackupValidateFile(
 
     // Validate checksum
     if (!bufEq(checksum, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE)))
-        THROW_FMT(AssertError, "'%s' checksum does match manifest", strZ(file.name));
+        THROW_FMT(AssertError, "'%s' checksum does not match manifest", strZ(file.name));
 
     // Test size and repo-size
     // -------------------------------------------------------------------------------------------------------------
     if (size != file.size)
-        THROW_FMT(AssertError, "'%s' size does match manifest", strZ(file.name));
+        THROW_FMT(AssertError, "'%s' size does not match manifest", strZ(file.name));
 
     // Repo size can only be compared to file size when not bundled
     if (file.bundleId == 0 && fileSize != file.sizeRepo)
-        THROW_FMT(AssertError, "'%s' repo size does match manifest", strZ(file.name));
+    {
+        THROW_FMT(
+            AssertError, "'%s' repo size %" PRIu64 " does not match manifest size %" PRIu64, strZ(file.name), fileSize,
+            file.sizeRepo);
+    }
 
     // Timestamp
     // -------------------------------------------------------------------------------------------------------------
@@ -1120,7 +1125,7 @@ testRun(void)
         IoWrite *write = ioBufferWriteNew(destination);
 
         TEST_RESULT_VOID(
-            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 6, 0, 0, 0, NULL, NULL, NULL)), "block incr");
+            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 6, 0, 0, 0, NULL, NULL, NULL, true)), "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
         TEST_RESULT_VOID(ioWriteClose(write), "close");
@@ -1136,7 +1141,7 @@ testRun(void)
         write = ioBufferWriteNew(destination);
 
         TEST_RESULT_VOID(
-            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 8, 0, 0, 0, NULL, NULL, NULL)), "block incr");
+            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 8, 0, 0, 0, NULL, NULL, NULL, true)), "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
         TEST_RESULT_VOID(ioWriteClose(write), "close");
@@ -1171,7 +1176,7 @@ testRun(void)
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
                 ioWriteFilterGroup(write),
-                blockIncrNewPack(ioFilterParamList(blockIncrNew(2, 3, 8, 2, 4, 5, NULL, NULL, NULL)))),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(2, 3, 8, 2, 4, 5, NULL, NULL, NULL, true)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1213,7 +1218,8 @@ testRun(void)
             ioFilterGroupAdd(ioWriteFilterGroup(write), ioBufferNew()), "buffer to force internal buffer size");
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
-                ioWriteFilterGroup(write), blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL)))),
+                ioWriteFilterGroup(write),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, true)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1257,7 +1263,8 @@ testRun(void)
             ioFilterGroupAdd(ioWriteFilterGroup(write), ioBufferNew()), "buffer to force internal buffer size");
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
-                ioWriteFilterGroup(write), blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL)))),
+                ioWriteFilterGroup(write),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, true)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1280,7 +1287,8 @@ testRun(void)
             ioFilterGroupAdd(ioWriteFilterGroup(write), ioBufferNew()), "buffer to force internal buffer size");
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
-                ioWriteFilterGroup(write), blockIncrNewPack(ioFilterParamList(blockIncrNew(6, 3, 8, 2, 4, 5, NULL, NULL, NULL)))),
+                ioWriteFilterGroup(write),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(6, 3, 8, 2, 4, 5, NULL, NULL, NULL, true)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1316,7 +1324,7 @@ testRun(void)
                 ioFilterParamList(
                     blockIncrNew(
                         3, 3, 8, 2, 4, 5, NULL, compressFilterP(compressTypeGz, 1, .raw = true),
-                        cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF(TEST_CIPHER_PASS), .raw = true)))),
+                        cipherBlockNewP(cipherModeEncrypt, cipherTypeAes256Cbc, BUFSTRDEF(TEST_CIPHER_PASS), .raw = true), true))),
             "block incr pack");
     }
 
@@ -3573,14 +3581,14 @@ testRun(void)
                 " unless the resumed backup path in the repository is known to be corrupted.\n"
                 "            NOTE: this does not indicate a problem with the PostgreSQL page checksums.\n"
                 "P01 DETAIL: checksum resumed file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/normal-same (bundle 1/2, 4B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/grow-to-block-incr (bundle 1/6, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/16389, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-block (bundle 1/24581, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/40987, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink (bundle 1/57393, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-same (bundle 1/73807, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink (bundle 1/0, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-block (bundle 1/16411, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/32817, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-same (bundle 1/49223, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/grow-to-block-incr (bundle 1/65629, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/82012, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/normal-same (bundle 1/90204, 4B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/90208, 2B, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC08C000000001, lsn = 5dc08c0/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3704,14 +3712,14 @@ testRun(void)
                 "P00   INFO: check archive for segment 0000000105DC213000000000\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-larger (1.4MB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (128KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/grow-to-block-incr (bundle 1/0, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink (bundle 1/16411, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-block (bundle 1/24634, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/block-incr-same (16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24651, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/32843, 8B, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: store truncated file " TEST_PATH "/pg1/truncate-to-zero (4B->0B, [PCT])\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/normal-same (4B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/grow-to-block-incr (bundle 1/0, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/16411, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-block (bundle 1/24603, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/24620, 8B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink (bundle 1/24628, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/block-incr-same (16KB, [PCT]) checksum [SHA1]\n"
                 "P00 DETAIL: reference pg_data/PG_VERSION to 20191103-165320F\n"
                 "P00 DETAIL: reference pg_data/block-incr-same to 20191103-165320F\n"
                 "P00 DETAIL: reference pg_data/normal-same to 20191103-165320F\n"
@@ -3818,8 +3826,8 @@ testRun(void)
                 "P00   INFO: check archive for segment 0000000105DC520000000000\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-no-resume (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/104, 2B, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC520000000001, lsn = 5dc5200/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3904,8 +3912,8 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-no-resume (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: checksum resumed file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-wayback (16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/104, 2B, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC6A7000000001, lsn = 5dc6a70/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3996,12 +4004,12 @@ testRun(void)
                 "P00   INFO: check archive for segment 0000000105DC82D000000000\n"
                 "P00   WARN: file 'block-incr-grow' has same timestamp (1573200000) as prior but different size (prior 24576,"
                 " current 49152), enabling delta checksum\n"
-                "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/PG_VERSION (2B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (bundle 1/0, 48KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-age-multiplier (bundle 1/0, 32KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (bundle 1/128, 48KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/block-incr-wayback (16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-age-to-zero (bundle 1/128, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-age-multiplier (bundle 1/184, 32KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/312, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-age-to-zero (bundle 1/272, 16KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/328, 8KB, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/PG_VERSION (2B, [PCT]) checksum [SHA1]\n"
                 "P00 DETAIL: reference pg_data/PG_VERSION to 20191108-080000F\n"
                 "P00 DETAIL: reference pg_data/block-incr-wayback to 20191108-080000F\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"

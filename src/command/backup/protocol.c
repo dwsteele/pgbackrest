@@ -14,6 +14,42 @@ Backup Protocol Handler
 #include "config/config.h"
 #include "storage/helper.h"
 
+/***********************************************************************************************************************************
+Sort files for efficient processing
+***********************************************************************************************************************************/
+static int
+backupFileComparator(const void *const item1, const void *const item2)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM_P(VOID, item1);
+        FUNCTION_TEST_PARAM_P(VOID, item2);
+    FUNCTION_TEST_END();
+
+    ASSERT(item1 != NULL);
+    ASSERT(item2 != NULL);
+
+    const BackupFile *const file1 = item1;
+    const BackupFile *const file2 = item2;
+
+    // First order block incremental files before whole files. We want the whole files to be next to the block maps at the end of
+    // the bundle so they can be read out together during restore. This means for restore of the full backup the whole/block map
+    // and block list scans will both be sequential with no gaps.
+    if (file1->blockIncrSize != 0 && file2->blockIncrSize == 0)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1->blockIncrSize == 0 && file2->blockIncrSize != 0)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // Next order by size desc so small files are stored together and near the block maps (also small) which makes reads more likely
+    // to be efficient with read over
+    if (file1->pgFileSize < file2->pgFileSize)
+        FUNCTION_TEST_RETURN(INT, 1);
+    else if (file1->pgFileSize > file2->pgFileSize)
+        FUNCTION_TEST_RETURN(INT, -1);
+
+    // If block incremental/size are the same then use name desc to generate a deterministic ordering (names must be unique)
+    FUNCTION_TEST_RETURN(INT, strCmp(file2->pgFile, file1->pgFile));
+}
+
 /**********************************************************************************************************************************/
 FN_EXTERN ProtocolServerResult *
 backupFileProtocol(PackRead *const param)
@@ -39,9 +75,10 @@ backupFileProtocol(PackRead *const param)
         const String *const cipherPass = pckReadStrP(param);
         const PgPageSize pageSize = pckReadU32P(param);
         const String *const pgVersionForce = pckReadStrP(param);
+        const bool blockIncrMapPos = (BlockMapPosition)pckReadU32P(param);
 
         // Build the file list
-        List *const fileList = lstNewP(sizeof(BackupFile));
+        List *const fileList = lstNewP(sizeof(BackupFile), .comparator = backupFileComparator);
 
         while (!pckReadNullP(param))
         {
@@ -78,10 +115,13 @@ backupFileProtocol(PackRead *const param)
             lstAdd(fileList, &file);
         }
 
+        // Sort files for efficient processing
+        lstSort(fileList, sortOrderAsc);
+
         // Backup file
         const List *const resultList = backupFile(
-            repoFile, bundleId, bundleRaw, blockIncrReference, repoFileCompressType, repoFileCompressLevel, cipherType, cipherPass,
-            pgVersionForce, pageSize, fileList);
+            repoFile, bundleId, bundleRaw, blockIncrMapPos, blockIncrReference, repoFileCompressType, repoFileCompressLevel,
+            cipherType, cipherPass, pgVersionForce, pageSize, fileList);
 
         // Return result
         PackWrite *const data = protocolServerResultData(result);
@@ -99,6 +139,7 @@ backupFileProtocol(PackRead *const param)
             pckWriteBoolP(data, fileResult->repoInvalid);
             pckWriteU64P(data, fileResult->copySize);
             pckWriteU64P(data, fileResult->bundleOffset);
+            pckWriteU64P(data, fileResult->blockIncrMapOffset);
             pckWriteU64P(data, fileResult->blockIncrMapSize);
             pckWriteU64P(data, fileResult->repoSize);
             pckWriteBinP(data, fileResult->copyChecksum);

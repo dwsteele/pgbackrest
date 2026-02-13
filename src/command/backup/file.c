@@ -12,6 +12,7 @@ Backup File
 #include "common/crypto/hash.h"
 #include "common/debug.h"
 #include "common/io/bufferRead.h"
+#include "common/io/bufferWrite.h"
 #include "common/io/filter/group.h"
 #include "common/io/filter/size.h"
 #include "common/io/io.h"
@@ -39,14 +40,16 @@ segmentNumber(const String *const pgFile)
 /**********************************************************************************************************************************/
 FN_EXTERN List *
 backupFile(
-    const String *const repoFile, const uint64_t bundleId, const bool bundleRaw, const unsigned int blockIncrReference,
-    const CompressType repoFileCompressType, const int repoFileCompressLevel, const CipherType cipherType,
-    const String *const cipherPass, const String *const pgVersionForce, const PgPageSize pageSize, const List *const fileList)
+    const String *const repoFile, const uint64_t bundleId, const bool bundleRaw, BlockMapPosition blockIncrMapPos,
+    const unsigned int blockIncrReference, const CompressType repoFileCompressType, const int repoFileCompressLevel,
+    const CipherType cipherType, const String *const cipherPass, const String *const pgVersionForce, const PgPageSize pageSize,
+    const List *const fileList)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(STRING, repoFile);                       // Repo file
         FUNCTION_LOG_PARAM(UINT64, bundleId);                       // Bundle id (0 if none)
         FUNCTION_LOG_PARAM(BOOL, bundleRaw);                        // Raw compress/encrypt format in bundles?
+        FUNCTION_LOG_PARAM(ENUM, blockIncrMapPos);                  // Block map position
         FUNCTION_LOG_PARAM(UINT, blockIncrReference);               // Block incremental reference to use in map
         FUNCTION_LOG_PARAM(ENUM, repoFileCompressType);             // Compress type for repo file
         FUNCTION_LOG_PARAM(INT, repoFileCompressLevel);             // Compression level for repo file
@@ -181,6 +184,7 @@ backupFile(
         const bool compressible = repoFileCompressType == compressTypeNone && cipherType == cipherTypeNone;
 
         // Copy files that need to be copied
+        Buffer *const blockMapAll = bufNew(8192);
         StorageWrite *write = NULL;
         uint64_t bundleOffset = 0;
 
@@ -266,7 +270,7 @@ backupFile(
                             ioReadFilterGroup(readIo),
                             blockIncrNew(
                                 file->blockIncrSuperSize, file->blockIncrSize, file->blockIncrChecksumSize, blockIncrReference,
-                                bundleId, bundleOffset, blockMap, compress, encrypt));
+                                bundleId, bundleOffset, blockMap, compress, encrypt, blockIncrMapPos != blockMapPositionSplit));
 
                         repoChecksum = true;
                     }
@@ -409,11 +413,42 @@ backupFile(
                                 // Get results of block incremental
                                 if (file->blockIncrSize != 0)
                                 {
-                                    fileResult->blockIncrMapSize = pckReadU64P(
-                                        ioFilterGroupResultP(ioReadFilterGroup(readIo), BLOCK_INCR_FILTER_TYPE));
+                                    PackRead *const filterPack = ioFilterGroupResultP(
+                                        ioReadFilterGroup(readIo), BLOCK_INCR_FILTER_TYPE);
+
+                                    fileResult->blockIncrMapSize = pckReadU64P(filterPack);
 
                                     // There must be a map because the file should have changed or shrunk
                                     ASSERT(fileResult->blockIncrMapSize > 0);
+
+                                    // !!!
+                                    if (bundleId != 0)
+                                    {
+                                        // !!!
+                                        fileResult->blockIncrMapOffset = bufUsed(blockMapAll);
+
+                                        // Open write
+                                        const Buffer *const blockMap = pckReadBinP(filterPack);
+                                        IoWrite *const write = ioBufferWriteNew(blockMapAll);
+
+                                        if (cipherType != cipherTypeNone)
+                                        {
+                                            ioFilterGroupAdd(
+                                                ioWriteFilterGroup(write),
+                                                cipherBlockNewP(cipherModeEncrypt, cipherType, BUFSTR(cipherPass), .raw = true));
+                                        }
+
+                                        // Write the map
+                                        ioWriteOpen(write);
+                                        ioWrite(write, blockMap);
+                                        ioWriteClose(write);
+
+                                        fileResult->blockIncrMapSize = bufUsed(blockMapAll) - fileResult->blockIncrMapOffset;
+
+                                        // Get total bytes written for the map
+                                        // ASSERT( !!!
+                                        //     bufUsed(blockMapAll) - fileResult->blockIncrMapOffset == fileResult->blockIncrMapSize);
+                                    }
                                 }
 
                                 // Get repo checksum
@@ -435,6 +470,20 @@ backupFile(
                 }
             }
             MEM_CONTEXT_TEMP_END();
+        }
+
+        // !!!
+        if (!bufEmpty(blockMapAll))
+        {
+            ioWrite(storageWriteIo(write), blockMapAll);
+
+            for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
+            {
+                BackupFileResult *const fileResult = lstGet(result, fileIdx);
+
+                if (fileResult->backupCopyResult == backupCopyResultCopy)
+                    fileResult->blockIncrMapOffset += bundleOffset;
+            }
         }
 
         // Close the repository file if it was opened

@@ -815,6 +815,7 @@ backupResumeClean(
                                 file.checksumRepoSha1 = fileResume.checksumRepoSha1;
                                 file.blockIncrSize = fileResume.blockIncrSize;
                                 file.blockIncrChecksumSize = fileResume.blockIncrChecksumSize;
+                                file.blockIncrMapOffset = fileResume.blockIncrMapOffset;
                                 file.blockIncrMapSize = fileResume.blockIncrMapSize;
                                 file.checksumPage = fileResume.checksumPage;
                                 file.checksumPageError = fileResume.checksumPageError;
@@ -1428,6 +1429,7 @@ backupJobResult(
                 const bool repoInvalid = pckReadBoolP(jobResult);
                 const uint64_t copySize = pckReadU64P(jobResult);
                 const uint64_t bundleOffset = pckReadU64P(jobResult);
+                const uint64_t blockIncrMapOffset = pckReadU64P(jobResult);
                 const uint64_t blockIncrMapSize = pckReadU64P(jobResult);
                 const uint64_t repoSize = pckReadU64P(jobResult);
                 const Buffer *const copyChecksum = pckReadBinP(jobResult);
@@ -1586,6 +1588,7 @@ backupJobResult(
                     // Truncated file is not put in bundle
                     file.bundleId = copyResult != backupCopyResultTruncate ? bundleId : 0;
                     file.bundleOffset = bundleOffset;
+                    file.blockIncrMapOffset = blockIncrMapOffset;
                     file.blockIncrMapSize = blockIncrMapSize;
 
                     manifestFileUpdate(manifest, &file);
@@ -1696,6 +1699,7 @@ typedef struct BackupJobData
     uint64_t bundleLimit;                                           // Limit on files to bundle
     uint64_t bundleId;                                              // Bundle id
     const bool blockIncr;                                           // Block incremental?
+    BlockMapPosition blockMapPos;                                   // Block map position
     size_t blockIncrSizeSuper;                                      // Super block size
 
     List *queueList;                                                // List of processing queues
@@ -2003,6 +2007,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                     pckWriteStrP(param, jobData->cipherSubPass);
                     pckWriteU32P(param, jobData->pageSize);
                     pckWriteStrP(param, cfgOptionStrNull(cfgOptPgVersionForce));
+                    pckWriteU32P(param, jobData->blockMapPos);
                 }
 
                 pckWriteStrP(param, manifestPathPg(file.name));
@@ -2028,7 +2033,10 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                             param,
                             backupFileRepoPathP(
                                 file.reference, .manifestName = file.name, .bundleId = file.bundleId, .blockIncr = true));
-                        pckWriteU64P(param, file.bundleOffset + file.sizeRepo - file.blockIncrMapSize);
+                        pckWriteU64P(
+                            param,
+                            file.blockIncrMapOffset != 0 ?
+                                file.blockIncrMapOffset : file.bundleOffset + file.sizeRepo - file.blockIncrMapSize);
                         pckWriteU64P(param, file.blockIncrMapSize);
                     }
                     else
@@ -2117,6 +2125,7 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             .bundle = cfgOptionBool(cfgOptRepoBundle),
             .bundleId = 1,
             .blockIncr = cfgOptionBool(cfgOptRepoBlock),
+            .blockMapPos = cfgOptionBool(cfgOptRepoBlock) ? (BlockMapPosition)cfgOptionSeq(cfgOptRepoBlockMap) : 0,
 
             // Build expression to identify files that can be copied from the standby when standby backup is supported
             .standbyExp = regExpNew(

@@ -62,6 +62,7 @@ hrnManifestFileAdd(Manifest *const manifest, const HrnManifestFile hrnManifestFi
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.bundleId);
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.bundleOffset);
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.blockIncrSize);
+        FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.blockIncrMapOffset);
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.blockIncrMapSize);
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.size);
         FUNCTION_HARNESS_PARAM(UINT64, hrnManifestFile.sizeOriginal);
@@ -86,6 +87,7 @@ hrnManifestFileAdd(Manifest *const manifest, const HrnManifestFile hrnManifestFi
             .bundleOffset = hrnManifestFile.bundleOffset,
             .blockIncrSize = hrnManifestFile.blockIncrSize,
             .blockIncrChecksumSize = hrnManifestFile.blockIncrChecksumSize,
+            .blockIncrMapOffset = hrnManifestFile.blockIncrMapOffset,
             .blockIncrMapSize = hrnManifestFile.blockIncrMapSize,
             .size = hrnManifestFile.size,
             .sizeOriginal = hrnManifestFile.sizeOriginal,

@@ -249,6 +249,7 @@ manifestFilePack(const Manifest *const manifest, const ManifestFile *const file)
 
         cvtUInt64ToVarInt128(file->blockIncrSize / BLOCK_INCR_SIZE_FACTOR, buffer, &bufferPos, sizeof(buffer));
         cvtUInt64ToVarInt128(file->blockIncrChecksumSize, buffer, &bufferPos, sizeof(buffer));
+        cvtUInt64ToVarInt128(file->blockIncrMapOffset, buffer, &bufferPos, sizeof(buffer));
         cvtUInt64ToVarInt128(file->blockIncrMapSize, buffer, &bufferPos, sizeof(buffer));
     }
 
@@ -383,6 +384,7 @@ manifestFileUnpack(const Manifest *const manifest, const ManifestFilePack *const
         result.blockIncrSize =
             (size_t)cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX) * BLOCK_INCR_SIZE_FACTOR;
         result.blockIncrChecksumSize = (size_t)cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
+        result.blockIncrMapOffset = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
         result.blockIncrMapSize = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
     }
 
@@ -1746,6 +1748,7 @@ manifestBuildIncr(
                     file.bundleOffset = filePrior.bundleOffset;
                     file.blockIncrSize = filePrior.blockIncrSize;
                     file.blockIncrChecksumSize = filePrior.blockIncrChecksumSize;
+                    file.blockIncrMapOffset = filePrior.blockIncrMapOffset;
                     file.blockIncrMapSize = filePrior.blockIncrMapSize;
 
                     ASSERT(file.checksumSha1 != NULL);
@@ -1907,6 +1910,7 @@ manifestBuildComplete(
 #define MANIFEST_KEY_BLOCK_INCR                                     STRID5("bi", 0x1220)
 #define MANIFEST_KEY_BLOCK_INCR_CHECKSUM                            STRID5("bic", 0xd220)
 #define MANIFEST_KEY_BLOCK_INCR_MAP                                 STRID5("bim", 0x35220)
+#define MANIFEST_KEY_BLOCK_INCR_OFFSET                              STRID5("bio", 0x3d220)
 #define MANIFEST_KEY_BUNDLE_ID                                      STRID5("bni", 0x25c20)
 #define MANIFEST_KEY_BUNDLE_OFFSET                                  STRID5("bno", 0x3dc20)
 #define MANIFEST_KEY_CHECKSUM                                       STRID5("checksum", 0x6d66b195030)
@@ -2054,6 +2058,9 @@ manifestLoadCallback(void *const callbackData, const String *const section, cons
 
             if (jsonReadKeyExpectStrId(json, MANIFEST_KEY_BLOCK_INCR_MAP))
                 file.blockIncrMapSize = jsonReadUInt64(json);
+
+            if (jsonReadKeyExpectStrId(json, MANIFEST_KEY_BLOCK_INCR_OFFSET))
+                file.blockIncrMapOffset = jsonReadUInt64(json);
         }
 
         // Bundle info
@@ -2816,6 +2823,9 @@ manifestSaveCallback(void *const callbackData, const String *const sectionNext, 
 
                     if (file.blockIncrMapSize != 0)
                         jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_MAP), file.blockIncrMapSize);
+
+                    if (file.blockIncrMapOffset != 0)
+                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_OFFSET), file.blockIncrMapOffset);
                 }
 
                 // Bundle info

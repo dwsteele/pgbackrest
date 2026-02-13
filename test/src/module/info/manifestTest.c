@@ -1358,8 +1358,8 @@ testRun(void)
             .blockIncrSize = 16384, .blockIncrChecksumSize = 6, .timestamp = 1482182861, .group = "test", .user = "test");
         HRN_MANIFEST_FILE_ADD(
             manifestPrior, .name = MANIFEST_TARGET_PGDATA "/block-incr-keep-size", .size = 8193, .sizeRepo = 4,
-            .blockIncrSize = 8192, .blockIncrChecksumSize = 6, .blockIncrMapSize = 31, .timestamp = 1482182860,
-            .checksumSha1 = "ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa");
+            .blockIncrSize = 8192, .blockIncrChecksumSize = 6, .blockIncrMapOffset = 1, .blockIncrMapSize = 31,
+            .timestamp = 1482182860, .checksumSha1 = "ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa");
 
         TEST_RESULT_VOID(
             manifestBuildIncr(manifest, manifestPrior, backupTypeIncr, STRDEF("000000030000000300000003")), "incremental manifest");
@@ -1382,8 +1382,9 @@ testRun(void)
                     "\n"
                     "[target:file]\n"
                     "pg_data/block-incr-add={\"bi\":1,\"size\":6,\"timestamp\":1482182861}\n"
-                    "pg_data/block-incr-keep-size={\"bi\":1,\"bim\":31,\"checksum\":\"ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa\""
-                    ",\"reference\":\"20190101-010101F\",\"repo-size\":4,\"size\":8193,\"szo\":16384,\"timestamp\":1482182861}\n"
+                    "pg_data/block-incr-keep-size={\"bi\":1,\"bim\":31,\"bio\":1"
+                    ",\"checksum\":\"ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa\",\"reference\":\"20190101-010101F\",\"repo-size\":4"
+                    ",\"size\":8193,\"szo\":16384,\"timestamp\":1482182861}\n"
                     "pg_data/block-incr-sub={\"size\":6,\"timestamp\":1482182861}\n"
                     TEST_MANIFEST_FILE_DEFAULT
                     "\n"
@@ -1567,7 +1568,7 @@ testRun(void)
                 ",\"group\":\"group2\",\"size\":4,\"timestamp\":1565282115,\"user\":false}\n"                                      \
             "pg_data/base/32768/33000={\"bi\":4,\"bim\":99,\"checksum\":\"7a16d165e4775f7c92e8cdf60c0af57313f0bf90\""              \
                 ",\"checksum-page\":true,\"reference\":\"20190818-084502F\",\"size\":1073741824,\"timestamp\":1565282116}\n"       \
-            "pg_data/base/32768/33000.32767={\"bi\":3,\"bic\":16,\"bim\":96"                                                       \
+            "pg_data/base/32768/33000.32767={\"bi\":3,\"bic\":16,\"bim\":96,\"bio\":44"                                            \
                 ",\"checksum\":\"6e99b589e550e68e934fd235ccba59fe5b592a9e\",\"checksum-page\":true"                                \
                 ",\"reference\":\"20190818-084502F\",\"size\":32768,\"timestamp\":1565282114}\n"                                   \
             "pg_data/postgresql.conf={\"size\":4457,\"timestamp\":1565282114}\n"                                                   \

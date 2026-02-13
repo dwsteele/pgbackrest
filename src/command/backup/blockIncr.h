@@ -40,7 +40,7 @@ Constructors
 ***********************************************************************************************************************************/
 FN_EXTERN IoFilter *blockIncrNew(
     uint64_t superBlockSize, size_t blockSize, size_t checksumSize, unsigned int reference, uint64_t bundleId,
-    uint64_t bundleOffset, const Buffer *blockMapPrior, const IoFilter *compress, const IoFilter *encrypt);
+    uint64_t bundleOffset, const Buffer *blockMapPrior, const IoFilter *compress, const IoFilter *encrypt, bool blockMapInline);
 FN_EXTERN IoFilter *blockIncrNewPack(const Pack *paramList);
 
 #endif
