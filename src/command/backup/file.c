@@ -422,7 +422,7 @@ backupFile(
                                     ASSERT(fileResult->blockIncrMapSize > 0);
 
                                     // !!!
-                                    if (bundleId != 0)
+                                    if (bundleId != 0 && blockIncrMapPos != blockMapPositionInline)
                                     {
                                         // !!!
                                         fileResult->blockIncrMapOffset = bufUsed(blockMapAll);

@@ -75,7 +75,7 @@ backupFileProtocol(PackRead *const param)
         const String *const cipherPass = pckReadStrP(param);
         const PgPageSize pageSize = pckReadU32P(param);
         const String *const pgVersionForce = pckReadStrP(param);
-        const bool blockIncrMapPos = (BlockMapPosition)pckReadU32P(param);
+        const BlockMapPosition blockIncrMapPos = (BlockMapPosition)pckReadU32P(param);
 
         // Build the file list
         List *const fileList = lstNewP(sizeof(BackupFile), .comparator = backupFileComparator);
