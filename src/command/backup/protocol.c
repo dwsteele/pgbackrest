@@ -33,6 +33,7 @@ backupFileComparator(const void *const item1, const void *const item2)
 
     // Order pg_control at the end in debug builds for reproducibility. Since pg_control varies by architecture the compressed size
     // may be different and cause bundle offsets to vary.
+    // !!! THIS SHOULD BE PUT INTO A SHIM AND ONLY ENABLED FOR THE TESTS THAT NEED IT
 #ifdef DEBUG
     if (strEqZ(file1->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
         FUNCTION_TEST_RETURN(INT, 1);
@@ -40,22 +41,36 @@ backupFileComparator(const void *const item1, const void *const item2)
         FUNCTION_TEST_RETURN(INT, -1);
 #endif
 
-    // First order block incremental files before whole files. We want the whole files to be next to the block maps at the end of
-    // the bundle so they can be read out together during restore. This means for restore of the full backup the whole/block map
-    // and block list scans will both be sequential with no gaps.
+    // Order block incremental files before whole files. This produces slightly smaller maps since the offsets are smaller. Also
+    // whole files can have reads combined and read over more often without block maps/lists in between them. We want the whole
+    // files to be next to the block maps at the end of the bundle so they can be read out together during restore. This means for
+    // restore of a full backup the whole/block map and block list scans will both be sequential with no gaps.
     if (file1->blockIncrSize != 0 && file2->blockIncrSize == 0)
         FUNCTION_TEST_RETURN(INT, -1);
     else if (file1->blockIncrSize == 0 && file2->blockIncrSize != 0)
         FUNCTION_TEST_RETURN(INT, 1);
 
-    // Next order by size desc so small files are stored together and near the block maps (also small) which makes reads more likely
-    // to be efficient with read over
-    if (file1->pgFileSize < file2->pgFileSize)
-        FUNCTION_TEST_RETURN(INT, 1);
-    else if (file1->pgFileSize > file2->pgFileSize)
-        FUNCTION_TEST_RETURN(INT, -1);
+    // Order block incremental files by size asc since this produces smaller offsets for small block incremental files. Maps store
+    // offset deltas after the initial offset so larger maps are more efficient per page for larger offsets.
+    if (file1->blockIncrSize != 0 && file2->blockIncrSize != 0) // {uncovered_branch - !!!}
+    {
+        if (file1->pgFileSize < file2->pgFileSize)
+            FUNCTION_TEST_RETURN(INT, -1);
+        else if (file1->pgFileSize > file2->pgFileSize)
+            FUNCTION_TEST_RETURN(INT, 1);
+    }
+    // Order whole files by size desc so small files are stored near the block maps (also small) which makes reads more likely to be
+    // efficient with read over
+    else
+    {
+        if (file1->pgFileSize < file2->pgFileSize)
+            FUNCTION_TEST_RETURN(INT, 1);
+        else if (file1->pgFileSize > file2->pgFileSize)
+            FUNCTION_TEST_RETURN(INT, -1);
+    }
 
-    // If block incremental/size are the same then use name desc to generate a deterministic ordering (names must be unique)
+    // If all the above are the same then use name desc to generate a deterministic ordering (names must be unique)
+    ASSERT(!strEq(file2->pgFile, file1->pgFile));
     FUNCTION_TEST_RETURN(INT, strCmp(file2->pgFile, file1->pgFile));
 }
 
