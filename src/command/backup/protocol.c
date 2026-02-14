@@ -42,7 +42,7 @@ backupFileComparator(const void *const item1, const void *const item2)
 #endif
 
     // Order block incremental files before whole files. This produces slightly smaller maps since the offsets are smaller. Also
-    // whole files can have reads combined more often without block maps/lists in between them.
+    // whole files can have reads combined and read over more often without block maps/lists in between them.
     if (file1->blockIncrSize != 0 && file2->blockIncrSize == 0)
         FUNCTION_TEST_RETURN(INT, -1);
     else if (file1->blockIncrSize == 0 && file2->blockIncrSize != 0)
