@@ -270,6 +270,9 @@ storageReadMultiAdd(StorageReadMulti *const this, const String *const fileExp, c
         FUNCTION_LOG_PARAM(VARIANT, param.limit);
     FUNCTION_LOG_END();
 
+    ASSERT(this != NULL);
+    ASSERT(fileExp != NULL);
+
     // Check if new request can be combined with prior request
     StorageReadMultiRequest *const requestPrior = lstEmpty(this->requestList) ? NULL : lstGetLast(this->requestList);
 

@@ -41,6 +41,18 @@ backupFileComparator(const void *const item1, const void *const item2)
         FUNCTION_TEST_RETURN(INT, -1);
 #endif
 
+    // !!!
+    int compare = strCmp(file1->blockIncrMapPriorFile, file2->blockIncrMapPriorFile);
+
+    if (compare != 0)
+        FUNCTION_TEST_RETURN(INT, compare);
+
+    // !!!
+    if (file1->blockIncrMapPriorOffset < file1->blockIncrMapPriorOffset)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1->blockIncrMapPriorOffset > file1->blockIncrMapPriorOffset)
+        FUNCTION_TEST_RETURN(INT, 1);
+
     // Order block incremental files before whole files. This produces slightly smaller maps since the offsets are smaller. Also
     // whole files can have reads combined and read over more often without block maps/lists in between them. We want the whole
     // files to be next to the block maps at the end of the bundle so they can be read out together during restore. This means for

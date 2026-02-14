@@ -1741,7 +1741,8 @@ backupProcessQueueComparator(const void *const item1, const void *const item2)
     const ManifestFile file1 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item1);
     const ManifestFile file2 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item2);
 
-    // If the size differs then that's enough to determine order
+    // Order by size desc when not bundled. Processing large files first generally makes for faster backups since a single process
+    // is not left with a large file at the end. This only matters when process-max > 1 but that is the norm.
     if (!backupProcessQueueComparatorBundle || file1.size > backupProcessQueueComparatorBundleLimit ||
         file2.size > backupProcessQueueComparatorBundleLimit)
     {
@@ -1751,14 +1752,59 @@ backupProcessQueueComparator(const void *const item1, const void *const item2)
             FUNCTION_TEST_RETURN(INT, -1);
     }
 
-    // If bundling order by time desc so that older files are bundled with older files and newer with newer
-    if (backupProcessQueueComparatorBundle)
+    // Order by bundle where unbundled files are at the end. For diff/incr backups this ensures that previously bundled files are
+    // processed in the same order as the prior backup. New files are processed at the end.
+    if (file1.bundleId != 0 && file2.bundleId == 0)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1.bundleId == 0 && file2.bundleId != 0)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // Order by bundle
+    if (file1.bundleId != 0 && file2.bundleId != 0)
     {
-        if (file1.timestamp > file2.timestamp)
-            FUNCTION_TEST_RETURN(INT, 1);
-        else if (file1.timestamp < file2.timestamp)
+        // Order by desc so newer backups are considered before older backups !!! Is this the right order?
+        if (file1.reference == NULL)
+        {
+            if (file2.reference != NULL)
+                FUNCTION_TEST_RETURN(INT, 1);
+        }
+        else if (file2.reference == NULL)
             FUNCTION_TEST_RETURN(INT, -1);
+        else
+        {
+            const int backupLabelCmp = strCmp(file2.reference, file1.reference) * -1;
+
+            if (backupLabelCmp != 0)
+                FUNCTION_TEST_RETURN(INT, backupLabelCmp);
+        }
+
+        // Order by bundle id asc
+        if (file1.bundleId < file2.bundleId)
+            FUNCTION_TEST_RETURN(INT, -1);
+        else if (file1.bundleId > file2.bundleId)
+            FUNCTION_TEST_RETURN(INT, 1);
+
+        // Order by block map offset
+        if (file1.blockIncrMapOffset < file2.blockIncrMapOffset)
+            FUNCTION_TEST_RETURN(INT, -1);
+        else if (file1.blockIncrMapOffset > file2.blockIncrMapOffset)
+            FUNCTION_TEST_RETURN(INT, 1);
+
+        // Finally order by bundle offset
+        ASSERT(file1.bundleOffset != file2.bundleOffset);
+
+        if (file1.bundleOffset < file2.bundleOffset)
+            FUNCTION_TEST_RETURN(INT, -1);
+
+        FUNCTION_TEST_RETURN(INT, 1);
     }
+
+    // Order new files eligible for bundling by time desc so files of a similar age are bundled together. A full backup will use
+    // this ordering for all bundled files.
+    if (file1.timestamp > file2.timestamp)
+        FUNCTION_TEST_RETURN(INT, 1);
+    else if (file1.timestamp < file2.timestamp)
+        FUNCTION_TEST_RETURN(INT, -1);
 
     // If size/time is the same then use name to generate a deterministic ordering (names must be unique)
     FUNCTION_TEST_RETURN(INT, strCmp(file2.name, file1.name));
