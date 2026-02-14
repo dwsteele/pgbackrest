@@ -1125,7 +1125,8 @@ testRun(void)
         IoWrite *write = ioBufferWriteNew(destination);
 
         TEST_RESULT_VOID(
-            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 6, 0, 0, 0, NULL, NULL, NULL, true)), "block incr");
+            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 6, 0, 0, 0, NULL, NULL, NULL, blockIncrMapPosInline)),
+            "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
         TEST_RESULT_VOID(ioWriteClose(write), "close");
@@ -1141,7 +1142,8 @@ testRun(void)
         write = ioBufferWriteNew(destination);
 
         TEST_RESULT_VOID(
-            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 8, 0, 0, 0, NULL, NULL, NULL, true)), "block incr");
+            ioFilterGroupAdd(ioWriteFilterGroup(write), blockIncrNew(3, 3, 8, 0, 0, 0, NULL, NULL, NULL, blockIncrMapPosInline)),
+            "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
         TEST_RESULT_VOID(ioWriteClose(write), "close");
@@ -1176,7 +1178,7 @@ testRun(void)
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
                 ioWriteFilterGroup(write),
-                blockIncrNewPack(ioFilterParamList(blockIncrNew(2, 3, 8, 2, 4, 5, NULL, NULL, NULL, true)))),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(2, 3, 8, 2, 4, 5, NULL, NULL, NULL, blockIncrMapPosInline)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1219,7 +1221,7 @@ testRun(void)
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
                 ioWriteFilterGroup(write),
-                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, true)))),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, blockIncrMapPosInline)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1264,7 +1266,7 @@ testRun(void)
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
                 ioWriteFilterGroup(write),
-                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, true)))),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(3, 3, 8, 3, 0, 0, map, NULL, NULL, blockIncrMapPosInline)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -1288,7 +1290,7 @@ testRun(void)
         TEST_RESULT_VOID(
             ioFilterGroupAdd(
                 ioWriteFilterGroup(write),
-                blockIncrNewPack(ioFilterParamList(blockIncrNew(6, 3, 8, 2, 4, 5, NULL, NULL, NULL, true)))),
+                blockIncrNewPack(ioFilterParamList(blockIncrNew(6, 3, 8, 2, 4, 5, NULL, NULL, NULL, blockIncrMapPosInline)))),
             "block incr");
         TEST_RESULT_VOID(ioWriteOpen(write), "open");
         TEST_RESULT_VOID(ioWrite(write, source), "write");
@@ -3362,8 +3364,8 @@ testRun(void)
                 "P00   INFO: backup start archive = 0000000105DBBF8000000000, lsn = 5dbbf80/0\n"
                 "P00   INFO: check archive for segment 0000000105DBBF8000000000\n"
                 "P00 DETAIL: store zero-length file " TEST_PATH "/pg1/zero\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/PG_VERSION (2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00 DETAIL: reference pg_data/PG_VERSION to 20191030-014640F\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DBBF8000000001, lsn = 5dbbf80/300000\n"
@@ -3468,8 +3470,8 @@ testRun(void)
                 "P00   INFO: backup '20191103-165320F' cannot be resumed: partially deleted by prior resume or invalid\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-no-resume (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/8192, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/2, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DBF06000000001, lsn = 5dbf060/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3586,9 +3588,9 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/32817, 16KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-same (bundle 1/49223, 16KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/grow-to-block-incr (bundle 1/65629, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/82012, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/normal-same (bundle 1/90204, 4B, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/90208, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/normal-same (bundle 1/82012, 4B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/82016, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/82018, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC08C000000001, lsn = 5dc08c0/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3716,10 +3718,10 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink (bundle 1/16411, 16KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-block (bundle 1/24634, 8KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/block-incr-same (16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24651, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/32843, 8B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-shrink-below (bundle 1/24651, 8B, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: store truncated file " TEST_PATH "/pg1/truncate-to-zero (4B->0B, [PCT])\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/normal-same (4B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24659, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00 DETAIL: reference pg_data/PG_VERSION to 20191103-165320F\n"
                 "P00 DETAIL: reference pg_data/block-incr-same to 20191103-165320F\n"
                 "P00 DETAIL: reference pg_data/normal-same to 20191103-165320F\n"
@@ -3826,8 +3828,8 @@ testRun(void)
                 "P00   INFO: check archive for segment 0000000105DC520000000000\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-no-resume (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/104, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC520000000001, lsn = 5dc5200/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -3912,8 +3914,8 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-no-resume (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: checksum resumed file " TEST_PATH "/pg1/block-incr-grow (24KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-wayback (16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/104, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/24, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC6A7000000001, lsn = 5dc6a70/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"
@@ -4008,8 +4010,8 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-incr-grow (bundle 1/128, 48KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/block-incr-wayback (16KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/block-age-to-zero (bundle 1/272, 16KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/328, 8KB, [PCT]) checksum [SHA1]\n"
                 "P01 DETAIL: match file from prior backup " TEST_PATH "/pg1/PG_VERSION (2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/328, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00 DETAIL: reference pg_data/PG_VERSION to 20191108-080000F\n"
                 "P00 DETAIL: reference pg_data/block-incr-wayback to 20191108-080000F\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
@@ -4162,8 +4164,8 @@ testRun(void)
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/global/2 (16KB, [PCT]) checksum [SHA1]\n"
                 "P00   WARN: invalid page checksum found in file " TEST_PATH "/pg1/global/2 at page 3\n"
                 "P01 DETAIL: backup file " TEST_PATH "/pg1/global/1 (12KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/0, 8KB, [PCT]) checksum [SHA1]\n"
-                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/8224, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/PG_VERSION (bundle 1/0, 2B, [PCT]) checksum [SHA1]\n"
+                "P01 DETAIL: backup file " TEST_PATH "/pg1/global/pg_control (bundle 1/32, 8KB, [PCT]) checksum [SHA1]\n"
                 "P00   INFO: execute backup stop and wait for all WAL segments to archive\n"
                 "P00   INFO: backup stop archive = 0000000105DC9B4000000001, lsn = 5dc9b40/300000\n"
                 "P00 DETAIL: wrote 'backup_label' file returned from backup stop function\n"

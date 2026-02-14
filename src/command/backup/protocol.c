@@ -31,6 +31,15 @@ backupFileComparator(const void *const item1, const void *const item2)
     const BackupFile *const file1 = item1;
     const BackupFile *const file2 = item2;
 
+    // Order pg_control at the end in debug builds for reproducibility. Since pg_control varies by architecture the compressed size
+    // may be different and cause bundle offsets to vary.
+#ifdef DEBUG
+    if (strEqZ(file1->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+        FUNCTION_TEST_RETURN(INT, 1);
+    else if (strEqZ(file2->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+        FUNCTION_TEST_RETURN(INT, -1);
+#endif
+
     // First order block incremental files before whole files. We want the whole files to be next to the block maps at the end of
     // the bundle so they can be read out together during restore. This means for restore of the full backup the whole/block map
     // and block list scans will both be sequential with no gaps.
@@ -75,7 +84,7 @@ backupFileProtocol(PackRead *const param)
         const String *const cipherPass = pckReadStrP(param);
         const PgPageSize pageSize = pckReadU32P(param);
         const String *const pgVersionForce = pckReadStrP(param);
-        const BlockMapPosition blockIncrMapPos = (BlockMapPosition)pckReadU32P(param);
+        const BlockIncrMapPosition blockIncrMapPos = (BlockIncrMapPosition)pckReadU32P(param);
 
         // Build the file list
         List *const fileList = lstNewP(sizeof(BackupFile), .comparator = backupFileComparator);

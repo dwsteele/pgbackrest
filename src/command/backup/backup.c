@@ -1699,7 +1699,7 @@ typedef struct BackupJobData
     uint64_t bundleLimit;                                           // Limit on files to bundle
     uint64_t bundleId;                                              // Bundle id
     const bool blockIncr;                                           // Block incremental?
-    BlockMapPosition blockMapPos;                                   // Block map position
+    BlockIncrMapPosition blockMapPos;                               // Block map position
     size_t blockIncrSizeSuper;                                      // Super block size
 
     List *queueList;                                                // List of processing queues
@@ -2125,7 +2125,6 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             .bundle = cfgOptionBool(cfgOptRepoBundle),
             .bundleId = 1,
             .blockIncr = cfgOptionBool(cfgOptRepoBlock),
-            .blockMapPos = cfgOptionBool(cfgOptRepoBlock) ? (BlockMapPosition)cfgOptionSeq(cfgOptRepoBlockMap) : 0,
 
             // Build expression to identify files that can be copied from the standby when standby backup is supported
             .standbyExp = regExpNew(
@@ -2143,6 +2142,9 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
 
         if (jobData.blockIncr)
         {
+            // Set block map position
+            jobData.blockMapPos = (BlockIncrMapPosition)cfgOptionSeq(cfgOptRepoBlockMap);
+
             // Set super block size based on the backup type
             jobData.blockIncrSizeSuper =
                 backupType == backupTypeFull ?

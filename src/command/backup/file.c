@@ -5,7 +5,6 @@ Backup File
 
 #include <string.h>
 
-#include "command/backup/blockIncr.h"
 #include "command/backup/file.h"
 #include "command/backup/pageChecksum.h"
 #include "common/crypto/cipherBlock.h"
@@ -40,7 +39,7 @@ segmentNumber(const String *const pgFile)
 /**********************************************************************************************************************************/
 FN_EXTERN List *
 backupFile(
-    const String *const repoFile, const uint64_t bundleId, const bool bundleRaw, BlockMapPosition blockIncrMapPos,
+    const String *const repoFile, const uint64_t bundleId, const bool bundleRaw, BlockIncrMapPosition blockIncrMapPos,
     const unsigned int blockIncrReference, const CompressType repoFileCompressType, const int repoFileCompressLevel,
     const CipherType cipherType, const String *const cipherPass, const String *const pgVersionForce, const PgPageSize pageSize,
     const List *const fileList)
@@ -270,7 +269,7 @@ backupFile(
                             ioReadFilterGroup(readIo),
                             blockIncrNew(
                                 file->blockIncrSuperSize, file->blockIncrSize, file->blockIncrChecksumSize, blockIncrReference,
-                                bundleId, bundleOffset, blockMap, compress, encrypt, blockIncrMapPos != blockMapPositionSplit));
+                                bundleId, bundleOffset, blockMap, compress, encrypt, blockIncrMapPos));
 
                         repoChecksum = true;
                     }
@@ -422,7 +421,7 @@ backupFile(
                                     ASSERT(fileResult->blockIncrMapSize > 0);
 
                                     // !!!
-                                    if (bundleId != 0 && blockIncrMapPos != blockMapPositionInline)
+                                    if (bundleId != 0 && blockIncrMapPos != blockIncrMapPosInline)
                                     {
                                         // !!!
                                         fileResult->blockIncrMapOffset = bufUsed(blockMapAll);

@@ -36,11 +36,22 @@ Filter type constant
 #define BLOCK_INCR_FILTER_TYPE                                      STRID5("blk-incr", 0x90dc9dad820)
 
 /***********************************************************************************************************************************
+Block map position types
+***********************************************************************************************************************************/
+typedef enum BlockIncrMapPosition
+{
+    blockIncrMapPosBoth = 0,
+    blockIncrMapPosInline = 1,
+    blockIncrMapPosSplit = 2,
+} BlockIncrMapPosition;
+
+/***********************************************************************************************************************************
 Constructors
 ***********************************************************************************************************************************/
 FN_EXTERN IoFilter *blockIncrNew(
     uint64_t superBlockSize, size_t blockSize, size_t checksumSize, unsigned int reference, uint64_t bundleId,
-    uint64_t bundleOffset, const Buffer *blockMapPrior, const IoFilter *compress, const IoFilter *encrypt, bool blockMapInline);
+    uint64_t bundleOffset, const Buffer *blockMapPrior, const IoFilter *compress, const IoFilter *encrypt,
+    BlockIncrMapPosition blockMapPos);
 FN_EXTERN IoFilter *blockIncrNewPack(const Pack *paramList);
 
 #endif

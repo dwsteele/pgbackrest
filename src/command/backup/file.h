@@ -4,6 +4,7 @@ Backup File
 #ifndef COMMAND_BACKUP_FILE_H
 #define COMMAND_BACKUP_FILE_H
 
+#include "command/backup/blockIncr.h"
 #include "common/compress/helper.h"
 #include "common/crypto/common.h"
 #include "common/type/keyValue.h"
@@ -20,16 +21,6 @@ typedef enum
     backupCopyResultNoOp,
     backupCopyResultTruncate,
 } BackupCopyResult;
-
-/***********************************************************************************************************************************
-Block map position types
-***********************************************************************************************************************************/
-typedef enum BlockMapPosition
-{
-    blockMapPositionBoth = 0,
-    blockMapPositionInline = 1,
-    blockMapPositionSplit = 2,
-} BlockMapPosition;
 
 /***********************************************************************************************************************************
 Functions
@@ -75,8 +66,8 @@ typedef struct BackupFileResult
 } BackupFileResult;
 
 FN_EXTERN List *backupFile(
-    const String *repoFile, uint64_t bundleId, bool bundleRaw, BlockMapPosition blockIncrMapPos, unsigned int blockIncrReference,
-    CompressType repoFileCompressType, int repoFileCompressLevel, CipherType cipherType, const String *cipherPass,
-    const String *pgVersionForce, PgPageSize pageSize, const List *fileList);
+    const String *repoFile, uint64_t bundleId, bool bundleRaw, BlockIncrMapPosition blockIncrMapPos,
+    unsigned int blockIncrReference, CompressType repoFileCompressType, int repoFileCompressLevel, CipherType cipherType,
+    const String *cipherPass, const String *pgVersionForce, PgPageSize pageSize, const List *fileList);
 
 #endif
