@@ -66,9 +66,9 @@ restoreProcessQueueComparator(const void *const item1, const void *const item2)
 
     // Order by map offset !!!
     if (file1.blockIncrMapOffset < file2.blockIncrMapOffset)
-        FUNCTION_TEST_RETURN(INT, 1);
-    else if (file1.blockIncrMapOffset > file2.blockIncrMapOffset)
         FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1.blockIncrMapOffset > file2.blockIncrMapOffset)
+        FUNCTION_TEST_RETURN(INT, 2);
 
     // Finally order by bundle offset
     ASSERT(file1.bundleOffset != file2.bundleOffset);
