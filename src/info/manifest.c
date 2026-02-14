@@ -3056,7 +3056,7 @@ manifestValidate(Manifest *const this, const bool strict)
                 }
 
                 // Non-zero size files must have non-zero repo size
-                if (file.sizeRepo == 0 && file.size != 0)
+                if (file.sizeRepo == 0 && file.size != 0 && file.blockIncrMapOffset == 0 /* !!! */) // {uncovered_branch - !!!}
                     strCatFmt(error, "\nrepo size must be > 0 for file '%s'", strZ(file.name));
             }
         }

@@ -183,7 +183,7 @@ backupFile(
         const bool compressible = repoFileCompressType == compressTypeNone && cipherType == cipherTypeNone;
 
         // Copy files that need to be copied
-        Buffer *const blockMapAll = bufNew(8192);
+        Buffer *const blockMapAll = bufNew(0);
         StorageWrite *write = NULL;
         uint64_t bundleOffset = 0;
 
@@ -414,39 +414,24 @@ backupFile(
                                 {
                                     PackRead *const filterPack = ioFilterGroupResultP(
                                         ioReadFilterGroup(readIo), BLOCK_INCR_FILTER_TYPE);
-
                                     fileResult->blockIncrMapSize = pckReadU64P(filterPack);
 
                                     // There must be a map because the file should have changed or shrunk
                                     ASSERT(fileResult->blockIncrMapSize > 0);
 
-                                    // !!!
-                                    if (bundleId != 0 && blockIncrMapPos != blockIncrMapPosInline)
+                                    // If position not inline write map to local buffer containing all maps (to be written later)
+                                    if (blockIncrMapPos != blockIncrMapPosInline)
                                     {
-                                        // !!!
+                                        CHECK(FormatError, pckReadNext(filterPack), "missing block incremental map");
+                                        const Buffer *const blockMap = BUF(pckReadBufPtr(filterPack), pckReadSize(filterPack));
+                                        ASSERT(bufUsed(blockMap) == fileResult->blockIncrMapSize);
+
+                                        // Store offset into all maps list and copy the map
                                         fileResult->blockIncrMapOffset = bufUsed(blockMapAll);
+                                        bufCat(blockMapAll, blockMap);
 
-                                        // Open write
-                                        const Buffer *const blockMap = pckReadBinP(filterPack);
-                                        IoWrite *const write = ioBufferWriteNew(blockMapAll);
-
-                                        if (cipherType != cipherTypeNone)
-                                        {
-                                            ioFilterGroupAdd(
-                                                ioWriteFilterGroup(write),
-                                                cipherBlockNewP(cipherModeEncrypt, cipherType, BUFSTR(cipherPass), .raw = true));
-                                        }
-
-                                        // Write the map
-                                        ioWriteOpen(write);
-                                        ioWrite(write, blockMap);
-                                        ioWriteClose(write);
-
-                                        fileResult->blockIncrMapSize = bufUsed(blockMapAll) - fileResult->blockIncrMapOffset;
-
-                                        // Get total bytes written for the map
-                                        // ASSERT( !!!
-                                        //     bufUsed(blockMapAll) - fileResult->blockIncrMapOffset == fileResult->blockIncrMapSize);
+                                        // Add map size to repo size !!!
+                                        // fileResult->repoSize += fileResult->blockIncrMapSize;
                                     }
                                 }
 
@@ -471,7 +456,7 @@ backupFile(
             MEM_CONTEXT_TEMP_END();
         }
 
-        // !!!
+        // Write out all block maps at the end of the file
         if (!bufEmpty(blockMapAll))
         {
             ioWrite(storageWriteIo(write), blockMapAll);

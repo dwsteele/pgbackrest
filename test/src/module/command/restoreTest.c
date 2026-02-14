@@ -2886,7 +2886,7 @@ testRun(void)
                     8192, 8192, 11, 3, 0, 0,
                     BUF(bufPtr(fileUnusedMap) + bufUsed(fileUnusedMap) - fileUnusedMapSize, fileUnusedMapSize), NULL, NULL, true));
             ioFilterGroupAdd(ioWriteFilterGroup(write), ioSizeNew());
-
+// !!! NEED A TEST WHERE A FILE GETS SMALLER SO GETS ADDED TO A BUNDLE BUT STILL HAS A REFERENCE TO A PGBI FILE
             ioWriteOpen(write);
             ioWrite(write, fileUsed);
             ioWriteClose(write);

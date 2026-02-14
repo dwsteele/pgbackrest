@@ -1982,6 +1982,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                         pckWriteStrP(param, backupFileRepoPathP(jobData->backupLabel, .bundleId = jobData->bundleId));
                         pckWriteU64P(param, jobData->bundleId);
                         pckWriteBoolP(param, manifestData(jobData->manifest)->bundleRaw);
+                        pckWriteU32P(param, jobData->blockMapPos);
                     }
                     else
                     {
@@ -1993,6 +1994,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                                 jobData->backupLabel, .manifestName = file.name, .compressType = jobData->compressType,
                                 .blockIncr = blockIncr));
                         pckWriteU64P(param, 0);
+                        pckWriteU32P(param, blockIncrMapPosInline);
 
                         fileName = file.name;
                         bundle = false;
@@ -2007,7 +2009,6 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                     pckWriteStrP(param, jobData->cipherSubPass);
                     pckWriteU32P(param, jobData->pageSize);
                     pckWriteStrP(param, cfgOptionStrNull(cfgOptPgVersionForce));
-                    pckWriteU32P(param, jobData->blockMapPos);
                 }
 
                 pckWriteStrP(param, manifestPathPg(file.name));

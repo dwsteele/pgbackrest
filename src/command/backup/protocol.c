@@ -92,6 +92,7 @@ backupFileProtocol(PackRead *const param)
         const String *const repoFile = pckReadStrP(param);
         const uint64_t bundleId = pckReadU64P(param);
         const bool bundleRaw = bundleId != 0 ? pckReadBoolP(param) : false;
+        const BlockIncrMapPosition blockIncrMapPos = (BlockIncrMapPosition)pckReadU32P(param);
         const unsigned int blockIncrReference = (unsigned int)pckReadU64P(param);
         const CompressType repoFileCompressType = (CompressType)pckReadU32P(param);
         const int repoFileCompressLevel = pckReadI32P(param);
@@ -99,7 +100,6 @@ backupFileProtocol(PackRead *const param)
         const String *const cipherPass = pckReadStrP(param);
         const PgPageSize pageSize = pckReadU32P(param);
         const String *const pgVersionForce = pckReadStrP(param);
-        const BlockIncrMapPosition blockIncrMapPos = (BlockIncrMapPosition)pckReadU32P(param);
 
         // Build the file list
         List *const fileList = lstNewP(sizeof(BackupFile), .comparator = backupFileComparator);

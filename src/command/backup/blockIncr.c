@@ -49,6 +49,7 @@ typedef struct BlockIncr
     uint64_t blockMapOutSize;                                       // Output block map size (if any)
     bool blockMapWrite;                                             // Write block map (at least one new/changed block)
     BlockIncrMapPosition blockMapPos;                               // Block map position
+    Buffer *blockMapFinal;                                          // Final block map to be written out
 
     size_t inputOffset;                                             // Input offset
     bool inputSame;                                                 // Input the same data
@@ -238,31 +239,31 @@ blockIncrProcess(THIS_VOID, const Buffer *const input, Buffer *const output)
             (this->blockMapWrite ||
              (this->blockMapPrior != NULL && blockMapSize(this->blockMapOut) < blockMapSize(this->blockMapPrior))))
         {
-            if (this->blockMapPos != blockIncrMapPosSplit)
+            MEM_CONTEXT_TEMP_BEGIN()
             {
-                MEM_CONTEXT_TEMP_BEGIN()
-                {
-                    // Size of block output before starting to write the map
-                    const size_t blockOutBegin = bufUsed(this->blockOut);
+                // Create map (and encrypt if needed)
+                Buffer *const blockMap = bufNew(8192);
+                IoWrite *const write = ioBufferWriteNew(blockMap);
 
-                    // Write the map
-                    IoWrite *const write = ioBufferWriteNew(this->blockOut);
+                if (this->encryptParam != NULL)
+                    ioFilterGroupAdd(ioWriteFilterGroup(write), cipherBlockNewPack(this->encryptParam));
 
-                    if (this->encryptParam != NULL)
-                        ioFilterGroupAdd(ioWriteFilterGroup(write), cipherBlockNewPack(this->encryptParam));
+                ioWriteOpen(write);
+                blockMapWrite(this->blockMapOut, write, this->blockSize, this->checksumSize);
+                ioWriteClose(write);
 
-                    // Write the map
-                    ioWriteOpen(write);
-                    blockMapWrite(this->blockMapOut, write, this->blockSize, this->checksumSize);
-                    ioWriteClose(write);
+                // Get total bytes written for the map
+                this->blockMapOutSize = bufUsed(blockMap);
 
-                    // Get total bytes written for the map
-                    this->blockMapOutSize = bufUsed(this->blockOut) - blockOutBegin;
-                }
-                MEM_CONTEXT_TEMP_END();
+                // If map position is not split then add it to output after the block list
+                if (this->blockMapPos != blockIncrMapPosSplit)
+                    bufCat(this->blockOut, blockMap);
+
+                // If map position is not inline then store it for filter output
+                if (this->blockMapPos != blockIncrMapPosInline)
+                    this->blockMapFinal = bufMove(blockMap, objMemContext(this));
             }
-            else
-                this->blockMapOutSize = 1;
+            MEM_CONTEXT_TEMP_END();
         }
 
         // Copy to output buffer if output has been completely written
@@ -319,19 +320,7 @@ blockIncrResult(THIS_VOID)
         PackWrite *const packWrite = pckWriteNewP();
 
         pckWriteU64P(packWrite, this->blockMapOutSize);
-
-        if (this->blockMapOutSize != 0)
-        {
-            Buffer *const blockMap = bufNew(8192);
-            IoWrite *const blockMapIo = ioBufferWriteNew(blockMap);
-
-            ioWriteOpen(blockMapIo);
-            blockMapWrite(this->blockMapOut, blockMapIo, this->blockSize, this->checksumSize);
-            ioWriteClose(blockMapIo);
-
-            pckWriteBinP(packWrite, blockMap);
-        }
-
+        pckWriteBinP(packWrite, this->blockMapFinal);
         pckWriteEndP(packWrite);
 
         result = pckMove(pckWriteResult(packWrite), memContextPrior());
