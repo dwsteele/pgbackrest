@@ -164,14 +164,14 @@ backupFileProtocol(PackRead *const param)
         // !!! DEBUG LOGGING
         if (bundleId != 0)
         {
-            LOG_DEBUG_FMT("XXX!!!BUNDLE %zu SIZE %u", bundleId, lstSize(fileList));
+            LOG_DEBUG_FMT("XXX!!!BUNDLE %" PRIu64 " SIZE %u", bundleId, lstSize(fileList));
 
             for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
             {
                 const BackupFile *const file = lstGet(fileList, fileIdx);
 
                 LOG_DEBUG_FMT(
-                    "XXX!!!  BI %s REF %-33s REFBND %zu REFOFF %8zu SZ %8zu NAME %s",
+                    "XXX!!!  BI %s REF %-33s REFBND %" PRIu64 " REFOFF %8" PRIu64 " SZ %8" PRIu64 " NAME %s",
                     file->blockIncrSize == 0 ? "N" : "Y", file->reference == NULL ? "NULL" : strZ(file->reference),
                     file->blockIncrMapPriorBundleId, file->blockIncrMapPriorOffset, file->pgFileSize, strZ(file->pgFile));
             }
