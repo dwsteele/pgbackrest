@@ -5,13 +5,13 @@ Backup File
 
 #include <string.h>
 
-#include "command/backup/blockIncr.h"
 #include "command/backup/file.h"
 #include "command/backup/pageChecksum.h"
 #include "common/crypto/cipherBlock.h"
 #include "common/crypto/hash.h"
 #include "common/debug.h"
 #include "common/io/bufferRead.h"
+#include "common/io/bufferWrite.h"
 #include "common/io/filter/group.h"
 #include "common/io/filter/size.h"
 #include "common/io/io.h"
@@ -67,6 +67,8 @@ backupFile(
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
+        StorageReadMulti *const repoFileRead = storageNewReadMultiP(storageRepo());
+
         // Check files to determine which ones need to be copied
         for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
         {
@@ -173,6 +175,15 @@ backupFile(
                             fileResult->repoInvalid = true;
                     }
                 }
+
+                // If block incremental file will be copied add block map to the read
+                if (fileResult->backupCopyResult == backupCopyResultCopy && file->blockIncrSize != 0 &&
+                    file->blockIncrMapPriorFile != NULL)
+                {
+                    storageReadMultiAddP(
+                        repoFileRead, file->blockIncrMapPriorFile, .offset = file->blockIncrMapPriorOffset,
+                        .limit = VARUINT64(file->blockIncrMapPriorSize));
+                }
             }
             MEM_CONTEXT_TEMP_END();
         }
@@ -183,6 +194,9 @@ backupFile(
         // Copy files that need to be copied
         StorageWrite *write = NULL;
         uint64_t bundleOffset = 0;
+
+        LOG_DEBUG_FMT("!!!MULTI BLOCK MAP");
+        ioReadOpen(storageReadMultiIo(repoFileRead));
 
         for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
         {
@@ -243,22 +257,25 @@ backupFile(
                     if (file->blockIncrSize != 0)
                     {
                         // Read prior block map
-                        const Buffer *blockMap = NULL;
+                        Buffer *blockMap = NULL;
 
                         if (file->blockIncrMapPriorFile != NULL)
                         {
-                            StorageRead *const blockMapRead = storageNewReadP(
-                                storageRepo(), file->blockIncrMapPriorFile, .offset = file->blockIncrMapPriorOffset,
-                                .limit = VARUINT64(file->blockIncrMapPriorSize));
+                            blockMap = bufNew(0);
+                            IoWrite *const blockMapWrite = ioBufferWriteNew(blockMap);
 
                             if (cipherType != cipherTypeNone)
                             {
                                 ioFilterGroupAdd(
-                                    ioReadFilterGroup(storageReadIo(blockMapRead)),
+                                    ioWriteFilterGroup(blockMapWrite),
                                     cipherBlockNewP(cipherModeDecrypt, cipherType, BUFSTR(cipherPass), .raw = true));
                             }
 
-                            blockMap = storageGetP(blockMapRead);
+                            ioWriteOpen(blockMapWrite);
+                            ioCopyP(
+                                storageReadMultiIo(repoFileRead), blockMapWrite, .limit = VARUINT64(file->blockIncrMapPriorSize));
+                            ioWriteClose(blockMapWrite);
+                            ioWriteFree(blockMapWrite);
                         }
 
                         // Add block incremental filter
