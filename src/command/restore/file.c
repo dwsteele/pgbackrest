@@ -288,6 +288,7 @@ restoreFile(
                         // Generate a list of blocks that need to be fetched to process block deltas for this file. The block lists
                         // for all files are combined by reference so they can later be reordered to get the most efficient scans
                         // across bundles.
+                        // !!! THIS WOULD BE FAR MORE MEMORY EFFICIENT IF ENCODED IN A PACK
                         MEM_CONTEXT_OBJ_BEGIN(blockDeltaList)
                         {
                             BlockDelta *const blockDelta = blockDeltaNew(
@@ -385,6 +386,7 @@ restoreFile(
 
             // Collate block deltas in the order that they need to be read. The idea is to read sequentially across each bundle a
             // single time. There may be gaps but some of those can be read over.
+            // !!! SAME HERE -- THIS WOULD BE FAR MORE MEMORY EFFICIENT IF ENCODED IN A PACK
             MEM_CONTEXT_TEMP_BEGIN()
             {
                 // Sort the reference list descending. This is an arbitrary choice as the order does not matter.
