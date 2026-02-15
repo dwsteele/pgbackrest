@@ -1740,74 +1740,65 @@ backupProcessQueueComparator(const void *const item1, const void *const item2)
     // Unpack files
     const ManifestFile file1 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item1);
     const ManifestFile file2 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item2);
+    const bool file1Bundle = backupProcessQueueComparatorBundle && file1.size <= backupProcessQueueComparatorBundleLimit;
+    const bool file2Bundle = backupProcessQueueComparatorBundle && file2.size <= backupProcessQueueComparatorBundleLimit;
 
-    // Order by size desc when not bundled. Processing large files first generally makes for faster backups since a single process
-    // is not left with a large file at the end. This only matters when process-max > 1 but that is the norm.
-    if (!backupProcessQueueComparatorBundle || file1.size > backupProcessQueueComparatorBundleLimit ||
-        file2.size > backupProcessQueueComparatorBundleLimit)
+    // Order unbundled files before bundled files
+    if (!file1Bundle && file2Bundle)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1Bundle && !file2Bundle)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // Order unbundled files by size desc so larger files are processed first. This helps prevent stalls at the end of backup where
+    // one process is stuck with a large file to process. This only matters when process-max > 1.
+    if (!file1Bundle && !file2Bundle) // {uncovered_branch - !!!}
     {
         if (file1.size < file2.size)
             FUNCTION_TEST_RETURN(INT, 1);
         else if (file1.size > file2.size)
             FUNCTION_TEST_RETURN(INT, -1);
+
+        // If size is equal then use name to generate a deterministic ordering (names are unique)
+        FUNCTION_TEST_RETURN(INT, strCmp(file1.name, file2.name));
     }
 
-    // Order by bundle where unbundled files are at the end. For diff/incr backups this ensures that previously bundled files are
-    // processed in the same order as the prior backup. New files are processed at the end.
-    if (file1.bundleId != 0 && file2.bundleId == 0)
-        FUNCTION_TEST_RETURN(INT, -1);
-    else if (file1.bundleId == 0 && file2.bundleId != 0)
-        FUNCTION_TEST_RETURN(INT, 1);
-
-    // Order by bundle
-    if (file1.bundleId != 0 && file2.bundleId != 0)
+    // Order by reference so bundles are processed in the same order that they were created
+    if (file1.reference == NULL)
     {
-        // Order by desc so newer backups are considered before older backups !!! Is this the right order?
-        if (file1.reference == NULL)
-        {
-            if (file2.reference != NULL)
-                FUNCTION_TEST_RETURN(INT, 1);
-        }
-        else if (file2.reference == NULL)
-            FUNCTION_TEST_RETURN(INT, -1);
-        else
-        {
-            const int backupLabelCmp = strCmp(file2.reference, file1.reference) * -1;
-
-            if (backupLabelCmp != 0)
-                FUNCTION_TEST_RETURN(INT, backupLabelCmp);
-        }
-
-        // Order by bundle id asc
-        if (file1.bundleId < file2.bundleId)
-            FUNCTION_TEST_RETURN(INT, -1);
-        else if (file1.bundleId > file2.bundleId)
+        if (file2.reference != NULL)
             FUNCTION_TEST_RETURN(INT, 1);
+    }
+    else if (file2.reference == NULL)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else
+    {
+        const int backupLabelCmp = strCmp(file1.reference, file2.reference);
 
-        // Order by block map offset
-        if (file1.blockIncrMapOffset < file2.blockIncrMapOffset)
-            FUNCTION_TEST_RETURN(INT, -1);
-        else if (file1.blockIncrMapOffset > file2.blockIncrMapOffset)
-            FUNCTION_TEST_RETURN(INT, 1);
-
-        // Finally order by bundle offset
-        ASSERT(file1.bundleOffset != file2.bundleOffset);
-
-        if (file1.bundleOffset < file2.bundleOffset)
-            FUNCTION_TEST_RETURN(INT, -1);
-
-        FUNCTION_TEST_RETURN(INT, 1);
+        if (backupLabelCmp != 0)
+            FUNCTION_TEST_RETURN(INT, backupLabelCmp);
     }
 
-    // Order new files eligible for bundling by time desc so files of a similar age are bundled together. A full backup will use
-    // this ordering for all bundled files.
-    if (file1.timestamp > file2.timestamp)
-        FUNCTION_TEST_RETURN(INT, 1);
-    else if (file1.timestamp < file2.timestamp)
+    // Order by bundle id asc !!!
+    if (file1.bundleId < file2.bundleId)
         FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1.bundleId > file2.bundleId)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // Order by bundle offset
+    if (file1.bundleOffset < file2.bundleOffset)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1.bundleOffset > file2.bundleOffset)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // Order new files eligible for bundling by time asc so files of a similar age are bundled together. A full backup will use
+    // this ordering for all bundled files.
+    if (file1.timestamp < file2.timestamp)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1.timestamp > file2.timestamp)
+        FUNCTION_TEST_RETURN(INT, 1);
 
     // If size/time is the same then use name to generate a deterministic ordering (names must be unique)
-    FUNCTION_TEST_RETURN(INT, strCmp(file2.name, file1.name));
+    FUNCTION_TEST_RETURN(INT, strCmp(file1.name, file2.name));
 }
 
 // Helper to generate the backup queues
@@ -1937,6 +1928,30 @@ backupProcessQueue(const BackupData *const backupData, Manifest *const manifest,
         for (unsigned int queueIdx = 0; queueIdx < lstSize(jobData->queueList); queueIdx++)
             lstSort(*(List **)lstGet(jobData->queueList, queueIdx), sortOrderAsc);
 
+        // CHECK(AssertError, lstSize(jobData->queueList) == 1, "queue size is not one");
+        // List *list = *(List **)lstGet(jobData->queueList, 0);
+
+        // LOG_DEBUG_FMT("XXX!!!QUEUE SIZE %u", lstSize(list));
+
+        // for (unsigned int listIdx = 0; listIdx < lstSize(list); listIdx++)
+        // {
+        //     const ManifestFile file = manifestFileUnpack(jobData->manifest, *(ManifestFilePack **)lstGet(list, listIdx));
+        //     const bool bundle = jobData->bundle && file.size <= backupProcessQueueComparatorBundleLimit;
+
+        //     if (!bundle)
+        //     {
+        //         LOG_DEBUG_FMT(
+        //             "XXX!!!  BND N SIZE %9zu NAME %s", file.size, strZ(file.name));
+        //     }
+        //     else
+        //     {
+        //         LOG_DEBUG_FMT(
+        //             "XXX!!!  BND Y REF %-33s BND %3zu OFF %7zu TIME %zu NAME %s ",
+        //             file.reference == NULL ? "NULL" : strZ(file.reference), file.bundleId, file.bundleOffset,
+        //             (size_t)file.timestamp, strZ(file.name));
+        //     }
+        // }
+
         // Move process queues to prior context
         lstMove(jobData->queueList, memContextPrior());
     }
@@ -2009,6 +2024,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                 const ManifestFile file = manifestFileUnpack(jobData->manifest, *(ManifestFilePack **)lstGet(queue, fileIdx));
 
                 // Continue if the next file would make the bundle too large. There may be a smaller one that will fit.
+                // !!! MAYBE REMOVE THIS? IS TIME ORDERING MORE IMPORTANT?
                 if (fileTotal > 0 && fileSize + file.size >= jobData->bundleSize)
                 {
                     fileIdx++;
@@ -2080,6 +2096,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                             param,
                             backupFileRepoPathP(
                                 file.reference, .manifestName = file.name, .bundleId = file.bundleId, .blockIncr = true));
+                        pckWriteU64P(param, file.bundleId);
                         pckWriteU64P(
                             param,
                             file.blockIncrMapOffset != 0 ?
@@ -2096,7 +2113,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                 pckWriteBinP(param, file.checksumRepoSha1 != NULL ? BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE) : NULL);
                 pckWriteU64P(param, file.sizeRepo);
                 pckWriteBoolP(param, file.resume);
-                pckWriteBoolP(param, file.reference != NULL);
+                pckWriteStrP(param, file.reference);
 
                 fileTotal++;
                 fileSize += file.sizeOriginal;

@@ -268,15 +268,16 @@ backupFile(
                             blockMap = bufNew(0);
                             IoWrite *const blockMapWrite = ioBufferWriteNew(blockMap);
 
-                            if (cipherPass != NULL)
+                            if (cipherType != cipherTypeNone)
                             {
                                 ioFilterGroupAdd(
                                     ioWriteFilterGroup(blockMapWrite),
-                                    cipherBlockNewP(cipherModeDecrypt, cipherTypeAes256Cbc, BUFSTR(cipherPass), .raw = true));
+                                    cipherBlockNewP(cipherModeDecrypt, cipherType, BUFSTR(cipherPass), .raw = true));
                             }
 
                             ioWriteOpen(blockMapWrite);
-                            ioCopyP(storageReadMultiIo(repoFileRead), blockMapWrite);
+                            ioCopyP(
+                                storageReadMultiIo(repoFileRead), blockMapWrite, .limit = VARUINT64(file->blockIncrMapPriorSize));
                             ioWriteClose(blockMapWrite);
                             ioWriteFree(blockMapWrite);
                         }

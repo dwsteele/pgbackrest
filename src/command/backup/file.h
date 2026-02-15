@@ -41,11 +41,13 @@ typedef struct BackupFile
     size_t blockIncrChecksumSize;                                   // Block checksum size
     uint64_t blockIncrSuperSize;                                    // Size of the super block
     const String *blockIncrMapPriorFile;                            // File containing prior block incremental map (NULL if none)
+    uint64_t blockIncrMapPriorBundleId;                             // Bundle id of prior block incremental map
     uint64_t blockIncrMapPriorOffset;                               // Offset of prior block incremental map
     uint64_t blockIncrMapPriorSize;                                 // Size of prior block incremental map
     const String *manifestFile;                                     // Repo file
     const Buffer *repoFileChecksum;                                 // Expected repo file checksum
     uint64_t repoFileSize;                                          // Expected repo file size
+    const String *reference;                                        // Prior reference, if any (used only for sorting)
     bool manifestFileResume;                                        // Checksum repo file before copying
     bool manifestFileHasReference;                                  // Reference to prior backup, if any
 } BackupFile;

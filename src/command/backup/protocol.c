@@ -41,18 +41,6 @@ backupFileComparator(const void *const item1, const void *const item2)
         FUNCTION_TEST_RETURN(INT, -1);
 #endif
 
-    // !!!
-    int compare = strCmp(file1->blockIncrMapPriorFile, file2->blockIncrMapPriorFile);
-
-    if (compare != 0)
-        FUNCTION_TEST_RETURN(INT, compare);
-
-    // !!!
-    if (file1->blockIncrMapPriorOffset < file1->blockIncrMapPriorOffset)
-        FUNCTION_TEST_RETURN(INT, -1);
-    else if (file1->blockIncrMapPriorOffset > file1->blockIncrMapPriorOffset)
-        FUNCTION_TEST_RETURN(INT, 1);
-
     // Order block incremental files before whole files. This produces slightly smaller maps since the offsets are smaller. Also
     // whole files can have reads combined and read over more often without block maps/lists in between them. We want the whole
     // files to be next to the block maps at the end of the bundle so they can be read out together during restore. This means for
@@ -60,6 +48,24 @@ backupFileComparator(const void *const item1, const void *const item2)
     if (file1->blockIncrSize != 0 && file2->blockIncrSize == 0)
         FUNCTION_TEST_RETURN(INT, -1);
     else if (file1->blockIncrSize == 0 && file2->blockIncrSize != 0)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // !!!
+    const int compare = strCmp(file1->reference, file2->reference);
+
+    if (compare != 0)
+        FUNCTION_TEST_RETURN(INT, compare);
+
+    // !!!
+    if (file1->blockIncrMapPriorBundleId < file1->blockIncrMapPriorBundleId)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1->blockIncrMapPriorBundleId > file1->blockIncrMapPriorBundleId)
+        FUNCTION_TEST_RETURN(INT, 1);
+
+    // !!!
+    if (file1->blockIncrMapPriorOffset < file1->blockIncrMapPriorOffset)
+        FUNCTION_TEST_RETURN(INT, -1);
+    else if (file1->blockIncrMapPriorOffset > file1->blockIncrMapPriorOffset)
         FUNCTION_TEST_RETURN(INT, 1);
 
     // Order block incremental files by size asc since this produces smaller offsets for small block incremental files. Maps store
@@ -81,9 +87,9 @@ backupFileComparator(const void *const item1, const void *const item2)
             FUNCTION_TEST_RETURN(INT, -1);
     }
 
-    // If all the above are the same then use name desc to generate a deterministic ordering (names must be unique)
-    ASSERT(!strEq(file2->pgFile, file1->pgFile));
-    FUNCTION_TEST_RETURN(INT, strCmp(file2->pgFile, file1->pgFile));
+    // If all the above are the same then use name asc to generate a deterministic ordering (names must be unique)
+    ASSERT(!strEq(file1->pgFile, file2->pgFile));
+    FUNCTION_TEST_RETURN(INT, strCmp(file1->pgFile, file2->pgFile));
 }
 
 /**********************************************************************************************************************************/
@@ -137,6 +143,7 @@ backupFileProtocol(PackRead *const param)
 
                 if (file.blockIncrMapPriorFile != NULL)
                 {
+                    file.blockIncrMapPriorBundleId = pckReadU64P(param);
                     file.blockIncrMapPriorOffset = pckReadU64P(param);
                     file.blockIncrMapPriorSize = pckReadU64P(param);
                 }
@@ -146,13 +153,30 @@ backupFileProtocol(PackRead *const param)
             file.repoFileChecksum = pckReadBinP(param);
             file.repoFileSize = pckReadU64P(param);
             file.manifestFileResume = pckReadBoolP(param);
-            file.manifestFileHasReference = pckReadBoolP(param);
+            file.reference = pckReadStrP(param);
+            file.manifestFileHasReference = file.reference != NULL;
 
             lstAdd(fileList, &file);
         }
 
         // Sort files for efficient processing
         lstSort(fileList, sortOrderAsc);
+
+        // !!! DEBUG LOGGING
+        if (bundleId != 0)
+        {
+            LOG_DEBUG_FMT("XXX!!!BUNDLE %zu SIZE %u", bundleId, lstSize(fileList));
+
+            for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
+            {
+                const BackupFile *const file = lstGet(fileList, fileIdx);
+
+                LOG_DEBUG_FMT(
+                    "XXX!!!  BI %s REF %-33s REFBND %zu REFOFF %8zu SZ %8zu NAME %s",
+                    file->blockIncrSize == 0 ? "N" : "Y", file->reference == NULL ? "NULL" : strZ(file->reference),
+                    file->blockIncrMapPriorBundleId, file->blockIncrMapPriorOffset, file->pgFileSize, strZ(file->pgFile));
+            }
+        }
 
         // Backup file
         const List *const resultList = backupFile(
