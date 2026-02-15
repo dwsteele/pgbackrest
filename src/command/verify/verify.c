@@ -1092,6 +1092,8 @@ verifyBackup(VerifyJobData *const jobData)
                             // Set up the job
                             PackWrite *const param = protocolPackNew();
 
+                            // !!! VERIFY IS NOW BROKEN WHEN repo-block-map != inline. THE SOLUTION SEEMS TO BE TO CREATE BUNDLE
+                            // !!! CHECKSUMS RATHER THAN PER FILE CHECKSUMS. THIS WOULD ALSO BE MUCH MORE EFFICIENT
                             const String *const filePathName = backupFileRepoPathP(
                                 fileBackupLabel, .manifestName = fileData.name, .bundleId = fileData.bundleId,
                                 .compressType = manifestData(jobData->manifest)->backupOptionCompressType,
