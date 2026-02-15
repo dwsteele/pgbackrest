@@ -1928,29 +1928,28 @@ backupProcessQueue(const BackupData *const backupData, Manifest *const manifest,
         for (unsigned int queueIdx = 0; queueIdx < lstSize(jobData->queueList); queueIdx++)
             lstSort(*(List **)lstGet(jobData->queueList, queueIdx), sortOrderAsc);
 
-        // CHECK(AssertError, lstSize(jobData->queueList) == 1, "queue size is not one");
-        // List *list = *(List **)lstGet(jobData->queueList, 0);
+        List *list = *(List **)lstGet(jobData->queueList, 0);
 
-        // LOG_DEBUG_FMT("XXX!!!QUEUE SIZE %u", lstSize(list));
+        LOG_DEBUG_FMT("XXX!!!QUEUE SIZE %u", lstSize(list));
 
-        // for (unsigned int listIdx = 0; listIdx < lstSize(list); listIdx++)
-        // {
-        //     const ManifestFile file = manifestFileUnpack(jobData->manifest, *(ManifestFilePack **)lstGet(list, listIdx));
-        //     const bool bundle = jobData->bundle && file.size <= backupProcessQueueComparatorBundleLimit;
+        for (unsigned int listIdx = 0; listIdx < lstSize(list); listIdx++)
+        {
+            const ManifestFile file = manifestFileUnpack(jobData->manifest, *(ManifestFilePack **)lstGet(list, listIdx));
+            const bool bundle = jobData->bundle && file.size <= backupProcessQueueComparatorBundleLimit;
 
-        //     if (!bundle)
-        //     {
-        //         LOG_DEBUG_FMT(
-        //             "XXX!!!  BND N SIZE %9zu NAME %s", file.size, strZ(file.name));
-        //     }
-        //     else
-        //     {
-        //         LOG_DEBUG_FMT(
-        //             "XXX!!!  BND Y REF %-33s BND %3zu OFF %7zu TIME %zu NAME %s ",
-        //             file.reference == NULL ? "NULL" : strZ(file.reference), file.bundleId, file.bundleOffset,
-        //             (size_t)file.timestamp, strZ(file.name));
-        //     }
-        // }
+            if (!bundle)
+            {
+                LOG_DEBUG_FMT(
+                    "XXX!!!  BND N SIZE %9" PRIu64 " NAME %s", file.size, strZ(file.name));
+            }
+            else
+            {
+                LOG_DEBUG_FMT(
+                    "XXX!!!  BND Y REF %-33s BND %3" PRIu64 " OFF %7" PRIu64 " TIME %" PRIu64 " NAME %s ",
+                    file.reference == NULL ? "NULL" : strZ(file.reference), file.bundleId, file.bundleOffset,
+                    (uint64_t)file.timestamp, strZ(file.name));
+            }
+        }
 
         // Move process queues to prior context
         lstMove(jobData->queueList, memContextPrior());
