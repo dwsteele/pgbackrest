@@ -50,19 +50,19 @@ backupFileComparator(const void *const item1, const void *const item2)
     else if (file1->blockIncrSize == 0 && file2->blockIncrSize != 0)
         FUNCTION_TEST_RETURN(INT, 1);
 
-    // !!!
+    // Order by reference so bundles with the same id are ordered separately. Bundles ids are assigned per backup so may repeat.
     const int compare = strCmp(file1->reference, file2->reference);
 
     if (compare != 0)
         FUNCTION_TEST_RETURN(INT, compare);
 
-    // !!!
+    // Order by bundle so reads are grouped by file
     if (file1->blockIncrMapPriorBundleId < file1->blockIncrMapPriorBundleId)
         FUNCTION_TEST_RETURN(INT, -1);
     else if (file1->blockIncrMapPriorBundleId > file1->blockIncrMapPriorBundleId)
         FUNCTION_TEST_RETURN(INT, 1);
 
-    // !!!
+    // Order by map offset so reads in the repo are ordered and more likely to be combined and benefit from read over
     if (file1->blockIncrMapPriorOffset < file1->blockIncrMapPriorOffset)
         FUNCTION_TEST_RETURN(INT, -1);
     else if (file1->blockIncrMapPriorOffset > file1->blockIncrMapPriorOffset)
