@@ -1943,7 +1943,7 @@ backupProcessQueue(const BackupData *const backupData, Manifest *const manifest,
                 LOG_DEBUG_FMT(
                     "XXX!!!  BND Y REF %-33s BND %3" PRIu64 " OFF %7" PRIu64 " TIME %" PRIu64 " NAME %s ",
                     file.reference == NULL ? "NULL" : strZ(file.reference), file.bundleId, file.bundleOffset,
-                    (size_t)file.timestamp, strZ(file.name));
+                    (uint64_t)file.timestamp, strZ(file.name));
             }
         }
 
