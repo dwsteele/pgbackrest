@@ -57,23 +57,23 @@ backupFileComparator(const void *const item1, const void *const item2)
         FUNCTION_TEST_RETURN(INT, compare);
 
     // Order by bundle so reads are grouped by file
-    if (file1->blockIncrMapPriorBundleId < file1->blockIncrMapPriorBundleId)
-        FUNCTION_TEST_RETURN(INT, -1);
-    else if (file1->blockIncrMapPriorBundleId > file1->blockIncrMapPriorBundleId)
-        FUNCTION_TEST_RETURN(INT, 1);
+    if (file1->blockIncrMapPriorBundleId < file2->blockIncrMapPriorBundleId) // {uncovered_branch - !!!}
+        FUNCTION_TEST_RETURN(INT, -1); // {uncovered - !!!}
+    else if (file1->blockIncrMapPriorBundleId > file2->blockIncrMapPriorBundleId) // {uncovered_branch - !!!}
+        FUNCTION_TEST_RETURN(INT, 1); // {uncovered - !!!}
 
     // Order by map offset so reads in the repo are ordered and more likely to be combined and benefit from read over
-    if (file1->blockIncrMapPriorOffset < file1->blockIncrMapPriorOffset)
+    if (file1->blockIncrMapPriorOffset < file2->blockIncrMapPriorOffset)
         FUNCTION_TEST_RETURN(INT, -1);
-    else if (file1->blockIncrMapPriorOffset > file1->blockIncrMapPriorOffset)
-        FUNCTION_TEST_RETURN(INT, 1);
+    else if (file1->blockIncrMapPriorOffset > file2->blockIncrMapPriorOffset) // {uncovered_branch - !!!}
+        FUNCTION_TEST_RETURN(INT, 1); // {uncovered - !!!}
 
     // Order block incremental files by size asc since this produces smaller offsets for small block incremental files. Maps store
     // offset deltas after the initial offset so larger maps are more efficient per page for larger offsets.
     if (file1->blockIncrSize != 0 && file2->blockIncrSize != 0) // {uncovered_branch - !!!}
     {
-        if (file1->pgFileSize < file2->pgFileSize)
-            FUNCTION_TEST_RETURN(INT, -1);
+        if (file1->pgFileSize < file2->pgFileSize) // {uncovered_branch - !!!}
+            FUNCTION_TEST_RETURN(INT, -1); // {uncovered - !!!}
         else if (file1->pgFileSize > file2->pgFileSize)
             FUNCTION_TEST_RETURN(INT, 1);
     }
