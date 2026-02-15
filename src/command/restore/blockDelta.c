@@ -155,6 +155,8 @@ blockDeltaNew(
                                 .reference = blockMapItem->reference,
                                 .bundleId = blockMapItem->bundleId,
                                 .offset = blockMapItem->offset,
+                                // !!! NOW THAT IS IS POSSIBLE TO HAVE THOUSANDS OF DELTA RESTORE OBJECTS IT WOULD BE MORE MEMORY
+                                // !!! EFFICIENT IF THE SUPER/BLOCK LIST WAS ENCODED AS A PACK
                                 .superBlockList = lstNewP(sizeof(BlockDeltaSuperBlock)),
                             };
 
