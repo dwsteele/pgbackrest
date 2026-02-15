@@ -67,7 +67,7 @@ backupFileComparator(const void *const item1, const void *const item2)
         FUNCTION_TEST_RETURN(INT, 1); // {uncovered - !!!}
 
     // Order by size descending. This is an arbitrary choice here but will be more efficient when block maps are stored at the end
-    // of the bundle.
+    // of the bundle due to read over.
     if (file1->pgFileSize < file2->pgFileSize)
         FUNCTION_TEST_RETURN(INT, 1);
     else if (file1->pgFileSize > file2->pgFileSize)
