@@ -384,6 +384,7 @@ storageReadMultiNew(const Storage *const storage, const unsigned int concurrency
     }
     OBJ_NEW_END();
 
+    // !!! SHOULD WE EXPOSE A StorageRead INTERFACE? This would allow it to work with storageGetP() etc.
     FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, this);
 }
 

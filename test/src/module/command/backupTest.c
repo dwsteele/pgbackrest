@@ -71,7 +71,7 @@ testBackupValidateFile(
         if (!bufEq(checksum, BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE)))
         {
             THROW_FMT(
-                AssertError, "'%s' repo checksum %s does match manifest checksum %s", strZ(file.name),
+                AssertError, "'%s' repo checksum %s does not match manifest checksum %s", strZ(file.name),
                 strZ(strNewEncode(encodingHex, checksum)),
                 strZ(strNewEncode(encodingHex, BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE))));
         }

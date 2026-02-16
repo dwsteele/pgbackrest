@@ -1228,6 +1228,7 @@ storageGcsNew(
 
         // Set concurrency
         this->interface.concurrency = 1;
+        // !!! ADD READ OVER
 
         // Create tag JSON buffer
         if (write && tag != NULL)
