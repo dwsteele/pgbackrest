@@ -284,7 +284,8 @@ restoreFile(
                             BlockDelta *const blockDelta = blockDeltaNew(
                                 blockMap, file->blockIncrSize, file->blockIncrChecksumSize, file->blockChecksum,
                                 cipherPass == NULL ? cipherTypeNone : cipherTypeAes256Cbc, cipherPass, repoFileCompressType);
-                            RestoreFileBlockDelta *reference;
+                            RestoreFileBlockDelta *reference = NULL;
+                            RestoreFileBlockDelta *referencePrior = NULL;
 
                             for (unsigned int readIdx = 0; readIdx < blockDeltaReadSize(blockDelta); readIdx++)
                             {
@@ -303,12 +304,18 @@ restoreFile(
                                     reference = lstAdd(blockDeltaList, &referenceNew);
                                 }
 
-                                // Write fileIdx and BlockDelta
-                                if (readIdx == 0) // {uncovered_branch - !!!}
+                                // Write fileIdx and BlockDelta when the reference changes
+                                if (reference != referencePrior) // {uncovered_branch - !!!}
                                 {
+                                    // Indicate that BlockDeltaRead list is complete
+                                    if (referencePrior != NULL) // {uncovered_branch - !!!}
+                                        pckWriteNullP(reference->delta); // {uncovered - !!!}
+
                                     // !!! MAYBE STORE THE BLOCK MAP INSTEAD?
                                     pckWriteU64P(reference->delta, (uintptr_t)blockDelta);
                                     pckWriteU32P(reference->delta, fileIdx);
+
+                                    referencePrior = reference;
                                 }
 
                                 // Write BlockDeltaRead
@@ -316,6 +323,7 @@ restoreFile(
                             }
 
                             // Indicate that BlockDeltaRead list is complete
+                            ASSERT(reference != NULL);
                             pckWriteNullP(reference->delta);
                         }
                         MEM_CONTEXT_OBJ_END();
@@ -382,12 +390,8 @@ restoreFile(
 
             // Collate block deltas in the order that they need to be read. The idea is to read sequentially across each bundle a
             // single time. There may be gaps but some of those can be read over.
-            // !!! SAME HERE -- THIS WOULD BE FAR MORE MEMORY EFFICIENT IF ENCODED IN A PACK
             MEM_CONTEXT_TEMP_BEGIN()
             {
-                // Sort the reference list descending. This is an arbitrary choice as the order does not matter.
-                lstSort(blockDeltaList, sortOrderDesc);
-
                 // Collate block deltas and update read multi
                 for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockDeltaList); blockDeltaIdx++)
                 {
@@ -398,13 +402,13 @@ restoreFile(
 
                     while (!pckReadNullP(delta))
                     {
-                        pckReadU64P(delta);
+                        pckReadConsume(delta);
                         const unsigned int fileIdx = pckReadU32P(delta);
                         const RestoreFile *const file = lstGet(fileList, fileIdx);
 
                         while (!pckReadNullP(delta))
                         {
-                            const BlockDeltaRead *const read = (BlockDeltaRead *)pckReadU64P(delta);
+                            const BlockDeltaRead *const read = (BlockDeltaRead *)(uintptr_t)pckReadU64P(delta);
                             const String *const repoFileName = backupFileRepoPathP(
                                 strLstGet(referenceList, blockReference->reference), .manifestName = file->manifestFile,
                                 .bundleId = read->bundleId, .blockIncr = true);
@@ -431,7 +435,7 @@ restoreFile(
 
                 while (!pckReadNullP(delta))
                 {
-                    BlockDelta *const blockDelta = (BlockDelta *)pckReadU64P(delta);
+                    BlockDelta *const blockDelta = (BlockDelta *)(uintptr_t)pckReadU64P(delta);
                     const unsigned int fileIdx = pckReadU32P(delta);
                     const RestoreFile *const file = lstGet(fileList, fileIdx);
                     RestoreFileResult *const fileResult = lstGet(result, fileIdx);
@@ -458,7 +462,7 @@ restoreFile(
                     while (!pckReadNullP(delta))
                     {
                         // Write updated blocks to the file
-                        const BlockDeltaRead *const read = (BlockDeltaRead *)pckReadU64P(delta);
+                        const BlockDeltaRead *const read = (BlockDeltaRead *)(uintptr_t)pckReadU64P(delta);
                         const BlockDeltaWrite *deltaWrite = blockDeltaNext(blockDelta, read, storageReadMultiIo(blockRead));
 
                         while (deltaWrite != NULL)
