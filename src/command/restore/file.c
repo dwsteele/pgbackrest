@@ -282,7 +282,6 @@ restoreFile(
                         const BlockMap *const blockMap = blockMapNewRead(
                             blockMapRead, file->blockIncrSize, file->blockIncrChecksumSize);
 
-                        ioReadClose(blockMapRead);
                         ioReadFree(blockMapRead);
 
                         // Generate a list of blocks that need to be fetched to process block deltas for this file. The block lists
