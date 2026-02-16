@@ -361,17 +361,11 @@ backupFileComparator(const void *const item1, const void *const item2)
 {
     if (hrnBackupLocal.backupFileComparatorShim)
     {
-        ASSERT(item1 != NULL);
-        ASSERT(item2 != NULL);
-
-        const BackupFile *const file1 = item1;
-        const BackupFile *const file2 = item2;
-
         // Order global/pg_control at the end of the bundle. This is required for reproducibility since the contents of pg_control
         // vary by architecture so many compress differently and change bundle offsets.
-        if (strEqZ(file1->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+        if (strEqZ(((const BackupFile *)item1)->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
             return 1;
-        else if (strEqZ(file2->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+        else if (strEqZ(((const BackupFile *)item2)->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
             return -1;
     }
 
