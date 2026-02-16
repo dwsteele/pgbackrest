@@ -564,6 +564,9 @@ testRun(void)
 {
     FUNCTION_HARNESS_VOID();
 
+    // Shim backupFileComparator to place pg_control at end of bundle
+    hrnBackupFileComparatorShim();
+
     // Install local command handler shim
     static const ProtocolServerHandler testLocalHandlerList[] = {PROTOCOL_SERVER_HANDLER_BACKUP_LIST};
     hrnProtocolLocalShimInstall(LSTDEF(testLocalHandlerList));

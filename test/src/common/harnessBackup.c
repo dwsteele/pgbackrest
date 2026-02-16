@@ -34,6 +34,7 @@ Local variables
 static struct HrnBackupLocal
 {
     MemContext *memContext;                                         // Script mem context
+    bool backupFileComparatorShim;                                  // Shim backupFileComparatorShim?
 
     // Script that defines how shim functions operate
     HrnBackupScript script[1024];
@@ -352,4 +353,34 @@ hrnBackupPqScript(const unsigned int pgVersion, const time_t backupTimeStart, Hr
         }
     }
     MEM_CONTEXT_TEMP_END();
+}
+
+/**********************************************************************************************************************************/
+static int
+backupFileComparator(const void *const item1, const void *const item2)
+{
+    if (hrnBackupLocal.backupFileComparatorShim)
+    {
+        ASSERT(item1 != NULL);
+        ASSERT(item2 != NULL);
+
+        const BackupFile *const file1 = item1;
+        const BackupFile *const file2 = item2;
+
+        // Order global/pg_control at the end of the bundle. This is required for reproducibility since the contents of pg_control
+        // vary by architecture so many compress differently and change bundle offsets.
+        if (strEqZ(file1->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+            return 1;
+        else if (strEqZ(file2->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
+            return -1;
+    }
+
+    // Otherwise use the original comparator
+    return backupFileComparator_SHIMMED(item1, item2);
+}
+
+void
+hrnBackupFileComparatorShim(void)
+{
+    hrnBackupLocal.backupFileComparatorShim = true;
 }

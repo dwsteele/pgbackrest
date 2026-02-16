@@ -31,16 +31,6 @@ backupFileComparator(const void *const item1, const void *const item2)
     const BackupFile *const file1 = item1;
     const BackupFile *const file2 = item2;
 
-    // Order pg_control at the end in debug builds for reproducibility. Since pg_control varies by architecture the compressed size
-    // may be different and cause bundle offsets to vary.
-    // !!! THIS SHOULD BE PUT INTO A SHIM AND ONLY ENABLED FOR THE TESTS THAT NEED IT
-#ifdef DEBUG
-    if (strEqZ(file1->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
-        FUNCTION_TEST_RETURN(INT, 1);
-    else if (strEqZ(file2->pgFile, PG_PATH_GLOBAL "/" PG_FILE_PGCONTROL))
-        FUNCTION_TEST_RETURN(INT, -1);
-#endif
-
     // Order block incremental files before whole files. This produces slightly smaller maps since the offsets are smaller. Also
     // whole files can have reads combined and read over more often without block maps/lists in between them.
     if (file1->blockIncrSize != 0 && file2->blockIncrSize == 0)

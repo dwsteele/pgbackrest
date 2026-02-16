@@ -933,6 +933,10 @@ unit:
             command/backup/backup:
               function:
                 - backupProcess
+          shim:
+            command/backup/protocol:
+              function:
+                - backupFileComparator
         harness:
           name: blockIncr
           shim:
