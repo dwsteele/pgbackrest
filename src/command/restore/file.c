@@ -1,7 +1,7 @@
 /***********************************************************************************************************************************
 Restore File
 ***********************************************************************************************************************************/
-#include "build.auto.h"
+#include <build.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -26,20 +26,13 @@ Restore File
 #include "storage/helper.h"
 
 /***********************************************************************************************************************************
-!!!
+Structure used to collate block deltas by reference
 ***********************************************************************************************************************************/
 typedef struct RestoreFileBlockDelta
 {
-    BlockDelta *delta;
-    const BlockDeltaRead *read;
-    unsigned int fileIdx;
+    unsigned int reference;                                         // Reference id
+    PackWrite *delta;                                               // Packed deltas
 } RestoreFileBlockDelta;
-
-typedef struct RestoreFileBlockReference
-{
-    unsigned int reference;
-    List *deltaList;
-} RestoreFileBlockReference;
 
 /**********************************************************************************************************************************/
 FN_EXTERN List *
@@ -243,8 +236,7 @@ restoreFile(
         }
 
         // Copy whole files and construct block deltas
-        List *const blockReferenceList = lstNewP(sizeof(RestoreFileBlockReference), .comparator = lstComparatorUInt);
-        List *const blockDeltaList = lstNewP(sizeof(RestoreFileBlockDelta));
+        List *const blockDeltaList = lstNewP(sizeof(RestoreFileBlockDelta), .comparator = lstComparatorUInt);
 
         LOG_DEBUG_FMT("!!!MULTI WHOLE/MAP");
         ioReadOpen(storageReadMultiIo(repoFileRead));
@@ -286,40 +278,54 @@ restoreFile(
 
                         // Generate a list of blocks that need to be fetched to process block deltas for this file. The block lists
                         // for all files are combined by reference so they can later be reordered to get the most efficient scans
-                        // across bundles.
-                        // !!! THIS WOULD BE FAR MORE MEMORY EFFICIENT IF ENCODED IN A PACK
+                        // across bundles. A pack is used to store the data efficiently.
                         MEM_CONTEXT_OBJ_BEGIN(blockDeltaList)
                         {
                             BlockDelta *const blockDelta = blockDeltaNew(
                                 blockMap, file->blockIncrSize, file->blockIncrChecksumSize, file->blockChecksum,
                                 cipherPass == NULL ? cipherTypeNone : cipherTypeAes256Cbc, cipherPass, repoFileCompressType);
+                            RestoreFileBlockDelta *reference = NULL;
+                            RestoreFileBlockDelta *referencePrior = NULL;
+                            bufFree(file->blockChecksum);
 
                             for (unsigned int readIdx = 0; readIdx < blockDeltaReadSize(blockDelta); readIdx++)
                             {
                                 const BlockDeltaRead *const read = blockDeltaReadGet(blockDelta, readIdx);
 
-                                RestoreFileBlockReference *reference = lstFind(blockReferenceList, &read->reference);
+                                reference = lstFind(blockDeltaList, &read->reference);
 
                                 if (reference == NULL)
                                 {
-                                    const RestoreFileBlockReference referenceNew =
+                                    RestoreFileBlockDelta referenceNew =
                                     {
                                         .reference = read->reference,
-                                        .deltaList = lstNewP(sizeof(RestoreFileBlockDelta)),
+                                        .delta = pckWriteNewP(),
                                     };
 
-                                    reference = lstAdd(blockReferenceList, &referenceNew);
+                                    reference = lstAdd(blockDeltaList, &referenceNew);
                                 }
 
-                                const RestoreFileBlockDelta deltaNew =
+                                // Write fileIdx and BlockDelta when the reference changes
+                                if (reference != referencePrior) // {uncovered_branch - !!!}
                                 {
-                                    .delta = blockDelta,
-                                    .read = read,
-                                    .fileIdx = fileIdx,
-                                };
+                                    // Indicate that BlockDeltaRead list is complete
+                                    if (referencePrior != NULL) // {uncovered_branch - !!!}
+                                        pckWriteNullP(reference->delta); // {uncovered - !!!}
 
-                                lstAdd(reference->deltaList, &deltaNew);
+                                    // !!! MAYBE STORE THE BLOCK MAP INSTEAD?
+                                    pckWriteU64P(reference->delta, (uintptr_t)blockDelta);
+                                    pckWriteU32P(reference->delta, fileIdx);
+
+                                    referencePrior = reference;
+                                }
+
+                                // Write BlockDeltaRead
+                                pckWriteU64P(reference->delta, (uintptr_t)read);
                             }
+
+                            // Indicate that BlockDeltaRead list is complete
+                            ASSERT(reference != NULL);
+                            pckWriteNullP(reference->delta);
                         }
                         MEM_CONTEXT_OBJ_END();
                     }
@@ -379,44 +385,43 @@ restoreFile(
         storageReadMultiFree(repoFileRead);
 
         // Process block deltas
-        if (!lstEmpty(blockReferenceList))
+        if (!lstEmpty(blockDeltaList))
         {
             StorageReadMulti *const blockRead = storageNewReadMultiP(storageRepoIdx(repoIdx));
 
             // Collate block deltas in the order that they need to be read. The idea is to read sequentially across each bundle a
             // single time. There may be gaps but some of those can be read over.
-            // !!! SAME HERE -- THIS WOULD BE FAR MORE MEMORY EFFICIENT IF ENCODED IN A PACK
-            MEM_CONTEXT_TEMP_BEGIN()
+            for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockDeltaList); blockDeltaIdx++)
             {
-                // Sort the reference list descending. This is an arbitrary choice as the order does not matter.
-                lstSort(blockReferenceList, sortOrderDesc);
+                const RestoreFileBlockDelta *const blockReference = lstGet(blockDeltaList, blockDeltaIdx);
+                pckWriteEndP(blockReference->delta);
 
-                // Collate block deltas and update read multi
-                for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockReferenceList); blockDeltaIdx++)
+                MEM_CONTEXT_TEMP_BEGIN()
                 {
-                    const RestoreFileBlockReference *const blockReference = lstGet(blockReferenceList, blockDeltaIdx);
+                    PackRead *const delta = pckReadNew(pckWriteResult(blockReference->delta));
 
-                    for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockReference->deltaList); blockDeltaIdx++)
+                    // Iterate deltas
+                    while (!pckReadNullP(delta))
                     {
-                        const RestoreFileBlockDelta *const blockDelta = lstGet(blockReference->deltaList, blockDeltaIdx);
-                        const RestoreFile *const file = lstGet(fileList, blockDelta->fileIdx);
-                        const BlockDeltaRead *const read = blockDelta->read;
-                        // !!! Make this better -- is manifestFile needed here?
-                        const String *const repoFileName = backupFileRepoPathP(
-                            strLstGet(referenceList, blockReference->reference), .manifestName = file->manifestFile,
-                            .bundleId = read->bundleId, .blockIncr = true);
+                        // BlockDelta is not needed here
+                        pckReadConsume(delta);
+                        const RestoreFile *const file = lstGet(fileList, pckReadU32P(delta));
 
-                        // Add to delta list
-                        lstAdd(blockDeltaList, blockDelta);
+                        // Iterate reads
+                        while (!pckReadNullP(delta))
+                        {
+                            const BlockDeltaRead *const read = (BlockDeltaRead *)(uintptr_t)pckReadU64P(delta);
+                            const String *const repoFileName = backupFileRepoPathP(
+                                strLstGet(referenceList, blockReference->reference), .manifestName = file->manifestFile,
+                                .bundleId = read->bundleId, .blockIncr = true);
 
-                        // Add to block read
-                        storageReadMultiAddP(blockRead, repoFileName, .offset = read->offset, .limit = VARUINT64(read->size));
+                            // Add to block read
+                            storageReadMultiAddP(blockRead, repoFileName, .offset = read->offset, .limit = VARUINT64(read->size));
+                        }
                     }
                 }
-
-                lstFree(blockReferenceList);
+                MEM_CONTEXT_TEMP_END();
             }
-            MEM_CONTEXT_TEMP_END();
 
             // Apply block deltas
             String *const pgFileName = strNew();
@@ -425,66 +430,89 @@ restoreFile(
             LOG_DEBUG_FMT("!!!MULTI BLOCK DELTA");
             ioReadOpen(storageReadMultiIo(blockRead));
 
+            // Iterate references
             for (unsigned int blockDeltaIdx = 0; blockDeltaIdx < lstSize(blockDeltaList); blockDeltaIdx++)
             {
-                const RestoreFileBlockDelta *const blockDelta = lstGet(blockDeltaList, blockDeltaIdx);
-                const RestoreFile *const file = lstGet(fileList, blockDelta->fileIdx);
-                RestoreFileResult *const fileResult = lstGet(result, blockDelta->fileIdx);
+                const RestoreFileBlockDelta *const blockReference = lstGet(blockDeltaList, blockDeltaIdx);
 
-                if (!strEq(file->name, pgFileName)) // {uncovered_branch - !!!}
+                MEM_CONTEXT_TEMP_BEGIN()
                 {
-                    if (pgFileWrite != NULL)
+                    PackRead *const delta = pckReadNew(pckWriteResult(blockReference->delta));
+
+                    // Iterate deltas
+                    while (!pckReadNullP(delta))
                     {
-                        // Close the file to complete the update
-                        ioWriteClose(storageWriteIo(pgFileWrite));
-                        storageWriteFree(pgFileWrite);
+                        BlockDelta *const blockDelta = (BlockDelta *)(uintptr_t)pckReadU64P(delta);
+                        const unsigned int fileIdx = pckReadU32P(delta);
+                        const RestoreFile *const file = lstGet(fileList, fileIdx);
+                        RestoreFileResult *const fileResult = lstGet(result, fileIdx);
+
+                        // If the pg file to write has changed
+                        if (!strEq(file->name, pgFileName)) // {uncovered_branch - !!!}
+                        {
+                            // Close prior pg file to complete the write
+                            if (pgFileWrite != NULL)
+                            {
+                                ioWriteClose(storageWriteIo(pgFileWrite));
+                                storageWriteFree(pgFileWrite);
+                            }
+
+                            // Open new pg file for write in prior context since it may span references
+                            MEM_CONTEXT_PRIOR_BEGIN()
+                            {
+                                pgFileWrite = storageNewWriteP(
+                                    storagePgWrite(), file->name, .modeFile = file->mode, .user = file->user, .group = file->group,
+                                    .timeModified = file->timeModified, .noAtomic = true, .noCreatePath = true, .noSyncPath = true,
+                                    .noTruncate = true);
+                                ioWriteOpen(storageWriteIo(pgFileWrite));
+                            }
+                            MEM_CONTEXT_PRIOR_END();
+
+                            strCat(strTrunc(pgFileName),  file->name);
+                        }
+
+                        // Iterate reads
+                        while (!pckReadNullP(delta))
+                        {
+                            // Write updated blocks to the file
+                            const BlockDeltaRead *const read = (BlockDeltaRead *)(uintptr_t)pckReadU64P(delta);
+                            const BlockDeltaWrite *deltaWrite = blockDeltaNext(blockDelta, read, storageReadMultiIo(blockRead));
+
+                            while (deltaWrite != NULL)
+                            {
+                                // Seek to the block offset. It is possible we are already at the correct position but it is easier
+                                // and safer to let lseek() figure this out.
+                                THROW_ON_SYS_ERROR_FMT(
+                                    lseek(ioWriteFd(storageWriteIo(pgFileWrite)), (off_t)deltaWrite->offset, SEEK_SET) == -1,
+                                    FileOpenError, STORAGE_ERROR_READ_SEEK, deltaWrite->offset,
+                                    strZ(storagePathP(storagePg(), file->name)));
+
+                                // Write block
+                                ioWrite(storageWriteIo(pgFileWrite), deltaWrite->block);
+                                fileResult->blockIncrDeltaSize += bufUsed(deltaWrite->block);
+
+                                // Flush writes since we may seek to a new location for the next block
+                                ioWriteFlush(storageWriteIo(pgFileWrite));
+
+                                deltaWrite = blockDeltaNext(blockDelta, read, storageReadMultiIo(blockRead));
+                            }
+                        }
                     }
-
-                    // Open pg file for write
-                    pgFileWrite = storageNewWriteP(
-                        storagePgWrite(), file->name, .modeFile = file->mode, .user = file->user, .group = file->group,
-                        .timeModified = file->timeModified, .noAtomic = true, .noCreatePath = true, .noSyncPath = true,
-                        .noTruncate = true);
-                    ioWriteOpen(storageWriteIo(pgFileWrite));
-
-                    strCat(strTrunc(pgFileName),  file->name);
                 }
-
-                // Write updated blocks to the file
-                const BlockDeltaWrite *deltaWrite = blockDeltaNext(
-                    blockDelta->delta, blockDelta->read, storageReadMultiIo(blockRead));
-
-                while (deltaWrite != NULL)
-                {
-                    // Seek to the block offset. It is possible we are already at the correct position but it is easier
-                    // and safer to let lseek() figure this out.
-                    THROW_ON_SYS_ERROR_FMT(
-                        lseek(ioWriteFd(storageWriteIo(pgFileWrite)), (off_t)deltaWrite->offset, SEEK_SET) == -1,
-                        FileOpenError, STORAGE_ERROR_READ_SEEK, deltaWrite->offset,
-                        strZ(storagePathP(storagePg(), file->name)));
-
-                    // Write block
-                    ioWrite(storageWriteIo(pgFileWrite), deltaWrite->block);
-                    fileResult->blockIncrDeltaSize += bufUsed(deltaWrite->block);
-
-                    // Flush writes since we may seek to a new location for the next block
-                    ioWriteFlush(storageWriteIo(pgFileWrite));
-
-                    deltaWrite = blockDeltaNext(blockDelta->delta, blockDelta->read, storageReadMultiIo(blockRead));
-                }
+                MEM_CONTEXT_TEMP_END();
             }
 
-            // Close the last file to complete the update
+            // Close the last file to complete the write
             ioWriteClose(storageWriteIo(pgFileWrite));
             storageWriteFree(pgFileWrite);
 
-            // !!!
+            // Free the block delta list
             lstFree(blockDeltaList);
             storageReadMultiFree(blockRead);
 
+            // Verify checksums for files reconstructed with block deltas
             for (unsigned int fileIdx = 0; fileIdx < lstSize(fileList); fileIdx++)
             {
-                // Copy file from repository to database
                 RestoreFileResult *const fileResult = lstGet(result, fileIdx);
                 const RestoreFile *const file = lstGet(fileList, fileIdx);
 
@@ -504,7 +532,7 @@ restoreFile(
                         const Buffer *const checksum = pckReadBinP(
                             ioFilterGroupResultP(ioReadFilterGroup(read), CRYPTO_HASH_FILTER_TYPE));
 
-                        // Validate checksum
+                        // Validate checksum !!! CREATE A FUNCTION FOR THIS DUPLICATED CODE
                         if (!bufEq(file->checksum, checksum)) // {uncovered_branch - !!!}
                         {
                             THROW_FMT( // {uncovered - !!!}

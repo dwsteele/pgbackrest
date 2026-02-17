@@ -24,6 +24,9 @@ testRun(void)
 {
     FUNCTION_HARNESS_VOID();
 
+    // Shim backupFileComparator to place pg_control at end of bundle
+    hrnBackupFileComparatorShim();
+
     // Create storage
     Storage *storageTest = storagePosixNewP(TEST_PATH_STR, .write = true);
 

@@ -1,7 +1,7 @@
 /***********************************************************************************************************************************
 Block Restore
 ***********************************************************************************************************************************/
-#include "build.auto.h"
+#include <build.h>
 
 #include "command/backup/blockIncr.h"
 #include "command/restore/blockDelta.h"
@@ -54,6 +54,12 @@ typedef struct BlockDeltaReference
     List *blockList;                                                // List of blocks in the block map for the reference
 } BlockDeltaReference;
 
+// !!! MOVE ALL THE DELTA COLLATE LOGIC INTO THE FILE, NEED:
+// blockDeltaNew(StorageReadMulti, cipherType, cipherPass)
+// blockDeltaAdd(blockMap, blockSize, checksumSize, blockChecksum, compressType, repoFileName, pgFileName)
+// blockMapOpen() does collation
+// Everything packed and as memory efficient as possible
+// PG file list can store blockSize, checksumSize
 FN_EXTERN BlockDelta *
 blockDeltaNew(
     const BlockMap *const blockMap, const size_t blockSize, const size_t checksumSize, const Buffer *const blockChecksum,
