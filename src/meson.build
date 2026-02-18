@@ -56,6 +56,7 @@ src_common = files(
     'common/type/stringList.c',
     'common/type/stringStatic.c',
     'common/type/stringZ.c',
+    'common/type/sqlite.c',
     'common/type/variant.c',
     'common/type/variantList.c',
     'common/user.c',
@@ -101,6 +102,7 @@ build_code = executable(
     dependencies: [
         lib_backtrace,
         lib_bz2,
+        lib_sqlite,
         lib_xml,
         lib_yaml
     ],
@@ -284,6 +286,7 @@ executable(
         lib_lz4,
         lib_pq,
         lib_ssh2,
+        lib_sqlite,
         lib_xml,
         lib_z,
         lib_zstd,

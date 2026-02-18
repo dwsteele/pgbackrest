@@ -946,6 +946,7 @@ testRun(void)
 
         manifest->pub.data.backupOptionOnline = false;
 
+        HRN_MANIFEST_PATH_ADD(manifest, .name = MANIFEST_TARGET_PGDATA, .group = "test", .user = "test");
         HRN_MANIFEST_FILE_ADD(manifest, .name = MANIFEST_TARGET_PGDATA "/" PG_FILE_PGVERSION, .size = 4, .timestamp = 1482182860);
 
         TEST_RESULT_VOID(manifestBuildValidate(manifest, false, 1482182860, false), "validate manifest");
@@ -1054,6 +1055,7 @@ testRun(void)
             manifestPrior->pub.data.bundle = true;
             manifestPrior->pub.data.bundleRaw = true;
 
+            HRN_MANIFEST_PATH_ADD(manifestPrior, .name = MANIFEST_TARGET_PGDATA, .group = "test", .user = "test");
             HRN_MANIFEST_FILE_ADD(
                 manifestPrior, .name = MANIFEST_TARGET_PGDATA "/FILE3", .size = 0, .sizeRepo = 0, .timestamp = 1482182860,
                 .checksumSha1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709");
@@ -1103,6 +1105,8 @@ testRun(void)
         manifest->pub.data.backupOptionDelta = BOOL_TRUE_VAR;
         strLstAddZ(manifestPrior->pub.referenceList, "20190101-010101F_20190202-010101D");
         lstClear(manifest->pub.fileList);
+        sqliteExec(manifest->db, STRDEF("delete from file"));
+
         HRN_MANIFEST_FILE_ADD(
             manifest, .name = MANIFEST_TARGET_PGDATA "/FILE1", .copy = true, .size = 4, .sizeRepo = 4, .timestamp = 1482182860,
             .group = "test", .user = "test");
@@ -1165,6 +1169,7 @@ testRun(void)
         // Clear manifest and add a single file
         manifest->pub.data.backupOptionDelta = BOOL_FALSE_VAR;
         lstClear(manifest->pub.fileList);
+        sqliteExec(manifest->db, STRDEF("delete from file"));
 
         // File goes to zero-length
         HRN_MANIFEST_FILE_ADD(
@@ -1173,6 +1178,7 @@ testRun(void)
 
         // Clear prior manifest and add a single file with later timestamp and checksum error
         lstClear(manifestPrior->pub.fileList);
+        sqliteExec(manifestPrior->db, STRDEF("delete from file"));
 
         VariantList *checksumPageErrorList = varLstNew();
         varLstAdd(checksumPageErrorList, varNewUInt(77));
@@ -1217,6 +1223,8 @@ testRun(void)
 
         manifest->pub.data.backupOptionDelta = BOOL_FALSE_VAR;
         lstClear(manifest->pub.fileList);
+        sqliteExec(manifest->db, STRDEF("delete from file"));
+
         HRN_MANIFEST_FILE_ADD(
             manifest, .name = MANIFEST_TARGET_PGDATA "/FILE1", .copy = true, .size = 6, .sizeRepo = 6, .timestamp = 1482182861,
             .group = "test", .user = "test");
@@ -1285,11 +1293,15 @@ testRun(void)
 
         manifest->pub.data.backupOptionOnline = BOOL_FALSE_VAR;
         lstClear(manifest->pub.fileList);
+        sqliteExec(manifest->db, STRDEF("delete from file"));
+
         HRN_MANIFEST_FILE_ADD(
             manifest, .name = MANIFEST_TARGET_PGDATA "/FILE1", .copy = true, .size = 6, .sizeRepo = 6, .timestamp = 1482182861,
             .group = "test", .user = "test");
 
         manifest->pub.data.backupOptionOnline = BOOL_TRUE_VAR;
+        sqliteExec(manifestPrior->db, STRDEF("delete from file"));
+
         HRN_MANIFEST_FILE_ADD(
             manifestPrior, .name = MANIFEST_TARGET_PGDATA "/FILE2", .size = 4, .sizeRepo = 4, .timestamp = 1482182860,
             .checksumSha1 = "ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa");
@@ -1333,7 +1345,9 @@ testRun(void)
         manifest->pub.data.backupOptionDelta = BOOL_FALSE_VAR;
 
         lstClear(manifest->pub.fileList);
+        sqliteExec(manifest->db, STRDEF("delete from file"));
         lstClear(manifestPrior->pub.fileList);
+        sqliteExec(manifestPrior->db, STRDEF("delete from file"));
 
         // Prior file was not block incr but current file is
         HRN_MANIFEST_FILE_ADD(

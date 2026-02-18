@@ -66,6 +66,7 @@ executable(
     dependencies: [
         lib_backtrace,
         lib_bz2,
+        lib_sqlite,
         lib_yaml,
     ],
     build_by_default: false,

@@ -1113,8 +1113,6 @@ memContextPrior(void)
 }
 
 /**********************************************************************************************************************************/
-#ifdef DEBUG
-
 FN_EXTERN size_t
 memContextSize(const MemContext *const this)
 {
@@ -1197,8 +1195,6 @@ memContextSize(const MemContext *const this)
 
     FUNCTION_TEST_RETURN(SIZE, (size_t)(offset - (const uint8_t *)this) + total);
 }
-
-#endif // DEBUG
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
