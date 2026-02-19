@@ -71,7 +71,7 @@ sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint6
     sqliteStmtBindI64(this, column, (int64_t)value);
 }
 
-// Execute the statement
+// Execute statement
 FN_EXTERN void sqliteStmtExec(SqliteStmt *this);
 
 // Get next result
