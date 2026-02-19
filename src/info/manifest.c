@@ -433,46 +433,79 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
     sqliteStmtReset(this->dbPathSelectStmt);
 
+    // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
+    if (file->copy)
+        sqliteStmtBindInt(stmt, 1, true);
+
+    if (!file->delta)
+        sqliteStmtBindInt(stmt, 2, true);
+
+    if (!file->resume)
+        sqliteStmtBindInt(stmt, 3, true);
+
+    // !!! THIS COULD BE IMPROVED BY CHECKING CHECKSUM STATUS OF BACKUP
     if (!file->checksumPage)
-        sqliteStmtBindInt(stmt, 1, 0);
-    else
+        sqliteStmtBindInt(stmt, 4, false);
 
     if (file->checksumSha1 != NULL)
-        sqliteStmtBindBuf(stmt, 2, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
+        sqliteStmtBindBuf(stmt, 5, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
 
     if (file->checksumRepoSha1 != NULL)
-        sqliteStmtBindBuf(stmt, 3, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
+        sqliteStmtBindBuf(stmt, 6, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
+
+    if (file->mode != this->fileModeDefault)
+        sqliteStmtBindInt(stmt, 7, (int)file->mode);
+
+    if (file->user == NULL)
+        sqliteStmtBindInt(stmt, 8, true);
+    else if (!strEq(file->user, this->fileUserDefault))
+        sqliteStmtBindStr(stmt, 9, file->user);
+
+    if (file->group == NULL)
+        sqliteStmtBindInt(stmt, 10, true);
+    else if (!strEq(file->group, this->fileGroupDefault))
+        sqliteStmtBindStr(stmt, 11, file->group);
 
     if (file->reference != NULL)
-        sqliteStmtBindInt(stmt, 4, 1);
+        sqliteStmtBindInt(stmt, 12, (int)strLstFindIdxP(this->pub.referenceList, file->reference, .required = true));
 
     if (file->bundleId != 0)
     {
-        sqliteStmtBindInt(stmt, 5, (int)file->bundleId);
+        sqliteStmtBindInt(stmt, 13, (int)file->bundleId);
 
         if (file->bundleOffset != 0)
-            sqliteStmtBindInt(stmt, 6, (int)file->bundleOffset);
+            sqliteStmtBindInt(stmt, 14, (int)file->bundleOffset);
     }
 
     if (file->blockIncrSize != 0)
     {
-        sqliteStmtBindInt(stmt, 7, (int)(file->blockIncrSize / 8192));
-        sqliteStmtBindInt(stmt, 8, (int)(file->blockIncrChecksumSize - 6));
-        sqliteStmtBindInt(stmt, 9, (int)file->blockIncrMapSize);
+        sqliteStmtBindInt(stmt, 15, (int)(file->blockIncrSize / 8192));
+        sqliteStmtBindInt(stmt, 16, (int)(file->blockIncrChecksumSize - 6));
+        sqliteStmtBindInt(stmt, 17, (int)file->blockIncrMapSize);
     }
 
     if (file->size != 0)
-        sqliteStmtBindInt(stmt, 10, (int)file->size);
+        sqliteStmtBindInt(stmt, 18, (int)file->size);
 
     if (file->sizeOriginal != file->size)
-        sqliteStmtBindInt(stmt, 11, (int)file->size);
+        sqliteStmtBindInt(stmt, 19, (int)file->size);
 
     if (file->sizeRepo != file->size)
-        sqliteStmtBindInt(stmt, 12, (int)file->sizeRepo);
+        sqliteStmtBindInt(stmt, 20, (int)file->sizeRepo);
 
-    sqliteStmtBindI64(stmt, 13, (int64_t)(file->timestamp - manifestPackBaseTime));
-    sqliteStmtBindInt(stmt, 14, pathId);
-    sqliteStmtBindStr(stmt, 15, strBase(file->name));
+    sqliteStmtBindI64(stmt, 21, (int64_t)(manifestPackBaseTime - file->timestamp));
+
+    if (file->checksumPageError)
+    {
+        sqliteStmtBindInt(stmt, 22, true);
+
+        // !!! MIGHT NOT NEED THE IF HERE
+        if (file->checksumPageErrorList != NULL)
+            sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
+    }
+
+    sqliteStmtBindInt(stmt, 24, pathId);
+    sqliteStmtBindStr(stmt, 25, strBase(file->name));
 
     CHECK_FMT(DbQueryError, sqliteStmtNext(stmt), "unable to add/update file %s", strZ(file->name));
     sqliteStmtReset(stmt);
@@ -696,9 +729,30 @@ manifestNewInternal(void)
             "(\n"
                 "id integer constraint file_id_nn not null constraint file_pk primary key,"
                 "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
-                "name text constraint file_name_nn not null,checksumPage integer,checksum blob,checksumRepo blob,mode integer,"
-                "user_name text,group_name text,reference integer,bundleId integer,bundleOffset integer,blockIncrSize,"
-                "blockIncrChecksumSize,blockIncrMapSize,size integer,sizeOriginal integer,sizeRepo integer,timestamp integer,"
+                "name text constraint file_name_nn not null,"
+                "copy integer,"
+                "delta integer,"
+                "resume integer,"
+                "checksumPage integer,"
+                "checksum blob,"
+                "checksumRepo blob,"
+                "mode integer,"
+                "user_null integer,"
+                "user_name text,"
+                "group_null integer,"
+                "group_name text,"
+                "reference integer,"
+                "bundleId integer,"
+                "bundleOffset integer,"
+                "blockIncrSize,"
+                "blockIncrChecksumSize,"
+                "blockIncrMapSize,"
+                "size integer,"
+                "sizeOriginal integer,"
+                "sizeRepo integer,"
+                "timestamp integer,"
+                "checksumPageError integer,"
+                "checksumPageErrorList text,"
                 "constraint file_pathid_name_unq unique (path_id, name)"
             ")"));
 
@@ -727,26 +781,30 @@ manifestNewInternal(void)
             this->db,
             STRDEF(
                 "insert into file_raw("
-                //              1,       2,           3,        4,       5,          6,             7,                    8
-                    "checksumPage,checksum,checksumRepo,reference,bundleId,bundleOffset,blockIncrSize,blockIncrChecksumSize,"
-                //                  9   10           11       12        13      14   15
-                    "blockIncrMapSize,size,sizeOriginal,sizeRepo,timestamp,path_id,name) "
-                "values (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                    //  1     2      3            4        5            6    7         8         9         10         11        12
+                    "copy,delta,resume,checksumPage,checksum,checksumRepo,mode,user_null,user_name,group_null,group_name,reference,"
+                    //     13           14            15                    16               17   18           19       20
+                    "bundleId,bundleOffset,blockIncrSize,blockIncrChecksumSize,blockIncrMapSize,size,sizeOriginal,sizeRepo,"
+                    //      21                22                    23      24   25
+                    "timestamp,checksumPageError,checksumPageErrorList,path_id,name) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                 "returning id"));
 
         this->dbFileUpdateStmt =
             sqliteStmtNew(
                 this->db,
                 STRDEF(
-                    "update file_raw set\n"
-                    //              1             2                 3,             4             5                 6
-                    "    checksumPage = ?, checksum = ?, checksumRepo = ?, reference = ?, bundleId = ?, bundleOffset = ?,\n"
-                    //               7                          8                     9        10                11
-                    "    blockIncrSize = ?, blockIncrChecksumSize = ?, blockIncrMapSize = ?, size = ?, sizeOriginal = ?,\n"
-                    //         12             13
-                    "    sizeRepo = ?, timestamp = ?\n"
-                    //          14           15
-                    "where path_id = ? and name = ?\n"
+                    "update file_raw set "
+                        //    1       2        3              4          5              6      7           8           9
+                        "copy=?,delta=?,resume=?,checksumPage=?,checksum=?,checksumRepo=?,mode=?,user_null=?,user_name=?,"
+                        //         10           11          12         13             14              15                      16
+                        "group_null=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,blockIncrSize=?,blockIncrChecksumSize=?,"
+                        //               17     18             19         20          21                  22
+                        "blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,checksumPageError=?,"
+                        //                    23
+                        "checksumPageErrorList=? "
+                    //            24         25
+                    "where path_id=? and name=? "
                     "returning id"));
     }
     MEM_CONTEXT_OBJ_END();
