@@ -347,11 +347,7 @@ manifestFileNameGet(const Manifest *const this, const unsigned int fileIdx)
 }
 
 // Get file by index
-FN_INLINE_ALWAYS ManifestFile
-manifestFile(const Manifest *const this, const unsigned int fileIdx)
-{
-    return manifestFileUnpack(this, manifestFilePackGet(this, fileIdx));
-}
+FN_EXTERN ManifestFile manifestFile(const Manifest *this, unsigned int fileIdx);
 
 // Add a file
 FN_EXTERN void manifestFileAdd(Manifest *this, ManifestFile *file);

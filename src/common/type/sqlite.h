@@ -45,11 +45,31 @@ FN_EXTERN SqliteStmt *sqliteStmtNew(Sqlite *this, const String *statement);
 SqliteStmt Functions
 ***********************************************************************************************************************************/
 // Bind values to statement
-FN_EXTERN void sqliteStmtBindBuf(SqliteStmt *this, unsigned int column, const Buffer *value);
 FN_EXTERN void sqliteStmtBindInt(SqliteStmt *this, unsigned int column, int value);
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindBool(SqliteStmt *const this, const unsigned int column, const bool value)
+{
+    sqliteStmtBindInt(this, column, (int)value);
+}
+
+FN_EXTERN void sqliteStmtBindBuf(SqliteStmt *this, unsigned int column, const Buffer *value);
 FN_EXTERN void sqliteStmtBindI64(SqliteStmt *this, unsigned int column, int64_t value);
 FN_EXTERN void sqliteStmtBindNull(SqliteStmt *this, unsigned int column);
 FN_EXTERN void sqliteStmtBindStr(SqliteStmt *this, unsigned int column, const String *value);
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindUInt(SqliteStmt *const this, const unsigned int column, const unsigned int value)
+{
+    sqliteStmtBindI64(this, column, (int64_t)value);
+}
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint64_t value)
+{
+    ASSERT_INLINE(value <= INT64_MAX);
+    sqliteStmtBindI64(this, column, (int64_t)value);
+}
 
 // Execute the statement
 FN_EXTERN void sqliteStmtExec(SqliteStmt *this);
@@ -61,7 +81,62 @@ FN_EXTERN bool sqliteStmtNext(SqliteStmt *this);
 FN_EXTERN void sqliteStmtReset(SqliteStmt *this);
 
 // Get values returned by statement after sqliteStmtNext()
+typedef struct SqliteStmtBoolParam
+{
+    VAR_PARAM_HEADER;
+    bool defaultValue;                                              // Default value when NULL
+} SqliteStmtBoolParam;
+
+#define sqliteStmtBoolP(this, column, ...)                                                                                         \
+    sqliteStmtBool(this, column, (SqliteStmtBoolParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_EXTERN bool sqliteStmtBool(SqliteStmt *const this, unsigned int column, SqliteStmtBoolParam param);
+FN_EXTERN Buffer *sqliteStmtBuf(SqliteStmt *this, unsigned int column);
 FN_EXTERN int sqliteStmtInt(SqliteStmt *this, unsigned int column);
+
+typedef struct SqliteStmtI64Param
+{
+    VAR_PARAM_HEADER;
+    int64_t defaultValue;                                           // Default value when NULL
+} SqliteStmtI64Param;
+
+#define sqliteStmtI64P(this, column, ...)                                                                                          \
+    sqliteStmtI64(this, column, (SqliteStmtI64Param){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_EXTERN int64_t sqliteStmtI64(SqliteStmt *this, unsigned int column, SqliteStmtI64Param param);
+FN_EXTERN bool sqliteStmtNull(SqliteStmt *this, unsigned int column);
+FN_EXTERN String *sqliteStmtStr(SqliteStmt *this, unsigned int column);
+
+typedef struct SqliteStmtUIntParam
+{
+    VAR_PARAM_HEADER;
+    unsigned int defaultValue;                                      // Default value when NULL
+} SqliteStmtUIntParam;
+
+#define sqliteStmtUIntP(this, column, ...)                                                                                         \
+    sqliteStmtUInt(this, column, (SqliteStmtUIntParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_INLINE_ALWAYS unsigned int
+sqliteStmtUInt(SqliteStmt *const this, const unsigned int column, const SqliteStmtUIntParam param)
+{
+    return (unsigned int)sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue);
+}
+
+typedef struct SqliteStmtU63Param
+{
+    VAR_PARAM_HEADER;
+    uint64_t defaultValue;                                          // Default value when NULL
+} SqliteStmtU63Param;
+
+#define sqliteStmtU63P(this, column, ...)                                                                                          \
+    sqliteStmtU63(this, column, (SqliteStmtU63Param){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_INLINE_ALWAYS uint64_t
+sqliteStmtU63(SqliteStmt *const this, const unsigned int column, const SqliteStmtU63Param param)
+{
+    ASSERT_INLINE(param.defaultValue <= INT64_MAX);
+    return (uint64_t)sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue);
+}
 
 /***********************************************************************************************************************************
 SqliteStmt Destructor
