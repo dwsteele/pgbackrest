@@ -39,6 +39,11 @@ struct Manifest
     ManifestPub pub;                                                // Publicly accessible variables
     StringList *ownerList;                                          // List of users/groups
     Sqlite *db;                                                     // Manifest database
+    SqliteStmt *dbPathInsertStmt;                                   // Insert into path table
+    SqliteStmt *dbPathSelectStmt;                                   // Select from path table
+    SqliteStmt *dbFileInsertStmt;                                   // Insert into file table
+    SqliteStmt *dbFileUpdateStmt;                                   // Update file table
+
 
     const String *fileUserDefault;                                  // Default file user name
     const String *fileGroupDefault;                                 // Default file group name
@@ -408,22 +413,29 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
     FUNCTION_AUDIT_HELPER();
 
-    SqliteStmt *stmtSel = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
-    sqliteStmtBindStr(stmtSel, 1, strPath(file->name));
-    int pathId = 0;
+    sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
+    int pathId;
+    // mode_t pathMode = file->mode;
 
-    if (sqliteStmtNext(stmtSel))
-        pathId = sqliteStmtInt(stmtSel, 0);
+    if (sqliteStmtNext(this->dbPathSelectStmt))
+    {
+        pathId = sqliteStmtInt(this->dbPathSelectStmt, 0);
+        // pathMode = (mode_t)sqliteStmtInt(this->dbPathSelectStmt, 1);
+    }
     else
     {
-        SqliteStmt *stmtIns = sqliteStmtNew(this->db, STRDEF("INSERT or ignore INTO path (name) values (?) returning id"));
-        sqliteStmtBindStr(stmtIns, 1, strPath(file->name));
-        CHECK_FMT(AssertError, sqliteStmtNext(stmtIns), "path '%s', not found", strZ(strPath(file->name)));
-        pathId = sqliteStmtInt(stmtIns, 0);
+        sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
+        sqliteStmtBindI64(this->dbPathInsertStmt, 2, file->mode);
+        CHECK_FMT(AssertError, sqliteStmtNext(this->dbPathInsertStmt), "path '%s', not found", strZ(strPath(file->name)));
+        pathId = sqliteStmtInt(this->dbPathInsertStmt, 0);
+        sqliteStmtReset(this->dbPathInsertStmt);
     }
+
+    sqliteStmtReset(this->dbPathSelectStmt);
 
     if (!file->checksumPage)
         sqliteStmtBindInt(stmt, 1, 0);
+    else
 
     if (file->checksumSha1 != NULL)
         sqliteStmtBindBuf(stmt, 2, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
@@ -463,6 +475,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     sqliteStmtBindStr(stmt, 15, strBase(file->name));
 
     CHECK_FMT(DbQueryError, sqliteStmtNext(stmt), "unable to add/update file %s", strZ(file->name));
+    sqliteStmtReset(stmt);
 
     FUNCTION_TEST_RETURN_VOID();
 }
@@ -488,19 +501,7 @@ manifestFileAdd(Manifest *const this, ManifestFile *const file)
 
         //fprintf(stdout, "!!!FILE ADD %s\n", strZ(file->name));fflush(stdout);
 
-        SqliteStmt *stmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    "insert into file (\n"
-                    //              1,        2,            3,        4,         5,            6,             7,
-                    "    checksumPage, checksum, checksumRepo, reference, bundleId, bundleOffset, blockIncrSize,\n"
-                    //                       8,                9,   10,           11,       12,        13,      14,   15
-                    "    blockIncrChecksumSize, blockIncrMapSize, size, sizeOriginal, sizeRepo, timestamp, path_id, name)\n"
-                    "values (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n"
-                    "returning id"));
-
-        manifestFileAddUpdate(this, file, stmt);
+        manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
     }
     MEM_CONTEXT_END();
 
@@ -526,22 +527,7 @@ manifestFilePackUpdate(Manifest *const this, ManifestFilePack **const filePack, 
         ManifestFilePack *const filePackOld = *filePack;
         *filePack = manifestFilePack(this, file);
 
-        SqliteStmt *stmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    "update file set\n"
-                    //              1             2                 3,             4             5                 6
-                    "    checksumPage = ?, checksum = ?, checksumRepo = ?, reference = ?, bundleId = ?, bundleOffset = ?,\n"
-                    //               7                          8                     9        10                11
-                    "    blockIncrSize = ?, blockIncrChecksumSize = ?, blockIncrMapSize = ?, size = ?, sizeOriginal = ?,\n"
-                    //         12             13
-                    "    sizeRepo = ?, timestamp = ?\n"
-                    //          14           15
-                    "where path_id = ? and name = ?\n"
-                    "returning id"));
-
-        manifestFileAddUpdate(this, file, stmt);
+        manifestFileAddUpdate(this, file, this->dbFileUpdateStmt);
         memFree(filePackOld);
     }
     MEM_CONTEXT_END();
@@ -605,9 +591,8 @@ manifestPathAdd(Manifest *const this, const ManifestPath *const path)
 
         //fprintf(stdout, "!!!PATH ADD %s\n", strZ(path->name));fflush(stdout);
 
-        SqliteStmt *stmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path (name) values (?) returning id"));
-        sqliteStmtBindStr(stmt, 1, path->name);
-        sqliteStmtNext(stmt);
+        sqliteStmtBindStr(this->dbPathInsertStmt, 1, path->name);
+        sqliteStmtExec(this->dbPathInsertStmt);
     }
     MEM_CONTEXT_END();
 
@@ -677,10 +662,13 @@ manifestNewInternal(void)
     sqliteExec(
         this->db,
         STRDEF(
-            "create table path\n"
-            "(\n"
-            "    id INTEGER PRIMARY KEY,"
-            "    name text not null UNIQUE"
+            "create table path"
+            "("
+                "id integer constraint path_id_nn constraint path_fk primary key,"
+                "name text constraint path_name_nn not null constraint path_name_unq unique,"
+                "mode integer not null,"
+                "group_name text,"
+                "user_name text"
             ")"));
 
     // bool checksumPage : 1;                                          // Does this file have page checksums?
@@ -704,29 +692,64 @@ manifestNewInternal(void)
     sqliteExec(
         this->db,
         STRDEF(
-            "create table file\n"
+            "create table file_raw"
             "(\n"
-            "    id INTEGER PRIMARY KEY,"
-            "    path_id integer not null references path (id),"
-            "    name text not null,"
-            "    checksumPage integer,"
-            "    checksum blob,"
-            "    checksumRepo blob,"
-            "    mode integer,"
-            "    user_name text,"
-            "    group_name text,"
-            "    reference integer,"
-            "    bundleId integer,"
-            "    bundleOffset integer,"
-            "    blockIncrSize,"
-            "    blockIncrChecksumSize,"
-            "    blockIncrMapSize,"
-            "    size integer,"
-            "    sizeOriginal integer,"
-            "    sizeRepo integer,"
-            "    timestamp integer,"
-            "    unique (path_id, name)"
+                "id integer constraint file_id_nn not null constraint file_pk primary key,"
+                "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
+                "name text constraint file_name_nn not null,checksumPage integer,checksum blob,checksumRepo blob,mode integer,"
+                "user_name text,group_name text,reference integer,bundleId integer,bundleOffset integer,blockIncrSize,"
+                "blockIncrChecksumSize,blockIncrMapSize,size integer,sizeOriginal integer,sizeRepo integer,timestamp integer,"
+                "constraint file_pathid_name_unq unique (path_id, name)"
             ")"));
+
+    sqliteExec(
+        this->db,
+        STRDEF(
+            "create view file as "
+            "select "
+                "id,"
+                "path_id,"
+                "name,"
+                "case checksumPage when null then true else false end checksumPage,"
+                "checksum,"
+                "checksumRepo,"
+                "case mode when null then path.mode & 0x1a0 else mode end mode "
+                "from file_raw, path "
+                "where file_raw.path_id = path.id"));
+
+    // Prepare statements in the db context since they will exist for the lifetime of the db
+    MEM_CONTEXT_OBJ_BEGIN(this->db)
+    {
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name,mode)values(?,?)returning id"));
+        this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
+
+        this->dbFileInsertStmt = sqliteStmtNew(
+            this->db,
+            STRDEF(
+                "insert into file_raw("
+                //              1,       2,           3,        4,       5,          6,             7,                    8
+                    "checksumPage,checksum,checksumRepo,reference,bundleId,bundleOffset,blockIncrSize,blockIncrChecksumSize,"
+                //                  9   10           11       12        13      14   15
+                    "blockIncrMapSize,size,sizeOriginal,sizeRepo,timestamp,path_id,name) "
+                "values (?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "returning id"));
+
+        this->dbFileUpdateStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    "update file_raw set\n"
+                    //              1             2                 3,             4             5                 6
+                    "    checksumPage = ?, checksum = ?, checksumRepo = ?, reference = ?, bundleId = ?, bundleOffset = ?,\n"
+                    //               7                          8                     9        10                11
+                    "    blockIncrSize = ?, blockIncrChecksumSize = ?, blockIncrMapSize = ?, size = ?, sizeOriginal = ?,\n"
+                    //         12             13
+                    "    sizeRepo = ?, timestamp = ?\n"
+                    //          14           15
+                    "where path_id = ? and name = ?\n"
+                    "returning id"));
+    }
+    MEM_CONTEXT_OBJ_END();
 
     FUNCTION_TEST_RETURN(MANIFEST, this);
 }
@@ -3167,6 +3190,20 @@ manifestSave(Manifest *const this, IoWrite *const write)
             .fileModeDefault = pathBase->mode & (S_IRUSR | S_IWUSR | S_IRGRP),
             .pathModeDefault = pathBase->mode,
         };
+
+        // THROW_FMT(AssertError, "!!!%x", (unsigned int)(S_IRUSR | S_IWUSR | S_IRGRP));
+
+        SqliteStmt *stmt = sqliteStmtNew(this->db, STRDEF("PRAGMA page_size"));
+        sqliteStmtNext(stmt);
+        size_t pageSize = (size_t)sqliteStmtInt(stmt, 0);
+
+        stmt = sqliteStmtNew(this->db, STRDEF("PRAGMA page_count"));
+        sqliteStmtNext(stmt);
+        size_t pageCount = (size_t)sqliteStmtInt(stmt, 0);
+
+        LOG_DEBUG_FMT("!!!MEM USED OLD %s", strZ(strSizeFormat(memContextSize(objMemContext(this->pub.fileList)))));
+        LOG_DEBUG_FMT(
+            "!!!MEM_USER_NEW %s PAGE_COUNT %zu PAGE_SIZE %zu", strZ(strSizeFormat(pageCount * pageSize)), pageCount, pageSize);
 
         // Save manifest
         infoSave(this->pub.info, write, manifestSaveCallback, &saveData);

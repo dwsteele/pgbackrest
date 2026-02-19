@@ -222,6 +222,7 @@ sqliteStmtReset(SqliteStmt *const this)
     ASSERT(this != NULL);
 
     SQLITE_ERR(this->sqlite, sqlite3_reset(this->stmt) != SQLITE_OK, "could not reset");
+    SQLITE_ERR(this->sqlite, sqlite3_clear_bindings(this->stmt) != SQLITE_OK, "could not clear bindings");
 
     FUNCTION_TEST_RETURN_VOID();
 }
