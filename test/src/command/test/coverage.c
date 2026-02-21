@@ -1016,7 +1016,7 @@ testCvgGenerate(
 
         // Coverage exceptions
         String *const regExpBranchStr = strNewFmt(
-            "\\s{4}[A-Z][A-Z0-9_]+\\([^\\?]*\\)|\\s{4}(ASSERT|CHECK|CHECK_FMT|assert|switch\\s)\\(|\\{\\+{0,1}(%s%s)",
+            "\\s{4}[A-Z][A-Z0-9_]+\\([^\\?]*\\)|\\s{4}(SQLITE_ERR|ASSERT|CHECK|CHECK_FMT|assert|switch\\s)\\(|\\{\\+{0,1}(%s%s)",
             coverageSummary ? "uncoverable_branch" : "uncover(ed|able)_branch", strEqZ(vm, "none") ? "|vm_covered" : "");
         RegExp *const regExpBranch = regExpNew(regExpBranchStr);
         String *const regExpLineStr = strNewFmt(

@@ -383,13 +383,9 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
     sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
     unsigned int pathId;
-    // mode_t pathMode = file->mode;
 
     if (sqliteStmtNext(this->dbPathSelectStmt))
-    {
         pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
-        // pathMode = (mode_t)sqliteStmtInt(this->dbPathSelectStmt, 1);
-    }
     else
     {
         sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
@@ -415,7 +411,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         sqliteStmtBindBuf(stmt, 6, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
 
     if (file->mode != this->fileModeDefault)
-        sqliteStmtBindInt(stmt, 7, (int)file->mode);
+        sqliteStmtBindUInt(stmt, 7, file->mode);
 
     if (file->user == NULL)
         sqliteStmtBindBoolP(stmt, 8, true);
@@ -432,29 +428,29 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
     if (file->bundleId != 0)
     {
-        sqliteStmtBindU63(stmt, 13, file->bundleId);
+        sqliteStmtBindU63P(stmt, 13, file->bundleId);
 
         if (file->bundleOffset != 0)
-            sqliteStmtBindU63(stmt, 14, file->bundleOffset);
+            sqliteStmtBindU63P(stmt, 14, file->bundleOffset);
     }
 
     if (file->blockIncrSize != 0)
     {
         ASSERT(file->blockIncrSize % BLOCK_INCR_SIZE_FACTOR == 0);
 
-        sqliteStmtBindU63(stmt, 15, file->blockIncrSize / 8192);
-        sqliteStmtBindU63(stmt, 16, file->blockIncrChecksumSize);
-        sqliteStmtBindU63(stmt, 17, file->blockIncrMapSize);
+        sqliteStmtBindU63P(stmt, 15, file->blockIncrSize / 8192);
+        sqliteStmtBindU63P(stmt, 16, file->blockIncrChecksumSize);
+        sqliteStmtBindU63P(stmt, 17, file->blockIncrMapSize);
     }
 
     if (file->size != 0)
-        sqliteStmtBindU63(stmt, 18, file->size);
+        sqliteStmtBindU63P(stmt, 18, file->size);
 
     if (file->sizeOriginal != file->size)
-        sqliteStmtBindU63(stmt, 19, file->sizeOriginal);
+        sqliteStmtBindU63P(stmt, 19, file->sizeOriginal);
 
     if (file->sizeRepo != file->size)
-        sqliteStmtBindU63(stmt, 20, file->sizeRepo);
+        sqliteStmtBindU63P(stmt, 20, file->sizeRepo);
 
     ASSERT(this->pub.data.backupTimestampStart != 0);
     sqliteStmtBindI64P(stmt, 21, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
@@ -518,7 +514,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             "file.checksum does not equal db.checksum");
 
         const mode_t mode =
-            sqliteStmtNull(this->dbFileSelectStmt, 7) ? this->fileModeDefault : (mode_t)sqliteStmtInt(this->dbFileSelectStmt, 7);
+            sqliteStmtNull(this->dbFileSelectStmt, 7) ? this->fileModeDefault : sqliteStmtUIntP(this->dbFileSelectStmt, 7);
         CHECK(AssertError, file.mode == mode, "file.mode does not equal db.mode");
 
         const String *const user =
@@ -536,7 +532,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
 
         const String *const reference =
             sqliteStmtNull(this->dbFileSelectStmt, 12) ?
-                NULL : strLstGet(this->pub.referenceList, (unsigned int)sqliteStmtInt(this->dbFileSelectStmt, 12));
+                NULL : strLstGet(this->pub.referenceList, sqliteStmtUIntP(this->dbFileSelectStmt, 12));
         CHECK(AssertError, strEq(file.reference, reference), "file.reference not equal");
 
         CHECK(AssertError, file.bundleId == sqliteStmtU63P(this->dbFileSelectStmt, 13), "bundleId is not equal");

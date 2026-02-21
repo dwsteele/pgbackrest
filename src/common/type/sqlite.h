@@ -45,8 +45,6 @@ FN_EXTERN SqliteStmt *sqliteStmtNew(Sqlite *this, const String *statement);
 SqliteStmt Functions
 ***********************************************************************************************************************************/
 // Bind values to statement
-FN_EXTERN void sqliteStmtBindInt(SqliteStmt *this, unsigned int column, int value);
-
 typedef struct SqliteStmtBindI64Param
 {
     VAR_PARAM_HEADER;
@@ -85,11 +83,21 @@ sqliteStmtBindUInt(SqliteStmt *const this, const unsigned int column, const unsi
     sqliteStmtBindI64P(this, column, (int64_t)value);
 }
 
+typedef struct SqliteStmtBindU63Param
+{
+    VAR_PARAM_HEADER;
+    bool defaultNull;                                               // Write default as NULL
+    bool defaultValue;                                              // Default value
+} SqliteStmtBindU63Param;
+
+#define sqliteStmtBindU63P(this, column, value, ...)                                                                                     \
+    sqliteStmtBindU63(this, column, value, (SqliteStmtBindU63Param){VAR_PARAM_INIT, __VA_ARGS__})
+
 FN_INLINE_ALWAYS void
-sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint64_t value)
+sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint64_t value, const SqliteStmtBindU63Param param)
 {
     ASSERT_INLINE(value <= INT64_MAX);
-    sqliteStmtBindI64P(this, column, (int64_t)value);
+    sqliteStmtBindI64P(this, column, (int64_t)value, .defaultNull = param.defaultNull, .defaultValue = (int64_t)param.defaultValue);
 }
 
 // Execute statement
@@ -102,19 +110,6 @@ FN_EXTERN bool sqliteStmtNext(SqliteStmt *this);
 FN_EXTERN void sqliteStmtReset(SqliteStmt *this);
 
 // Get values returned by statement after sqliteStmtNext()
-typedef struct SqliteStmtBoolParam
-{
-    VAR_PARAM_HEADER;
-    bool defaultValue;                                              // Default value when NULL
-} SqliteStmtBoolParam;
-
-#define sqliteStmtBoolP(this, column, ...)                                                                                         \
-    sqliteStmtBool(this, column, (SqliteStmtBoolParam){VAR_PARAM_INIT, __VA_ARGS__})
-
-FN_EXTERN bool sqliteStmtBool(SqliteStmt *const this, unsigned int column, SqliteStmtBoolParam param);
-FN_EXTERN Buffer *sqliteStmtBuf(SqliteStmt *this, unsigned int column);
-FN_EXTERN int sqliteStmtInt(SqliteStmt *this, unsigned int column);
-
 typedef struct SqliteStmtI64Param
 {
     VAR_PARAM_HEADER;
@@ -125,6 +120,24 @@ typedef struct SqliteStmtI64Param
     sqliteStmtI64(this, column, (SqliteStmtI64Param){VAR_PARAM_INIT, __VA_ARGS__})
 
 FN_EXTERN int64_t sqliteStmtI64(SqliteStmt *this, unsigned int column, SqliteStmtI64Param param);
+
+typedef struct SqliteStmtBoolParam
+{
+    VAR_PARAM_HEADER;
+    bool defaultValue;                                              // Default value when NULL
+} SqliteStmtBoolParam;
+
+#define sqliteStmtBoolP(this, column, ...)                                                                                         \
+    sqliteStmtBool(this, column, (SqliteStmtBoolParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_INLINE_ALWAYS bool
+sqliteStmtBool(SqliteStmt *const this, const unsigned int column, const SqliteStmtBoolParam param)
+{
+    ASSERT_INLINE(sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue) <= 1);
+    return (unsigned int)sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue);
+}
+
+FN_EXTERN Buffer *sqliteStmtBuf(SqliteStmt *this, unsigned int column);
 FN_EXTERN bool sqliteStmtNull(SqliteStmt *this, unsigned int column);
 FN_EXTERN String *sqliteStmtStr(SqliteStmt *this, unsigned int column);
 
@@ -140,6 +153,7 @@ typedef struct SqliteStmtUIntParam
 FN_INLINE_ALWAYS unsigned int
 sqliteStmtUInt(SqliteStmt *const this, const unsigned int column, const SqliteStmtUIntParam param)
 {
+    ASSERT_INLINE(sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue) <= UINT_MAX);
     return (unsigned int)sqliteStmtI64P(this, column, .defaultValue = (int64_t)param.defaultValue);
 }
 

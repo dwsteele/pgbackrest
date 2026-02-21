@@ -119,25 +119,6 @@ sqliteStmtBindBuf(SqliteStmt *const this, const unsigned int column, const Buffe
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-sqliteStmtBindInt(SqliteStmt *const this, const unsigned int column, const int value)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(SQLITE_STMT, this);
-        FUNCTION_TEST_PARAM(UINT, column);
-        FUNCTION_TEST_PARAM(INT, value);
-    FUNCTION_TEST_END();
-
-    ASSERT(this != NULL);
-    ASSERT(column > 0 && column <= INT_MAX);
-    ASSERT((int)column <= sqlite3_bind_parameter_count(this->stmt));
-
-    SQLITE_ERR(this->sqlite, sqlite3_bind_int(this->stmt, (int)column, value) != SQLITE_OK, "unable to bind int to column !!!");
-
-    FUNCTION_TEST_RETURN_VOID();
-}
-
-/**********************************************************************************************************************************/
-FN_EXTERN void
 sqliteStmtBindI64(SqliteStmt *const this, const unsigned int column, const int64_t value, const SqliteStmtBindI64Param param)
 {
     FUNCTION_TEST_BEGIN();
@@ -257,32 +238,6 @@ sqliteStmtNext(SqliteStmt *const this)
 }
 
 /**********************************************************************************************************************************/
-FN_EXTERN bool
-sqliteStmtBool(SqliteStmt *const this, const unsigned int column, const SqliteStmtBoolParam param)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(SQLITE_STMT, this);
-        FUNCTION_TEST_PARAM(UINT, column);
-        FUNCTION_TEST_PARAM(BOOL, param.defaultValue);
-    FUNCTION_TEST_END();
-
-    ASSERT(this != NULL);
-    ASSERT(column <= INT_MAX);
-    ASSERT((int)column < sqlite3_column_count(this->stmt));
-    ASSERT(
-        sqlite3_column_type(this->stmt, (int)column) == SQLITE_INTEGER ||
-        sqlite3_column_type(this->stmt, (int)column) == SQLITE_NULL);
-    ASSERT(
-        sqlite3_column_type(this->stmt, (int)column) == SQLITE_NULL ||
-        (unsigned int)sqlite3_column_int(this->stmt, (int)column) <= 1);
-
-    if (sqliteStmtNull(this, column))
-        FUNCTION_TEST_RETURN(BOOL, param.defaultValue);
-
-    FUNCTION_TEST_RETURN(BOOL, sqlite3_column_int(this->stmt, (int)column) != 0);
-}
-
-/**********************************************************************************************************************************/
 FN_EXTERN Buffer *
 sqliteStmtBuf(SqliteStmt *const this, const unsigned int column)
 {
@@ -305,23 +260,6 @@ sqliteStmtBuf(SqliteStmt *const this, const unsigned int column)
     const void *const ptr = sqlite3_column_blob(this->stmt, (int)column);
 
     FUNCTION_TEST_RETURN(BUFFER, bufNewC(ptr, (size_t)sqlite3_column_bytes(this->stmt, (int)column)));
-}
-
-/**********************************************************************************************************************************/
-FN_EXTERN int
-sqliteStmtInt(SqliteStmt *const this, const unsigned int column)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(SQLITE_STMT, this);
-        FUNCTION_TEST_PARAM(UINT, column);
-    FUNCTION_TEST_END();
-
-    ASSERT(this != NULL);
-    ASSERT(column <= INT_MAX);
-    ASSERT((int)column < sqlite3_column_count(this->stmt));
-    ASSERT(sqlite3_column_type(this->stmt, (int)column) == SQLITE_INTEGER);
-
-    FUNCTION_TEST_RETURN(INT, sqlite3_column_int(this->stmt, (int)column));
 }
 
 /**********************************************************************************************************************************/

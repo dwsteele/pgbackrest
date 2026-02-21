@@ -9,7 +9,6 @@ running out of memory on the test systems or taking an undue amount of time. It 
 1000 is nowhere near turning it up to 11.
 ***********************************************************************************************************************************/
 #include <unistd.h>
-#include <sqlite3.h>
 
 #include "common/ini.h"
 #include "common/io/bufferRead.h"
@@ -19,7 +18,6 @@ running out of memory on the test systems or taking an undue amount of time. It 
 #include "common/time.h"
 #include "common/type/list.h"
 #include "common/type/object.h"
-#include "common/type/sqlite.h"
 #include "info/manifest/manifest.h"
 #include "postgres/version.h"
 #include "storage/posix/storage.h"
@@ -279,197 +277,9 @@ testRun(void)
         MEM_CONTEXT_END();
 
         TEST_LOG_FMT("completed in %ums", (unsigned int)(timeMSec() - timeBegin));
-        TEST_LOG_FMT("!!!MEMORY USED %s", strZ(strSizeFormat(memContextSize(testContext))));
+        // TEST_LOG_FMT("memory used %zu", memContextSize(testContext));
 
         TEST_RESULT_UINT(manifestFileTotal(manifest), driver->fileTotal, "   check file total");
-
-        for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
-        {
-            const ManifestFilePack *const filePack = manifestFilePackGet(manifest, fileIdx);
-            ManifestFile file = manifestFileUnpack(manifest, filePack);
-
-            file.checksumSha1 = bufPtrConst(HASH_TYPE_SHA1_ZERO_BUF);
-            manifestFileUpdate(manifest, &file);
-        }
-
-        TEST_LOG_FMT("!!!MEMORY USED AFTER UPDATE %s", strZ(strSizeFormat(memContextSize(testContext))));
-
-        // -------------------------------------------------------------------------------------------------------------------------
-        TEST_TITLE("load into sqlite");
-
-        Sqlite *sqlite = sqliteNewP();
-
-        sqliteExec(
-            sqlite,
-            STRDEF(
-                "create table path\n"
-                "(\n"
-                "    id INTEGER PRIMARY KEY,"
-                "    name text not null UNIQUE"
-                ")"));
-
-        sqliteExec(
-            sqlite,
-            STRDEF(
-                "create table file\n"
-                "(\n"
-                "    id INTEGER PRIMARY KEY,"
-                "    path_id integer not null references path (id),"
-                "    name text not null,"
-                "    checksum blob,"
-                "    size integer,"
-                "    sizeOriginal integer,"
-                "    sizeRepo integer,"
-                "    timestamp integer,"
-                "    unique (path_id, name)"
-                ")"));
-
-        sqliteExec(sqlite, STRDEF("INSERT INTO path (id, name) values (0, '')"));
-
-        TEST_LOG_FMT("!!!INSERT %u rows BEGIN", manifestFileTotal(manifest));
-
-        SqliteStmt *stmt = sqliteStmtNew(sqlite, STRDEF("INSERT INTO file (path_id, name, size, timestamp) values (?, ?, ?, ?)"));
-        SqliteStmt *stmtIns = sqliteStmtNew(sqlite, STRDEF("INSERT or ignore INTO path (name) values (?) returning id"));
-        SqliteStmt *stmtSel = sqliteStmtNew(sqlite, STRDEF("select id from path where name = ?"));
-
-        for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
-        {
-            const ManifestFile file = manifestFile(manifest, fileIdx);
-            String *const path = strPath(file.name);
-            String *const base = strBase(file.name);
-            int pathId = 0;
-
-            TEST_LOG_FMT("!!!GOT HERE %u FILE %s BASE %s", fileIdx, strZ(file.name), strZ(base));
-
-            if (!strEqZ(path, ""))
-            {
-                // TEST_LOG_FMT("!!!INSERTING PATH %s", strZ(path));
-                sqliteStmtBindStr(stmtIns, 1, path);
-
-                if (sqliteStmtNext(stmtIns))
-                    pathId = sqliteStmtInt(stmtIns, 0);
-                else
-                {
-                    sqliteStmtBindStr(stmtSel, 1, path);
-                    CHECK(AssertError, sqliteStmtNext(stmtSel), "no next");
-                    pathId = sqliteStmtInt(stmtSel, 0);
-                    sqliteStmtReset(stmtSel);
-                }
-
-                sqliteStmtReset(stmtIns);
-                // TEST_LOG_FMT("!!!PATH ID IS %d", pathId);
-            }
-
-            strFree(path);
-
-            // TEST_LOG_FMT("!!!INSERTING FILE %s", strZ(path));
-
-            sqliteStmtBindInt(stmt, 1, pathId);
-            sqliteStmtBindStr(stmt, 2, base);
-            sqliteStmtBindI64(stmt, 3, (int64_t)file.size);
-            sqliteStmtBindI64(stmt, 4, (int64_t)file.timestamp);
-            sqliteStmtExec(stmt);
-
-            strFree(base);
-        }
-
-        sqliteStmtFree(stmt);
-
-        // CHECK(AssertError, sqlite3_finalize(stmt) == SQLITE_OK, "could not finalize");
-
-        TEST_LOG_FMT("!!!INSERT %u rows END", manifestFileTotal(manifest));
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("PRAGMA page_size"));
-        sqliteStmtNext(stmt);
-        size_t pageSize = (size_t)sqliteStmtInt(stmt, 0);
-        sqliteStmtFree(stmt);
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("PRAGMA page_count"));
-        sqliteStmtNext(stmt);
-        size_t pageCount = (size_t)sqliteStmtInt(stmt, 0);
-        sqliteStmtFree(stmt);
-
-        TEST_LOG_FMT("!!!INITIAL LOAD PAGE_COUNT %zu PAGE_SIZE %zu TOTAL %s", pageCount, pageSize, strZ(strSizeFormat(pageCount * pageSize)));
-
-        BUFFER_EXTERN(
-            HASH_TYPE_SHA1_TEST_BUF, 0xff, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d, 0x32, 0x55, 0xbf, 0xef, 0x95, 0x60, 0x18, 0x90,
-            0xaf, 0xd8, 0x07, 0x09);
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("update file set checksum = ? where path_id = ? and name = ? returning id"));
-
-        for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
-        {
-            const ManifestFile file = manifestFile(manifest, fileIdx);
-            String *const path = strPath(file.name);
-            String *const base = strBase(file.name);
-            int pathId = 0;
-
-            if (!strEqZ(path, ""))
-            {
-                sqliteStmtBindStr(stmtSel, 1, path);
-                sqliteStmtNext(stmtSel);
-                pathId = sqliteStmtInt(stmtSel, 0);
-                sqliteStmtReset(stmtSel);
-                // TEST_LOG_FMT("!!!PATH ID IS %d", pathId);
-            }
-
-            sqliteStmtBindBuf(stmt, 1, HASH_TYPE_SHA1_TEST_BUF);
-            sqliteStmtBindInt(stmt, 2, pathId);
-            sqliteStmtBindStr(stmt, 3, base);
-//            sqliteStmtNext(stmt);
-            CHECK(AssertError, sqliteStmtNext(stmt), "no next");
-            sqliteStmtReset(stmt);
-
-            strFree(path);
-            strFree(base);
-        }
-
-        sqliteStmtFree(stmt);
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("PRAGMA page_count"));
-        sqliteStmtNext(stmt);
-        pageCount = (size_t)sqliteStmtInt(stmt, 0);
-        sqliteStmtFree(stmt);
-
-        TEST_LOG_FMT("!!!AFTER UPDATE TO TEST PAGE_COUNT %zu TOTAL %s", pageCount, strZ(strSizeFormat(pageCount * pageSize)));
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("update file set checksum = ? where path_id = ? and name = ? returning id"));
-
-        for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
-        {
-            const ManifestFile file = manifestFile(manifest, fileIdx);
-            String *const path = strPath(file.name);
-            String *const base = strBase(file.name);
-            int pathId = 0;
-
-            if (!strEqZ(path, ""))
-            {
-                sqliteStmtBindStr(stmtSel, 1, path);
-                sqliteStmtNext(stmtSel);
-                pathId = sqliteStmtInt(stmtSel, 0);
-                sqliteStmtReset(stmtSel);
-                // TEST_LOG_FMT("!!!PATH ID IS %d", pathId);
-            }
-
-            sqliteStmtBindBuf(stmt, 1, HASH_TYPE_SHA1_ZERO_BUF);
-            sqliteStmtBindInt(stmt, 2, pathId);
-            sqliteStmtBindStr(stmt, 3, base);
-            CHECK(AssertError, sqliteStmtNext(stmt), "no next");
-            // TEST_LOG_FMT("!!!FILE ID IS %d", sqliteStmtInt(stmt, 0));
-            sqliteStmtReset(stmt);
-
-            strFree(path);
-            strFree(base);
-        }
-
-        sqliteStmtFree(stmt);
-
-        stmt = sqliteStmtNew(sqlite, STRDEF("PRAGMA page_count"));
-        sqliteStmtNext(stmt);
-        pageCount = (size_t)sqliteStmtInt(stmt, 0);
-        sqliteStmtFree(stmt);
-
-        TEST_LOG_FMT("!!!AFTER UPDATE BACK TO ZERO PAGE_COUNT %zu TOTAL %s", pageCount, strZ(strSizeFormat(pageCount * pageSize)));
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("save manifest");

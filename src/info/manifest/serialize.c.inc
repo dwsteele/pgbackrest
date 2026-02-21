@@ -1127,11 +1127,11 @@ manifestSave(Manifest *const this, IoWrite *const write)
 
         SqliteStmt *stmt = sqliteStmtNew(this->db, STRDEF("PRAGMA page_size"));
         sqliteStmtNext(stmt);
-        size_t pageSize = (size_t)sqliteStmtInt(stmt, 0);
+        size_t pageSize = sqliteStmtUIntP(stmt, 0);
 
         stmt = sqliteStmtNew(this->db, STRDEF("PRAGMA page_count"));
         sqliteStmtNext(stmt);
-        size_t pageCount = (size_t)sqliteStmtInt(stmt, 0);
+        size_t pageCount = sqliteStmtUIntP(stmt, 0);
 
         LOG_DEBUG_FMT("!!!MEM USED OLD %s", strZ(strSizeFormat(memContextSize(objMemContext(this->pub.fileList)))));
         LOG_DEBUG_FMT(
