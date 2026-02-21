@@ -209,6 +209,10 @@ unit:
       # ----------------------------------------------------------------------------------------------------------------------------
       - name: type-sqlite
         total: 1
+        harness:
+          name: sqlite
+          shim:
+            common/type/sqlite: ~
 
         coverage:
           - common/type/sqlite

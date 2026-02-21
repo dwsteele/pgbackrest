@@ -393,7 +393,6 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     else
     {
         sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
-        sqliteStmtBindI64(this->dbPathInsertStmt, 2, file->mode);
         CHECK_FMT(AssertError, sqliteStmtNext(this->dbPathInsertStmt), "path '%s', not found", strZ(strPath(file->name)));
         pathId = sqliteStmtUIntP(this->dbPathInsertStmt, 0);
         sqliteStmtReset(this->dbPathInsertStmt);
@@ -402,18 +401,12 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     sqliteStmtReset(this->dbPathSelectStmt);
 
     // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
-    if (!file->copy)
-        sqliteStmtBindBool(stmt, 1, file->copy);
-
-    if (!file->delta)
-        sqliteStmtBindBool(stmt, 2, false);
-
-    if (!file->resume)
-        sqliteStmtBindBool(stmt, 3, false);
+    sqliteStmtBindBoolP(stmt, 1, file->copy, .defaultNull = true, .defaultValue = true);
+    sqliteStmtBindBoolP(stmt, 2, file->delta, .defaultNull = true);
+    sqliteStmtBindBoolP(stmt, 3, file->resume, .defaultNull = true);
 
     // !!! THIS COULD BE IMPROVED BY CHECKING CHECKSUM STATUS OF BACKUP
-    if (!file->checksumPage)
-        sqliteStmtBindBool(stmt, 4, false);
+    sqliteStmtBindBoolP(stmt, 4, file->checksumPage, .defaultNull = true, .defaultValue = this->checksumPageDefault);
 
     if (file->checksumSha1 != NULL)
         sqliteStmtBindBuf(stmt, 5, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
@@ -425,12 +418,12 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         sqliteStmtBindInt(stmt, 7, (int)file->mode);
 
     if (file->user == NULL)
-        sqliteStmtBindBool(stmt, 8, true);
+        sqliteStmtBindBoolP(stmt, 8, true);
     else if (!strEq(file->user, this->fileUserDefault))
         sqliteStmtBindStr(stmt, 9, file->user);
 
     if (file->group == NULL)
-        sqliteStmtBindBool(stmt, 10, true);
+        sqliteStmtBindBoolP(stmt, 10, true);
     else if (!strEq(file->group, this->fileGroupDefault))
         sqliteStmtBindStr(stmt, 11, file->group);
 
@@ -463,12 +456,12 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     if (file->sizeRepo != file->size)
         sqliteStmtBindU63(stmt, 20, file->sizeRepo);
 
-    // ASSERT(this->pub.data.backupTimestampStart != 0); // !!! RATHER USE THIS BUT IT BREAKS TESTS
-    sqliteStmtBindI64(stmt, 21, (int64_t)(manifestPackBaseTime - file->timestamp));
+    ASSERT(this->pub.data.backupTimestampStart != 0);
+    sqliteStmtBindI64P(stmt, 21, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
 
     if (file->checksumPageError)
     {
-        sqliteStmtBindBool(stmt, 22, true);
+        sqliteStmtBindBoolP(stmt, 22, true);
 
         // !!! MIGHT NOT NEED THE IF HERE
         if (file->checksumPageErrorList != NULL)
@@ -503,13 +496,13 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             AssertError, file.copy == sqliteStmtBoolP(this->dbFileSelectStmt, 1, .defaultValue = true),
             "file.copy does not equal db.copy");
         CHECK(
-            AssertError, file.delta == sqliteStmtBoolP(this->dbFileSelectStmt, 2, .defaultValue = true),
+            AssertError, file.delta == sqliteStmtBoolP(this->dbFileSelectStmt, 2, .defaultValue = false),
             "file.delta does not equal db.delta");
         CHECK(
-            AssertError, file.resume == sqliteStmtBoolP(this->dbFileSelectStmt, 3, .defaultValue = true),
+            AssertError, file.resume == sqliteStmtBoolP(this->dbFileSelectStmt, 3, .defaultValue = false),
             "file.resume does not equal db.resume");
         CHECK(
-            AssertError, file.checksumPage == sqliteStmtBoolP(this->dbFileSelectStmt, 4, .defaultValue = true),
+            AssertError, file.checksumPage == sqliteStmtBoolP(this->dbFileSelectStmt, 4, .defaultValue = this->checksumPageDefault),
             "file.checksumPage does not equal db.checksumPage");
         CHECK(
             AssertError,
@@ -544,7 +537,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
         const String *const reference =
             sqliteStmtNull(this->dbFileSelectStmt, 12) ?
                 NULL : strLstGet(this->pub.referenceList, (unsigned int)sqliteStmtInt(this->dbFileSelectStmt, 12));
-        CHECK(AssertError, strEq(file.reference, reference), "file.group not equal");
+        CHECK(AssertError, strEq(file.reference, reference), "file.reference not equal");
 
         CHECK(AssertError, file.bundleId == sqliteStmtU63P(this->dbFileSelectStmt, 13), "bundleId is not equal");
         CHECK(AssertError, file.bundleOffset == sqliteStmtU63P(this->dbFileSelectStmt, 14), "bundleOffset is not equal");
@@ -565,7 +558,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
                 this->dbFileSelectStmt, 20, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 18)),
             "sizeRepo is not equal");
         CHECK(
-        AssertError, file.timestamp == manifestPackBaseTime - sqliteStmtI64P(this->dbFileSelectStmt, 21), "timestamp is not equal");
+        AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 21), "timestamp is not equal");
 
         CHECK(AssertError, file.checksumPageError == sqliteStmtBoolP(this->dbFileSelectStmt, 22), "checksumPageError is not equal");
         CHECK(

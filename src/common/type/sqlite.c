@@ -138,19 +138,27 @@ sqliteStmtBindInt(SqliteStmt *const this, const unsigned int column, const int v
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-sqliteStmtBindI64(SqliteStmt *const this, const unsigned int column, const int64_t value)
+sqliteStmtBindI64(SqliteStmt *const this, const unsigned int column, const int64_t value, const SqliteStmtBindI64Param param)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(SQLITE_STMT, this);
         FUNCTION_TEST_PARAM(UINT, column);
         FUNCTION_TEST_PARAM(INT64, value);
+        FUNCTION_TEST_PARAM(INT64, param.defaultNull);
+        FUNCTION_TEST_PARAM(INT64, param.defaultValue);
     FUNCTION_TEST_END();
 
     ASSERT(this != NULL);
     ASSERT(column > 0 && column <= INT_MAX);
     ASSERT((int)column <= sqlite3_bind_parameter_count(this->stmt));
 
-    SQLITE_ERR(this->sqlite, sqlite3_bind_int64(this->stmt, (int)column, value) != SQLITE_OK, "unable to bind int64 to column !!!");
+    if (param.defaultNull && value == param.defaultValue)
+        sqliteStmtBindNull(this, column);
+    else
+    {
+        SQLITE_ERR(
+            this->sqlite, sqlite3_bind_int64(this->stmt, (int)column, value) != SQLITE_OK, "unable to bind int64 to column !!!");
+    }
 
     FUNCTION_TEST_RETURN_VOID();
 }

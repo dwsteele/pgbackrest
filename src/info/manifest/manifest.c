@@ -34,9 +34,10 @@ struct Manifest
     SqliteStmt *dbFileSelectStmt;                                   // Select from file table
     SqliteStmt *dbFileUpdateStmt;                                   // Update file table
 
-    const String *fileUserDefault;                                  // Default file user name
-    const String *fileGroupDefault;                                 // Default file group name
-    mode_t fileModeDefault;                                         // Default file mode
+    const String *fileUserDefault;                                  // Default file user name to store as NULL
+    const String *fileGroupDefault;                                 // Default file group name to store as NULL
+    mode_t fileModeDefault;                                         // Default file mode to store as NULL
+    bool checksumPageDefault;                                       // Default checksum page flag to store as NULL
 };
 
 // {uncrustify_off - order required for C includes}
@@ -80,10 +81,7 @@ manifestNewInternal(void)
             "create table path"
             "("
                 "id integer constraint path_id_nn constraint path_fk primary key,"
-                "name text constraint path_name_nn not null constraint path_name_unq unique,"
-                "mode integer not null,"
-                "group_name text,"
-                "user_name text"
+                "name text constraint path_name_nn not null constraint path_name_unq unique"
             ")"));
 
     sqliteExec(
@@ -123,7 +121,7 @@ manifestNewInternal(void)
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
     {
-        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name,mode)values(?,?)returning id"));
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)returning id"));
         this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
 
         // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY
@@ -320,6 +318,7 @@ manifestNewBuild(
                 this->fileUserDefault = strDup(path.user);
                 this->fileGroupDefault = strDup(path.group);
                 this->fileModeDefault = path.mode & (S_IRUSR | S_IWUSR | S_IRGRP);
+                this->checksumPageDefault = checksumPage;
             }
             MEM_CONTEXT_END();
 

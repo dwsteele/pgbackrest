@@ -539,7 +539,12 @@ manifestLoadCallback(void *const callbackData, const String *const section, cons
                 else if (strEqZ(key, MANIFEST_KEY_OPTION_BACKUP_STANDBY))
                     manifest->pub.data.backupOptionStandby = varNewBool(jsonReadBool(json));
                 else if (strEqZ(key, MANIFEST_KEY_OPTION_CHECKSUM_PAGE))
-                    manifest->pub.data.backupOptionChecksumPage = jsonReadVar(json);
+                {
+                    const Variant *const checksumPage = jsonReadVar(json);
+
+                    manifest->pub.data.backupOptionChecksumPage = checksumPage;
+                    manifest->checksumPageDefault = checksumPage != NULL && varBool(checksumPage);
+                }
                 else if (strEqZ(key, MANIFEST_KEY_OPTION_DELTA))
                     manifest->pub.data.backupOptionDelta = jsonReadVar(json);
             }

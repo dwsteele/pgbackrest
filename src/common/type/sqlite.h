@@ -47,28 +47,49 @@ SqliteStmt Functions
 // Bind values to statement
 FN_EXTERN void sqliteStmtBindInt(SqliteStmt *this, unsigned int column, int value);
 
-FN_INLINE_ALWAYS void
-sqliteStmtBindBool(SqliteStmt *const this, const unsigned int column, const bool value)
+typedef struct SqliteStmtBindI64Param
 {
-    sqliteStmtBindInt(this, column, (int)value);
+    VAR_PARAM_HEADER;
+    bool defaultNull;                                               // Write default as NULL
+    int64_t defaultValue;                                           // Default value
+} SqliteStmtBindI64Param;
+
+#define sqliteStmtBindI64P(this, column, value, ...)                                                                                      \
+    sqliteStmtBindI64(this, column, value, (SqliteStmtBindI64Param){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_EXTERN void sqliteStmtBindI64(SqliteStmt *this, unsigned int column, int64_t value, SqliteStmtBindI64Param param);
+
+typedef struct SqliteStmtBindBoolParam
+{
+    VAR_PARAM_HEADER;
+    bool defaultNull;                                               // Write default as NULL
+    bool defaultValue;                                              // Default value
+} SqliteStmtBindBoolParam;
+
+#define sqliteStmtBindBoolP(this, column, value, ...)                                                                                     \
+    sqliteStmtBindBool(this, column, value, (SqliteStmtBindBoolParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindBool(SqliteStmt *const this, const unsigned int column, const bool value, const SqliteStmtBindBoolParam param)
+{
+    sqliteStmtBindI64P(this, column, (int64_t)value, .defaultNull = param.defaultNull, .defaultValue = (int64_t)param.defaultValue);
 }
 
 FN_EXTERN void sqliteStmtBindBuf(SqliteStmt *this, unsigned int column, const Buffer *value);
-FN_EXTERN void sqliteStmtBindI64(SqliteStmt *this, unsigned int column, int64_t value);
 FN_EXTERN void sqliteStmtBindNull(SqliteStmt *this, unsigned int column);
 FN_EXTERN void sqliteStmtBindStr(SqliteStmt *this, unsigned int column, const String *value);
 
 FN_INLINE_ALWAYS void
 sqliteStmtBindUInt(SqliteStmt *const this, const unsigned int column, const unsigned int value)
 {
-    sqliteStmtBindI64(this, column, (int64_t)value);
+    sqliteStmtBindI64P(this, column, (int64_t)value);
 }
 
 FN_INLINE_ALWAYS void
 sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint64_t value)
 {
     ASSERT_INLINE(value <= INT64_MAX);
-    sqliteStmtBindI64(this, column, (int64_t)value);
+    sqliteStmtBindI64P(this, column, (int64_t)value);
 }
 
 // Execute statement
