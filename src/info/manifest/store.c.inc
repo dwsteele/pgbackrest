@@ -400,8 +400,6 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     sqliteStmtBindBoolP(stmt, 1, file->copy, .defaultNull = true, .defaultValue = true);
     sqliteStmtBindBoolP(stmt, 2, file->delta, .defaultNull = true);
     sqliteStmtBindBoolP(stmt, 3, file->resume, .defaultNull = true);
-
-    // !!! THIS COULD BE IMPROVED BY CHECKING CHECKSUM STATUS OF BACKUP
     sqliteStmtBindBoolP(stmt, 4, file->checksumPage, .defaultNull = true, .defaultValue = this->checksumPageDefault);
 
     if (file->checksumSha1 != NULL)
@@ -481,8 +479,6 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        // fprintf(stdout, "!!!FILE OLD GET %s SIZE %zu ORIGINAL %zu\n", strZ(file.name), file.size, file.sizeOriginal);fflush(stdout);
-
         sqliteStmtBindStr(this->dbFileSelectStmt, 1, strBase(file.name));
         sqliteStmtBindStr(this->dbFileSelectStmt, 2, strPath(file.name));
         CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(strPath(file.name)));
@@ -521,7 +517,6 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             sqliteStmtBoolP(this->dbFileSelectStmt, 8) ?
                 NULL :
                 (sqliteStmtNull(this->dbFileSelectStmt, 9) ? this->fileUserDefault : sqliteStmtStr(this->dbFileSelectStmt, 9));
-        // fprintf(stdout, "!!!FILE NEW GET %s USER %s\n", strZ(sqliteStmtStr(stmt, 0)), strZNull(user));fflush(stdout);
         CHECK(AssertError, strEq(file.user, user), "file.user not equal");
 
         const String *const group =
@@ -554,7 +549,8 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
                 this->dbFileSelectStmt, 20, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 18)),
             "sizeRepo is not equal");
         CHECK(
-        AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 21), "timestamp is not equal");
+            AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 21),
+            "timestamp is not equal");
 
         CHECK(AssertError, file.checksumPageError == sqliteStmtBoolP(this->dbFileSelectStmt, 22), "checksumPageError is not equal");
         CHECK(
@@ -587,8 +583,6 @@ manifestFileAdd(Manifest *const this, ManifestFile *const file)
         const ManifestFilePack *const filePack = manifestFilePack(this, file);
         lstAdd(this->pub.fileList, &filePack);
 
-        // fprintf(stdout, "!!!FILE ADD %s COPY %d\n", strZ(file->name), file->copy);fflush(stdout);
-
         manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
     }
     MEM_CONTEXT_END();
@@ -614,8 +608,6 @@ manifestFilePackUpdate(Manifest *const this, ManifestFilePack **const filePack, 
     {
         ManifestFilePack *const filePackOld = *filePack;
         *filePack = manifestFilePack(this, file);
-
-        // fprintf(stdout, "!!!FILE UPDATE %s\n", strZ(file->name));fflush(stdout);
 
         manifestFileAddUpdate(this, file, this->dbFileUpdateStmt);
         memFree(filePackOld);
@@ -817,8 +809,6 @@ manifestPathAdd(Manifest *const this, const ManifestPath *const path)
         };
 
         lstAdd(this->pub.pathList, &pathAdd);
-
-        //fprintf(stdout, "!!!PATH ADD %s\n", strZ(path->name));fflush(stdout);
 
         sqliteStmtBindStr(this->dbPathInsertStmt, 1, path->name);
         sqliteStmtExec(this->dbPathInsertStmt);

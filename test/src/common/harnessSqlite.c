@@ -65,7 +65,6 @@ hrnSqliteStmtToStr(SqliteStmt *const stmt)
 
                 if (sqlite3_column_type(stmt->stmt, colIdx) != SQLITE_NULL)
                 {
-
                     if (sqlite3_column_type(stmt->stmt, colIdx) == SQLITE_BLOB)
                     {
                         width = (size_t)sqlite3_column_bytes(stmt->stmt, colIdx);

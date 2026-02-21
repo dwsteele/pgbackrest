@@ -195,7 +195,7 @@ lib_z = dependency('zlib')
 configuration.set('ZLIB_CONST', true, description: 'Require zlib const input buffer')
 
 # Find required sqlite library
-lib_sqlite = dependency('sqlite3', version: '>=3.35.5')
+lib_sqlite = dependency('sqlite3', version: '>=3.26.0')
 
 # Find optional libssh2 library
 lib_ssh2 = dependency('libssh2', required: get_option('libssh2'))

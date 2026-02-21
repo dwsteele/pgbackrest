@@ -19,12 +19,15 @@ testRun(void)
             sqliteExec(
                 sqlite,
                 STRDEF(
+                    // {uncrustify_off - indentation}
                     "create table test ("
                         "id int primary key not null,"
                         "name text,"
                         "bin blob,"
                         "more int,"
-                        "all_null text)")),
+                        "all_null text)"
+                    // {uncrustify_on}
+                    )),
             "create table");
 
         SqliteStmt *stmt;

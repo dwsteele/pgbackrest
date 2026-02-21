@@ -78,15 +78,19 @@ manifestNewInternal(void)
     sqliteExec(
         this->db,
         STRDEF(
+            // {uncrustify_off - indentation}
             "create table path"
             "("
                 "id integer constraint path_id_nn constraint path_fk primary key,"
                 "name text constraint path_name_nn not null constraint path_name_unq unique"
-            ")"));
+            ")"
+            // {uncrustify_on}
+            ));
 
     sqliteExec(
         this->db,
         STRDEF(
+            // {uncrustify_off - indentation}
             "create table file_raw"
             "(\n"
                 "id integer constraint file_id_nn not null constraint file_pk primary key,"
@@ -116,7 +120,9 @@ manifestNewInternal(void)
                 "checksumPageError integer,"
                 "checksumPageErrorList text,"
                 "constraint file_pathid_name_unq unique (path_id, name)"
-            ")"));
+            ")"
+            // {uncrustify_on}
+        ));
 
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
@@ -128,6 +134,7 @@ manifestNewInternal(void)
         this->dbFileInsertStmt = sqliteStmtNew(
             this->db,
             STRDEF(
+                // {uncrustify_off - indentation}
                 "insert into file_raw("
                     //  1     2      3            4        5            6    7         8         9         10         11        12
                     "copy,delta,resume,checksumPage,checksum,checksumRepo,mode,user_null,user_name,group_null,group_name,reference,"
@@ -136,12 +143,15 @@ manifestNewInternal(void)
                     //      21                22                    23      24   25
                     "timestamp,checksumPageError,checksumPageErrorList,path_id,name) "
                 "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-                "returning id"));
+                "returning id"
+                // {uncrustify_on}
+            ));
 
         this->dbFileSelectStmt =
             sqliteStmtNew(
             this->db,
             STRDEF(
+                // {uncrustify_off - indentation}
                 "select "
                     "path.name || '/' || file_raw.name as name,"
                     "copy,"
@@ -172,13 +182,16 @@ manifestNewInternal(void)
                         "on file_raw.path_id = path.id "
                 "where "
                         "file_raw.name = ? "
-                    "and path.name = ?"));
+                    "and path.name = ?"
+                // {uncrustify_on}
+            ));
 
         // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
         this->dbFileUpdateStmt =
             sqliteStmtNew(
                 this->db,
                 STRDEF(
+                    // {uncrustify_off - indentation}
                     "update file_raw set "
                         //    1       2        3              4          5              6      7           8           9
                         "copy=?,delta=?,resume=?,checksumPage=?,checksum=?,checksumRepo=?,mode=?,user_null=?,user_name=?,"
@@ -190,7 +203,9 @@ manifestNewInternal(void)
                         "checksumPageErrorList=? "
                     //            24         25
                     "where path_id=? and name=? "
-                    "returning id"));
+                    "returning id"
+                    // {uncrustify_on}
+                ));
     }
     MEM_CONTEXT_OBJ_END();
 

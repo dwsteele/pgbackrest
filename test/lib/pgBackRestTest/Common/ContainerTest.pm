@@ -442,7 +442,7 @@ sub containerBuild
                 "    rc-update add sshd && \\\n" .
                 "    apk add --no-cache meson build-base libpq-dev openssl-dev libxml2-dev pkgconfig lz4-dev bzip2-dev\\\n" .
                 "        openssh-keygen zlib-dev yaml-dev libssh2-dev perl perl-yaml-libyaml valgrind lz4 zstd zstd-dev\\n" .
-                "        libsqlite3-dev";
+                "        sqlite-dev";
         }
 
         #---------------------------------------------------------------------------------------------------------------------------
