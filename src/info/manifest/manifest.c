@@ -122,7 +122,7 @@ manifestNewInternal(void)
                 "constraint file_pathid_name_unq unique (path_id, name)"
             ")"
             // {uncrustify_on}
-        ));
+            ));
 
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
@@ -145,46 +145,46 @@ manifestNewInternal(void)
                 "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                 "returning id"
                 // {uncrustify_on}
-            ));
+                ));
 
         this->dbFileSelectStmt =
             sqliteStmtNew(
-            this->db,
-            STRDEF(
-                // {uncrustify_off - indentation}
-                "select "
-                    "path.name || '/' || file_raw.name as name,"
-                    "copy,"
-                    "delta,"
-                    "resume,"
-                    "checksumPage,"
-                    "checksum,"
-                    "checksumRepo,"
-                    "file_raw.mode as mode,"
-                    "user_null,"
-                    "file_raw.user_name as user_name,"
-                    "group_null,"
-                    "file_raw.group_name as group_name,"
-                    "reference,"
-                    "bundleId,"
-                    "bundleOffset,"
-                    "blockIncrSize,"
-                    "blockIncrChecksumSize,"
-                    "blockIncrMapSize,"
-                    "size,"
-                    "sizeOriginal,"
-                    "sizeRepo,"
-                    "timestamp,"
-                    "checksumPageError,"
-                    "checksumPageErrorList "
-                "from "
-                    "file_raw inner join path "
-                        "on file_raw.path_id = path.id "
-                "where "
-                        "file_raw.name = ? "
-                    "and path.name = ?"
-                // {uncrustify_on}
-            ));
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "select "
+                        "path.name || '/' || file_raw.name as name,"
+                        "copy,"
+                        "delta,"
+                        "resume,"
+                        "checksumPage,"
+                        "checksum,"
+                        "checksumRepo,"
+                        "file_raw.mode as mode,"
+                        "user_null,"
+                        "file_raw.user_name as user_name,"
+                        "group_null,"
+                        "file_raw.group_name as group_name,"
+                        "reference,"
+                        "bundleId,"
+                        "bundleOffset,"
+                        "blockIncrSize,"
+                        "blockIncrChecksumSize,"
+                        "blockIncrMapSize,"
+                        "size,"
+                        "sizeOriginal,"
+                        "sizeRepo,"
+                        "timestamp,"
+                        "checksumPageError,"
+                        "checksumPageErrorList "
+                    "from "
+                        "file_raw inner join path "
+                            "on file_raw.path_id = path.id "
+                    "where "
+                            "file_raw.name = ? "
+                        "and path.name = ?"
+                    // {uncrustify_on}
+                    ));
 
         // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
         this->dbFileUpdateStmt =
@@ -205,7 +205,7 @@ manifestNewInternal(void)
                     "where path_id=? and name=? "
                     "returning id"
                     // {uncrustify_on}
-                ));
+                    ));
     }
     MEM_CONTEXT_OBJ_END();
 

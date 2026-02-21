@@ -441,7 +441,7 @@ sub containerBuild
                 "    apk add --no-cache sudo openssh git rsync tzdata openssh ca-certificates openrc bash && \\\n" .
                 "    rc-update add sshd && \\\n" .
                 "    apk add --no-cache meson build-base libpq-dev openssl-dev libxml2-dev pkgconfig lz4-dev bzip2-dev\\\n" .
-                "        openssh-keygen zlib-dev yaml-dev libssh2-dev perl perl-yaml-libyaml valgrind lz4 zstd zstd-dev\\n" .
+                "        openssh-keygen zlib-dev yaml-dev libssh2-dev perl perl-yaml-libyaml valgrind lz4 zstd zstd-dev\\\n" .
                 "        sqlite-dev";
         }
 
