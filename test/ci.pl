@@ -173,7 +173,7 @@ eval
         # Build list of packages that need to be installed
         my $strPackage =
             "gcc ccache python3-distutils git rsync zlib1g-dev libssl-dev libxml2-dev libpq-dev libyaml-dev pkg-config uncrustify" .
-            " libssh2-1-dev valgrind";
+            " libssh2-1-dev libsqlite3-devel valgrind";
 
         # Extra packages required when testing without containers
         if ($strVm eq VM_NONE)

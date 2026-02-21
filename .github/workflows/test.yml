@@ -108,7 +108,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive apt-get install -y perl sudo libxml-checker-perl libyaml-perl rsync zlib1g-dev libssl-dev libxml2-dev libpq-dev libyaml-dev pkg-config make gcc ccache meson git liblz4-dev liblz4-tool zstd libzstd-dev bzip2 libbz2-dev
+          sudo DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive apt-get install -y perl sudo libxml-checker-perl libyaml-perl rsync zlib1g-dev libssl-dev libxml2-dev libpq-dev libyaml-dev pkg-config make gcc ccache meson git liblz4-dev liblz4-tool zstd libzstd-dev bzip2 libbz2-dev libsqlite3-dev
           docker run --privileged --rm tonistiigi/binfmt --install all
 
       - name: Build VM
@@ -132,7 +132,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive sudo apt-get install -y zlib1g-dev libssl-dev libxml2-dev libpq-dev libyaml-dev pkg-config meson liblz4-dev libzstd-dev libbz2-dev
+          DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive sudo apt-get install -y zlib1g-dev libssl-dev libxml2-dev libpq-dev libyaml-dev pkg-config meson liblz4-dev libzstd-dev libbz2-dev libsqlite3-dev
 
       - name: Build
         run: |
@@ -176,7 +176,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Packages
-        run: sudo apt-get install -y --no-install-recommends libyaml-dev libbz2-dev meson
+        run: sudo apt-get install -y --no-install-recommends libyaml-dev libbz2-dev libsqlite3-dev meson
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

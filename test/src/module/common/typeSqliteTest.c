@@ -51,7 +51,8 @@ testRun(void)
         TEST_RESULT_VOID(sqliteStmtExec(stmt), "exec stmt");
         TEST_RESULT_VOID(sqliteStmtFree(stmt), "free stmt");
 
-        TEST_ASSIGN(stmt, sqliteStmtNew(sqlite, STRDEF("select id, name, bin, more from test order by id")), "new select stmt");
+        TEST_ASSIGN(
+            stmt, sqliteStmtNew(sqlite, STRDEF("select id, name, bin, more, all_null from test order by id")), "new select stmt");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), true, "next row");
         TEST_RESULT_BOOL(sqliteStmtBoolP(stmt, 0), true, "bool");
         TEST_RESULT_BOOL(sqliteStmtNull(stmt, 1), true, "null");
@@ -66,9 +67,17 @@ testRun(void)
         TEST_RESULT_UINT(sqliteStmtU63P(stmt, 0), 999, "next");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), false, "no more rows");
 
-        // TEST_RESULT_VOID(sqliteStmtReset(stmt), "reset stmt");
-        // TEST_RESULT_STR_Z(hrnSqliteStmtToStr(stmt), "id name ", "compare");
-        // TEST_RESULT_VOID(sqliteStmtFree(stmt), "free stmt");
+        TEST_RESULT_VOID(sqliteStmtReset(stmt), "reset stmt");
+        TEST_RESULT_STR_Z(
+            hrnSqliteStmtToStr(stmt),
+            "id |  name  |   bin   |more\n"
+            "---|--------|---------|----\n"
+            "  1|        |010203   |   1\n"
+            "  2|ABCDEFGH|fffefdfc+|    \n"
+            "999|        |         |    ",
+            "compare");
+
+        TEST_RESULT_VOID(sqliteStmtFree(stmt), "free stmt");
 
         TEST_RESULT_VOID(sqliteFree(sqlite), "free sqlite");
     }
