@@ -457,13 +457,11 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     sqliteStmtBindI64P(stmt, 21, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
 
     if (file->checksumPageError)
-    {
         sqliteStmtBindBoolP(stmt, 22, true);
 
-        // !!! MIGHT NOT NEED THE IF HERE
-        if (file->checksumPageErrorList != NULL)
-            sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
-    }
+    // !!! MIGHT NOT NEED THE IF HERE
+    if (file->checksumPageErrorList != NULL)
+        sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
 
     sqliteStmtBindUInt(stmt, 24, pathId);
     sqliteStmtBindStr(stmt, 25, strBase(file->name));
