@@ -389,9 +389,12 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     else
     {
         sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
-        CHECK_FMT(AssertError, sqliteStmtNext(this->dbPathInsertStmt), "path '%s', not found", strZ(strPath(file->name)));
-        pathId = sqliteStmtUIntP(this->dbPathInsertStmt, 0);
+        sqliteStmtExec(this->dbPathInsertStmt);
+        CHECK_FMT(AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted", strZ(strPath(file->name)));
         sqliteStmtReset(this->dbPathInsertStmt);
+
+        CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
+        pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
     }
 
     sqliteStmtReset(this->dbPathSelectStmt);
@@ -482,7 +485,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
     {
         sqliteStmtBindStr(this->dbFileSelectStmt, 1, strBase(file.name));
         sqliteStmtBindStr(this->dbFileSelectStmt, 2, strPath(file.name));
-        CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(strPath(file.name)));
+        CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(file.name));
 
         CHECK(AssertError, strEq(file.name, sqliteStmtStr(this->dbFileSelectStmt, 0)), "file.name is not equal");
         CHECK(
