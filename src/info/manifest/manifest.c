@@ -801,42 +801,44 @@ manifestBuildComplete(
 
         // String *hrnSqliteStmtToStr(SqliteStmt *stmt);
 
-        SqliteStmt *stmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    "select "
-                    "path.name || '/' || file_raw.name as name,"
-                    "copy as cpy,"
-                    "delta as dlt,"
-                    "resume as rsm,"
-                    "checksumPage as ckPg,"
-                    "checksum as ck,"
-                    "checksumRepo as ckRp,"
-                    "file_raw.mode as mode,"
-                    "user_null as usr_n,"
-                    "file_raw.user_name as usr,"
-                    "group_null as grp_n,"
-                    "file_raw.group_name as grp,"
-                    "reference as ref,"
-                    "bundleId as bndId,"
-                    "bundleOffset as bndOff,"
-                    "blockIncrSize as biSz,"
-                    "blockIncrChecksumSize as biChkSz,"
-                    "blockIncrMapSize as biMapSz,"
-                    "size as sz,"
-                    "sizeOriginal as szOrg,"
-                    "sizeRepo as szRp,"
-                    "timestamp as ts,"
-                    "checksumPageError as ckPgErr,"
-                    "checksumPageErrorList as ckPgErrLst "
-                    "from "
-                    "file_raw inner join path "
-                    "on file_raw.path_id = path.id "
-                    "order by "
-                    "file_raw.reference nulls last, file_raw.bundleId nulls first, file_raw.bundleOffset nulls first,"
-                    "file_raw.size desc nulls last, path.name || '/' || file_raw.name"));
-        sqliteStmtExec(stmt);
+        // SqliteStmt *stmt =
+        //     sqliteStmtNew(
+        //         this->db,
+        //         STRDEF(
+        //             "select "
+        //                 "path.name || '/' || file_raw.name as name,"
+        //                 "copy as cpy,"
+        //                 "delta as dlt,"
+        //                 "resume as rsm,"
+        //                 "checksumPage as ckPg,"
+        //                 "checksum as ck,"
+        //                 "checksumRepo as ckRp,"
+        //                 "file_raw.mode as mode,"
+        //                 "user_null as usr_n,"
+        //                 "file_raw.user_name as usr,"
+        //                 "group_null as grp_n,"
+        //                 "file_raw.group_name as grp,"
+        //                 "reference as ref,"
+        //                 "bundleId as bndId,"
+        //                 "bundleOffset as bndOff,"
+        //                 "blockIncrSize as biSz,"
+        //                 "blockIncrChecksumSize as biChkSz,"
+        //                 "blockIncrMapSize as biMapSz,"
+        //                 "size as sz,"
+        //                 "sizeOriginal as szOrg,"
+        //                 "sizeRepo as szRp,"
+        //                 "timestamp as ts,"
+        //                 "checksumPageError as ckPgErr,"
+        //                 "checksumPageErrorList as ckPgErrLst "
+        //             "from "
+        //                 "file_raw inner join path "
+        //                     "on file_raw.path_id = path.id "
+        //             "order by "
+        //                 "case when file_raw.reference is null then -1 else file_raw.reference end,"
+        //                 "case when file_raw.bundleId is null then 0 else file_raw.bundleId end,"
+        //                 "case when file_raw.bundleOffset is null then 0 else file_raw.bundleOffset end,"
+        //                 "case when file_raw.size is null then 0 else file_raw.size end desc,"
+        //                 "path.name || '/' || file_raw.name"));
 
         // fprintf(stdout, "!!!SQLITE:\n%s\n", strZ(hrnSqliteStmtToStr(stmt)));
         // fflush(stdout);
