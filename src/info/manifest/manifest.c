@@ -81,7 +81,7 @@ manifestNewInternal(void)
             // {uncrustify_off - indentation}
             "create table path"
             "("
-                "id integer constraint path_id_nn constraint path_fk primary key,"
+                "id integer constraint path_id_nn constraint path_pk primary key,"
                 "name text constraint path_name_nn not null constraint path_name_unq unique"
             ")"
             // {uncrustify_on}
@@ -127,7 +127,7 @@ manifestNewInternal(void)
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
     {
-        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)returning id"));
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)"));
         this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
 
         // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY
@@ -798,6 +798,47 @@ manifestBuildComplete(
         this->pub.data.backupOptionHardLink = optionHardLink;
         this->pub.data.backupOptionProcessMax = varNewUInt(optionProcessMax);
         this->pub.data.backupOptionStandby = varNewBool(optionStandby);
+
+        // String *hrnSqliteStmtToStr(SqliteStmt *stmt);
+
+        // SqliteStmt *stmt =
+        //     sqliteStmtNew(
+        //         this->db,
+        //         STRDEF(
+        //             "select "
+        //             "path.name || '/' || file_raw.name as name,"
+        //             "copy as cpy,"
+        //             "delta as dlt,"
+        //             "resume as rsm,"
+        //             "checksumPage as ckPg,"
+        //             // "checksum as ck,"
+        //             // "checksumRepo as ckRp,"
+        //             "file_raw.mode as mode,"
+        //             "user_null as usr_n,"
+        //             "file_raw.user_name as usr,"
+        //             "group_null as grp_n,"
+        //             "file_raw.group_name as grp,"
+        //             "reference as ref,"
+        //             "bundleId as bndId,"
+        //             "bundleOffset as bndOff,"
+        //             "blockIncrSize as biSz,"
+        //             "blockIncrChecksumSize as biChkSz,"
+        //             "blockIncrMapSize as biMapSz,"
+        //             "size as sz,"
+        //             "sizeOriginal as szOrg,"
+        //             "sizeRepo as szRp,"
+        //             "timestamp as ts,"
+        //             "checksumPageError as ckPgErr,"
+        //             "checksumPageErrorList as ckPgErrLst "
+        //             "from "
+        //             "file_raw inner join path "
+        //             "on file_raw.path_id = path.id "
+        //             "order by "
+        //             "file_raw.reference nulls last, file_raw.bundleId nulls first, file_raw.bundleOffset nulls first,"
+        //             "file_raw.size desc nulls last, path.name || '/' || file_raw.name"));
+
+        // fprintf(stdout, "!!!SQLITE:\n%s\n", strZ(hrnSqliteStmtToStr(stmt)));
+        // fflush(stdout);
     }
     MEM_CONTEXT_END();
 
