@@ -127,7 +127,7 @@ manifestNewInternal(void)
                 // {uncrustify_on}
                 ));
 
-        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)returning id"));
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)"));
         this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
 
         // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY
