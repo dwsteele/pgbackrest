@@ -56,7 +56,8 @@ testRun(void)
         TEST_RESULT_VOID(sqliteStmtFree(stmt), "free stmt");
 
         TEST_ASSIGN(
-            stmt, sqliteStmtNew(sqlite, STRDEF("select id, name, bin, more, all_null from test order by id")), "new select stmt");
+            stmt, sqliteStmtNew(sqlite, STRDEF("select id, name, bin, more, all_null from test order by id nulls last")),
+            "new select stmt");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), true, "next row");
         TEST_RESULT_BOOL(sqliteStmtBoolP(stmt, 0), true, "bool");
         TEST_RESULT_BOOL(sqliteStmtNull(stmt, 1), true, "null");
