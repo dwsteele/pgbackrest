@@ -148,6 +148,26 @@ manifestNewInternal(void)
                 // {uncrustify_on}
                 ));
 
+        // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
+        this->dbFileUpdateStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "update file_raw set "
+                        //    1       2        3              4          5              6      7           8           9
+                        "copy=?,delta=?,resume=?,checksumPage=?,checksum=?,checksumRepo=?,mode=?,user_null=?,user_name=?,"
+                        //         10           11          12         13             14              15                      16
+                        "group_null=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,blockIncrSize=?,blockIncrChecksumSize=?,"
+                        //               17     18             19         20          21                  22
+                        "blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,checksumPageError=?,"
+                        //                    23
+                        "checksumPageErrorList=? "
+                    //            24         25
+                    "where id = ?"
+                    // {uncrustify_on}
+                    ));
+
         this->dbFileSelectStmt =
             sqliteStmtNew(
                 this->db,
@@ -183,26 +203,6 @@ manifestNewInternal(void)
                         "file_raw inner join path "
                             "on file_raw.path_id = path.id "
                     "where file_raw.id = ?"
-                    // {uncrustify_on}
-                    ));
-
-        // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
-        this->dbFileUpdateStmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    // {uncrustify_off - indentation}
-                    "update file_raw set "
-                        //    1       2        3              4          5              6      7           8           9
-                        "copy=?,delta=?,resume=?,checksumPage=?,checksum=?,checksumRepo=?,mode=?,user_null=?,user_name=?,"
-                        //         10           11          12         13             14              15                      16
-                        "group_null=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,blockIncrSize=?,blockIncrChecksumSize=?,"
-                        //               17     18             19         20          21                  22
-                        "blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,checksumPageError=?,"
-                        //                    23
-                        "checksumPageErrorList=? "
-                    //            24         25
-                    "where id = ?"
                     // {uncrustify_on}
                     ));
     }

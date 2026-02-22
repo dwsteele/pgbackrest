@@ -394,7 +394,6 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
         if (stmt == this->dbFileInsertStmt)
         {
-
             if (sqliteStmtNext(this->dbPathSelectStmt))
                 pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
             else
@@ -406,8 +405,8 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
                     strZ(strPath(file->name)));
                 sqliteStmtReset(this->dbPathInsertStmt);
 
-                CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'",
-                strZ(strPath(file->name)));
+                CHECK_FMT(
+                    DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
                 pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
             }
 
