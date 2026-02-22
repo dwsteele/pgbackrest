@@ -449,8 +449,6 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->group == NULL)
             flag |= 1 << manifestStoreFlagGroupNull;
 
-        // fprintf(
-        //     stdout, "%s %s FLAG %x\n", stmt == this->dbFileInsertStmt ? "insert" : "update", strZ(file->name), flag);fflush(stdout);
         sqliteStmtBindUInt(stmt, 1, flag);
 
         if (file->checksumSha1 != NULL)
@@ -541,7 +539,6 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
         const String *const name = sqliteStmtStr(this->dbFileSelectStmt, 0);
         CHECK(AssertError, strEq(file.name, name), "file.name is not equal");
         const unsigned int flag = sqliteStmtUIntP(this->dbFileSelectStmt, 1);
-        // fprintf(stdout, "READ %s CHKP OLD %d NEW %u FLAG %x\n", strZ(name), file.checksumPage, flag & (1 << manifestStoreFlagChecksumPage), flag);fflush(stdout);
 
         CHECK(
             AssertError, file.copy == !(flag & (1 << manifestStoreFlagCopy)),
@@ -554,8 +551,8 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             "file.resume does not equal db.resume");
         CHECK(
             AssertError,
-            file.checksumPage ==
-                (bool)(flag & (1 << manifestStoreFlagChecksumPage)) ? !this->checksumPageDefault : this->checksumPageDefault,
+            file.checksumPage == (bool)(flag & (1 << manifestStoreFlagChecksumPage)) ?
+                !this->checksumPageDefault : this->checksumPageDefault,
             "file.checksumPage does not equal db.checksumPage");
         CHECK(
             AssertError,
