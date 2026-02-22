@@ -99,16 +99,11 @@ manifestNewInternal(void)
                     "id integer constraint file_id_nn not null constraint file_pk primary key,"
                     "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
                     "name text constraint file_name_nn not null,"
-                    "copy integer,"
-                    "delta integer,"
-                    "resume integer,"
-                    "checksumPage integer,"
+                    "flag integer,"
                     "checksum blob,"
                     "checksumRepo blob,"
                     "mode integer,"
-                    "user_null integer,"
                     "user_name text,"
-                    "group_null integer,"
                     "group_name text,"
                     "reference integer,"
                     "bundleId integer,"
@@ -120,7 +115,6 @@ manifestNewInternal(void)
                     "sizeOriginal integer,"
                     "sizeRepo integer,"
                     "timestamp integer,"
-                    "checksumPageError integer,"
                     "checksumPageErrorList text"
 #ifdef DEBUG
                     ",constraint file_pathid_name_unq unique (path_id, name)"
@@ -138,13 +132,13 @@ manifestNewInternal(void)
             STRDEF(
                 // {uncrustify_off - indentation}
                 "insert into file_raw("
-                    //  1     2      3            4        5            6    7         8         9         10         11        12
-                    "copy,delta,resume,checksumPage,checksum,checksumRepo,mode,user_null,user_name,group_null,group_name,reference,"
-                    //     13           14            15                    16               17   18           19       20
-                    "bundleId,bundleOffset,blockIncrSize,blockIncrChecksumSize,blockIncrMapSize,size,sizeOriginal,sizeRepo,"
-                    //      21                22                    23      24   25
-                    "timestamp,checksumPageError,checksumPageErrorList,path_id,name) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                    //  1        2            3    4         5          6,        7,       8,           9,           10
+                    "flag,checksum,checksumRepo,mode,user_name,group_name,reference,bundleId,bundleOffset,blockIncrSize,"
+                    //                  11               12   13           14       15        16                    17      18
+                    "blockIncrChecksumSize,blockIncrMapSize,size,sizeOriginal,sizeRepo,timestamp,checksumPageErrorList,path_id"
+                    //  19
+                    ",name) "
+                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                 // {uncrustify_on}
                 ));
 
@@ -155,15 +149,13 @@ manifestNewInternal(void)
                 STRDEF(
                     // {uncrustify_off - indentation}
                     "update file_raw set "
-                        //    1       2        3              4          5              6      7           8           9
-                        "copy=?,delta=?,resume=?,checksumPage=?,checksum=?,checksumRepo=?,mode=?,user_null=?,user_name=?,"
-                        //         10           11          12         13             14              15                      16
-                        "group_null=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,blockIncrSize=?,blockIncrChecksumSize=?,"
-                        //               17     18             19         20          21                  22
-                        "blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,checksumPageError=?,"
-                        //                    23
+                        //    1          2              3,     4,          5,           6,          7,         8              9
+                        "flag=?,checksum=?,checksumRepo=?,mode=?,user_name=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,"
+                        //            10                      11                 12     13             14         15          16
+                        "blockIncrSize=?,blockIncrChecksumSize=?,blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,"
+                        //                    17
                         "checksumPageErrorList=? "
-                    //            24         25
+                    //         18
                     "where id = ?"
                     // {uncrustify_on}
                     ));
@@ -174,35 +166,29 @@ manifestNewInternal(void)
                 STRDEF(
                     // {uncrustify_off - indentation}
                     "select "
-                        "path.name || '/' || file_raw.name as name,"
-                        "copy,"
-                        "delta,"
-                        "resume,"
-                        "checksumPage,"
-                        "checksum,"
-                        "checksumRepo,"
-                        "file_raw.mode as mode,"
-                        "user_null,"
-                        "file_raw.user_name as user_name,"
-                        "group_null,"
-                        "file_raw.group_name as group_name,"
-                        "reference,"
-                        "bundleId,"
-                        "bundleOffset,"
-                        "blockIncrSize,"
-                        "blockIncrChecksumSize,"
-                        "blockIncrMapSize,"
-                        "size,"
-                        "sizeOriginal,"
-                        "sizeRepo,"
-                        "timestamp,"
-                        "checksumPageError,"
-                        "checksumPageErrorList,"
-                        "file_raw.id as id "
+                        "path.name || '/' || file_raw.name as name," // 0
+                        "flag," // 1
+                        "checksum," // 2
+                        "checksumRepo," // 3
+                        "file_raw.mode as mode," // 4
+                        "file_raw.user_name as user_name," // 5
+                        "file_raw.group_name as group_name," // 6
+                        "reference," // 7
+                        "bundleId," // 8
+                        "bundleOffset," // 9
+                        "blockIncrSize," // 10
+                        "blockIncrChecksumSize," // 11
+                        "blockIncrMapSize," // 12
+                        "size," // 13
+                        "sizeOriginal," // 14
+                        "sizeRepo," // 15
+                        "timestamp,"  // 16
+                        "checksumPageErrorList,"  // 17
+                        "file_raw.id as id " // 18
                     "from "
                         "file_raw inner join path "
                             "on file_raw.path_id = path.id "
-                    "where file_raw.id = ?"
+                    "where file_raw.id = ?" // 1
                     // {uncrustify_on}
                     ));
     }
