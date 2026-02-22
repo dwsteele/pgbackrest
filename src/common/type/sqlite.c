@@ -389,7 +389,9 @@ sqliteExec(Sqlite *const this, const String *const statement)
     ASSERT(this != NULL);
     ASSERT(statement != NULL);
 
-    SQLITE_ERR(this, sqlite3_exec(this->db, strZ(statement), 0, 0, NULL) != SQLITE_OK, "unable to execute");
+    SqliteStmt *const stmt = sqliteStmtNew(this, statement);
+    sqliteStmtNext(stmt);
+    sqliteStmtFree(stmt);
 
     FUNCTION_TEST_RETURN_VOID();
 }

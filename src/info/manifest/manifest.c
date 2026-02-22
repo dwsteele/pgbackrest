@@ -75,59 +75,59 @@ manifestNewInternal(void)
         .ownerList = strLstNew(),
     };
 
-    sqliteExec(
-        this->db,
-        STRDEF(
-            // {uncrustify_off - indentation}
-            "create table path"
-            "("
-                "id integer constraint path_id_nn constraint path_pk primary key,"
-                "name text constraint path_name_nn not null constraint path_name_unq unique"
-            ")"
-            // {uncrustify_on}
-            ));
-
-    sqliteExec(
-        this->db,
-        STRDEF(
-            // {uncrustify_off - indentation}
-            "create table file_raw"
-            "(\n"
-                "id integer constraint file_id_nn not null constraint file_pk primary key,"
-                "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
-                "name text constraint file_name_nn not null,"
-                "copy integer,"
-                "delta integer,"
-                "resume integer,"
-                "checksumPage integer,"
-                "checksum blob,"
-                "checksumRepo blob,"
-                "mode integer,"
-                "user_null integer,"
-                "user_name text,"
-                "group_null integer,"
-                "group_name text,"
-                "reference integer,"
-                "bundleId integer,"
-                "bundleOffset integer,"
-                "blockIncrSize,"
-                "blockIncrChecksumSize,"
-                "blockIncrMapSize,"
-                "size integer,"
-                "sizeOriginal integer,"
-                "sizeRepo integer,"
-                "timestamp integer,"
-                "checksumPageError integer,"
-                "checksumPageErrorList text,"
-                "constraint file_pathid_name_unq unique (path_id, name)"
-            ")"
-            // {uncrustify_on}
-            ));
-
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
     {
-        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)"));
+        sqliteExec(
+            this->db,
+            STRDEF(
+                // {uncrustify_off - indentation}
+                "create table path"
+                "("
+                    "id integer constraint path_id_nn constraint path_pk primary key,"
+                    "name text constraint path_name_nn not null constraint path_name_unq unique"
+                ")"
+                // {uncrustify_on}
+                ));
+
+        sqliteExec(
+            this->db,
+            STRDEF(
+                // {uncrustify_off - indentation}
+                "create table file_raw"
+                "(\n"
+                    "id integer constraint file_id_nn not null constraint file_pk primary key,"
+                    "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
+                    "name text constraint file_name_nn not null,"
+                    "copy integer,"
+                    "delta integer,"
+                    "resume integer,"
+                    "checksumPage integer,"
+                    "checksum blob,"
+                    "checksumRepo blob,"
+                    "mode integer,"
+                    "user_null integer,"
+                    "user_name text,"
+                    "group_null integer,"
+                    "group_name text,"
+                    "reference integer,"
+                    "bundleId integer,"
+                    "bundleOffset integer,"
+                    "blockIncrSize,"
+                    "blockIncrChecksumSize,"
+                    "blockIncrMapSize,"
+                    "size integer,"
+                    "sizeOriginal integer,"
+                    "sizeRepo integer,"
+                    "timestamp integer,"
+                    "checksumPageError integer,"
+                    "checksumPageErrorList text,"
+                    "constraint file_pathid_name_unq unique (path_id, name)"
+                ")"
+                // {uncrustify_on}
+                ));
+
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)returning id"));
         this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
 
         // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY

@@ -1116,6 +1116,8 @@ testRun(void)
 #ifdef TEST_CONTAINER_REQUIRED
         TEST_TITLE("owner is root and ownership of pg_data is bad");
 
+        manifest = testManifestMinimal(STRDEF("20161219-212741F_20161219-21275D"), PG_VERSION_96, pgPath);
+
         manifestPathAdd(manifest, &path);
         manifestFileAdd(manifest, &file);
 
