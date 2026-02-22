@@ -465,7 +465,8 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
     sqliteStmtBindUInt(stmt, 24, pathId);
     sqliteStmtBindStr(stmt, 25, strBase(file->name));
 
-    CHECK_FMT(DbQueryError, sqliteStmtNext(stmt), "unable to add/update file %s", strZ(file->name));
+    sqliteStmtExec(stmt);
+    CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
     sqliteStmtReset(stmt);
 
     FUNCTION_TEST_RETURN_VOID();

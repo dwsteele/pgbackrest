@@ -103,6 +103,9 @@ sqliteStmtBindU63(SqliteStmt *const this, const unsigned int column, const uint6
 // Execute statement
 FN_EXTERN void sqliteStmtExec(SqliteStmt *this);
 
+// Rows changed by and insert, update, or delete statement
+FN_EXTERN unsigned int sqliteStmtChanged(SqliteStmt *const this);
+
 // Get next result
 FN_EXTERN bool sqliteStmtNext(SqliteStmt *this);
 

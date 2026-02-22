@@ -143,7 +143,6 @@ manifestNewInternal(void)
                     //      21                22                    23      24   25
                     "timestamp,checksumPageError,checksumPageErrorList,path_id,name) "
                 "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-                "returning id"
                 // {uncrustify_on}
                 ));
 
@@ -203,7 +202,6 @@ manifestNewInternal(void)
                         "checksumPageErrorList=? "
                     //            24         25
                     "where path_id=? and name=? "
-                    "returning id"
                     // {uncrustify_on}
                     ));
     }

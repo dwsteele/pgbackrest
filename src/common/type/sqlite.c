@@ -201,6 +201,19 @@ sqliteStmtExec(SqliteStmt *const this)
 }
 
 /**********************************************************************************************************************************/
+FN_EXTERN unsigned int
+sqliteStmtChanged(SqliteStmt *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(SQLITE_STMT, this);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+
+    FUNCTION_TEST_RETURN(UINT, (unsigned int)sqlite3_changes(this->sqlite->db));
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN void
 sqliteStmtReset(SqliteStmt *const this)
 {
