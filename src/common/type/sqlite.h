@@ -52,7 +52,7 @@ typedef struct SqliteStmtBindI64Param
     int64_t defaultValue;                                           // Default value
 } SqliteStmtBindI64Param;
 
-#define sqliteStmtBindI64P(this, column, value, ...)                                                                                      \
+#define sqliteStmtBindI64P(this, column, value, ...)                                                                               \
     sqliteStmtBindI64(this, column, value, (SqliteStmtBindI64Param){VAR_PARAM_INIT, __VA_ARGS__})
 
 FN_EXTERN void sqliteStmtBindI64(SqliteStmt *this, unsigned int column, int64_t value, SqliteStmtBindI64Param param);
@@ -64,7 +64,7 @@ typedef struct SqliteStmtBindBoolParam
     bool defaultValue;                                              // Default value
 } SqliteStmtBindBoolParam;
 
-#define sqliteStmtBindBoolP(this, column, value, ...)                                                                                     \
+#define sqliteStmtBindBoolP(this, column, value, ...)                                                                              \
     sqliteStmtBindBool(this, column, value, (SqliteStmtBindBoolParam){VAR_PARAM_INIT, __VA_ARGS__})
 
 FN_INLINE_ALWAYS void
@@ -90,7 +90,7 @@ typedef struct SqliteStmtBindU63Param
     bool defaultValue;                                              // Default value
 } SqliteStmtBindU63Param;
 
-#define sqliteStmtBindU63P(this, column, value, ...)                                                                                     \
+#define sqliteStmtBindU63P(this, column, value, ...)                                                                               \
     sqliteStmtBindU63(this, column, value, (SqliteStmtBindU63Param){VAR_PARAM_INIT, __VA_ARGS__})
 
 FN_INLINE_ALWAYS void

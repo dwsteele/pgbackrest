@@ -379,96 +379,99 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         FUNCTION_TEST_PARAM(SQLITE_STMT, stmt);
     FUNCTION_TEST_END();
 
-    FUNCTION_AUDIT_HELPER();
-
-    sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
-    unsigned int pathId;
-
-    if (sqliteStmtNext(this->dbPathSelectStmt))
-        pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
-    else
+    MEM_CONTEXT_TEMP_BEGIN()
     {
-        sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
-        sqliteStmtExec(this->dbPathInsertStmt);
-        CHECK_FMT(AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted", strZ(strPath(file->name)));
-        sqliteStmtReset(this->dbPathInsertStmt);
+        sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
+        unsigned int pathId;
 
-        CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
-        pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+        if (sqliteStmtNext(this->dbPathSelectStmt))
+            pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+        else
+        {
+            sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
+            sqliteStmtExec(this->dbPathInsertStmt);
+            CHECK_FMT(
+                AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted", strZ(strPath(file->name)));
+            sqliteStmtReset(this->dbPathInsertStmt);
+
+            CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
+            pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+        }
+
+        sqliteStmtReset(this->dbPathSelectStmt);
+
+        // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
+        sqliteStmtBindBoolP(stmt, 1, file->copy, .defaultNull = true, .defaultValue = true);
+        sqliteStmtBindBoolP(stmt, 2, file->delta, .defaultNull = true);
+        sqliteStmtBindBoolP(stmt, 3, file->resume, .defaultNull = true);
+        sqliteStmtBindBoolP(stmt, 4, file->checksumPage, .defaultNull = true, .defaultValue = this->checksumPageDefault);
+
+        if (file->checksumSha1 != NULL)
+            sqliteStmtBindBuf(stmt, 5, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
+
+        if (file->checksumRepoSha1 != NULL)
+            sqliteStmtBindBuf(stmt, 6, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
+
+        if (file->mode != this->fileModeDefault)
+            sqliteStmtBindUInt(stmt, 7, file->mode);
+
+        if (file->user == NULL)
+            sqliteStmtBindBoolP(stmt, 8, true);
+        else if (!strEq(file->user, this->fileUserDefault))
+            sqliteStmtBindStr(stmt, 9, file->user);
+
+        if (file->group == NULL)
+            sqliteStmtBindBoolP(stmt, 10, true);
+        else if (!strEq(file->group, this->fileGroupDefault))
+            sqliteStmtBindStr(stmt, 11, file->group);
+
+        if (file->reference != NULL)
+            sqliteStmtBindUInt(stmt, 12, strLstFindIdxP(this->pub.referenceList, file->reference, .required = true));
+
+        if (file->bundleId != 0)
+        {
+            sqliteStmtBindU63P(stmt, 13, file->bundleId);
+
+            if (file->bundleOffset != 0)
+                sqliteStmtBindU63P(stmt, 14, file->bundleOffset);
+        }
+
+        if (file->blockIncrSize != 0)
+        {
+            ASSERT(file->blockIncrSize % BLOCK_INCR_SIZE_FACTOR == 0);
+
+            sqliteStmtBindU63P(stmt, 15, file->blockIncrSize / 8192);
+            sqliteStmtBindU63P(stmt, 16, file->blockIncrChecksumSize);
+            sqliteStmtBindU63P(stmt, 17, file->blockIncrMapSize);
+        }
+
+        if (file->size != 0)
+            sqliteStmtBindU63P(stmt, 18, file->size);
+
+        if (file->sizeOriginal != file->size)
+            sqliteStmtBindU63P(stmt, 19, file->sizeOriginal);
+
+        if (file->sizeRepo != file->size)
+            sqliteStmtBindU63P(stmt, 20, file->sizeRepo);
+
+        ASSERT(this->pub.data.backupTimestampStart != 0);
+        sqliteStmtBindI64P(stmt, 21, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
+
+        if (file->checksumPageError)
+            sqliteStmtBindBoolP(stmt, 22, true);
+
+        // !!! MIGHT NOT NEED THE IF HERE
+        if (file->checksumPageErrorList != NULL)
+            sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
+
+        sqliteStmtBindUInt(stmt, 24, pathId);
+        sqliteStmtBindStr(stmt, 25, strBase(file->name));
+
+        sqliteStmtExec(stmt);
+        CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
+        sqliteStmtReset(stmt);
     }
-
-    sqliteStmtReset(this->dbPathSelectStmt);
-
-    // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
-    sqliteStmtBindBoolP(stmt, 1, file->copy, .defaultNull = true, .defaultValue = true);
-    sqliteStmtBindBoolP(stmt, 2, file->delta, .defaultNull = true);
-    sqliteStmtBindBoolP(stmt, 3, file->resume, .defaultNull = true);
-    sqliteStmtBindBoolP(stmt, 4, file->checksumPage, .defaultNull = true, .defaultValue = this->checksumPageDefault);
-
-    if (file->checksumSha1 != NULL)
-        sqliteStmtBindBuf(stmt, 5, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
-
-    if (file->checksumRepoSha1 != NULL)
-        sqliteStmtBindBuf(stmt, 6, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
-
-    if (file->mode != this->fileModeDefault)
-        sqliteStmtBindUInt(stmt, 7, file->mode);
-
-    if (file->user == NULL)
-        sqliteStmtBindBoolP(stmt, 8, true);
-    else if (!strEq(file->user, this->fileUserDefault))
-        sqliteStmtBindStr(stmt, 9, file->user);
-
-    if (file->group == NULL)
-        sqliteStmtBindBoolP(stmt, 10, true);
-    else if (!strEq(file->group, this->fileGroupDefault))
-        sqliteStmtBindStr(stmt, 11, file->group);
-
-    if (file->reference != NULL)
-        sqliteStmtBindUInt(stmt, 12, strLstFindIdxP(this->pub.referenceList, file->reference, .required = true));
-
-    if (file->bundleId != 0)
-    {
-        sqliteStmtBindU63P(stmt, 13, file->bundleId);
-
-        if (file->bundleOffset != 0)
-            sqliteStmtBindU63P(stmt, 14, file->bundleOffset);
-    }
-
-    if (file->blockIncrSize != 0)
-    {
-        ASSERT(file->blockIncrSize % BLOCK_INCR_SIZE_FACTOR == 0);
-
-        sqliteStmtBindU63P(stmt, 15, file->blockIncrSize / 8192);
-        sqliteStmtBindU63P(stmt, 16, file->blockIncrChecksumSize);
-        sqliteStmtBindU63P(stmt, 17, file->blockIncrMapSize);
-    }
-
-    if (file->size != 0)
-        sqliteStmtBindU63P(stmt, 18, file->size);
-
-    if (file->sizeOriginal != file->size)
-        sqliteStmtBindU63P(stmt, 19, file->sizeOriginal);
-
-    if (file->sizeRepo != file->size)
-        sqliteStmtBindU63P(stmt, 20, file->sizeRepo);
-
-    ASSERT(this->pub.data.backupTimestampStart != 0);
-    sqliteStmtBindI64P(stmt, 21, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
-
-    if (file->checksumPageError)
-        sqliteStmtBindBoolP(stmt, 22, true);
-
-    // !!! MIGHT NOT NEED THE IF HERE
-    if (file->checksumPageErrorList != NULL)
-        sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
-
-    sqliteStmtBindUInt(stmt, 24, pathId);
-    sqliteStmtBindStr(stmt, 25, strBase(file->name));
-
-    sqliteStmtExec(stmt);
-    CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
-    sqliteStmtReset(stmt);
+    MEM_CONTEXT_TEMP_END();
 
     FUNCTION_TEST_RETURN_VOID();
 }
