@@ -51,6 +51,7 @@ testRun(void)
         TEST_RESULT_VOID(sqliteStmtBindBuf(stmt, 3, BUF(bufLong, sizeof(bufLong))), "bind buf");
         TEST_RESULT_VOID(sqliteStmtBindNull(stmt, 4), "bind null");
         TEST_RESULT_VOID(sqliteStmtExec(stmt), "exec stmt");
+        TEST_RESULT_UINT(sqliteStmtInsertRowId(stmt), 2, "inserted row id");
         TEST_RESULT_VOID(sqliteStmtBindU63P(stmt, 1, 999, .defaultNull = true), "bind int");
         TEST_RESULT_VOID(sqliteStmtExec(stmt), "exec stmt");
         TEST_RESULT_VOID(sqliteStmtFree(stmt), "free stmt");

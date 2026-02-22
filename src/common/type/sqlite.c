@@ -251,6 +251,20 @@ sqliteStmtNext(SqliteStmt *const this)
 }
 
 /**********************************************************************************************************************************/
+FN_EXTERN uint64_t
+sqliteStmtInsertRowId(SqliteStmt *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(SQLITE_STMT, this);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(sqlite3_last_insert_rowid(this->sqlite->db) > 0);
+
+    FUNCTION_TEST_RETURN(UINT64, (uint64_t)sqlite3_last_insert_rowid(this->sqlite->db));
+}
+
+/**********************************************************************************************************************************/
 FN_EXTERN Buffer *
 sqliteStmtBuf(SqliteStmt *const this, const unsigned int column)
 {

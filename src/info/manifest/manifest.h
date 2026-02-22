@@ -136,6 +136,7 @@ File type
 ***********************************************************************************************************************************/
 typedef struct ManifestFile
 {
+    uint64_t id;                                                    // Unique id
     const String *name;                                             // File name (must be first member in struct)
     bool copy : 1;                                                  // Should the file be copied (backup only)?
     bool delta : 1;                                                 // Verify checksum in PGDATA before copying (backup only)?

@@ -121,8 +121,10 @@ manifestNewInternal(void)
                     "sizeRepo integer,"
                     "timestamp integer,"
                     "checksumPageError integer,"
-                    "checksumPageErrorList text,"
-                    "constraint file_pathid_name_unq unique (path_id, name)"
+                    "checksumPageErrorList text"
+#ifdef DEBUG
+                    ",constraint file_pathid_name_unq unique (path_id, name)"
+#endif
                 ")"
                 // {uncrustify_on}
                 ));
@@ -175,13 +177,12 @@ manifestNewInternal(void)
                         "sizeRepo,"
                         "timestamp,"
                         "checksumPageError,"
-                        "checksumPageErrorList "
+                        "checksumPageErrorList,"
+                        "file_raw.id as id "
                     "from "
                         "file_raw inner join path "
                             "on file_raw.path_id = path.id "
-                    "where "
-                            "file_raw.name = ? "
-                        "and path.name = ?"
+                    "where file_raw.id = ?"
                     // {uncrustify_on}
                     ));
 
@@ -201,7 +202,7 @@ manifestNewInternal(void)
                         //                    23
                         "checksumPageErrorList=? "
                     //            24         25
-                    "where path_id=? and name=? "
+                    "where id = ?"
                     // {uncrustify_on}
                     ));
     }

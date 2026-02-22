@@ -160,6 +160,9 @@ manifestFilePack(const Manifest *const manifest, const ManifestFile *const file)
 
     cvtUInt64ToVarInt128(flag, buffer, &bufferPos, sizeof(buffer));
 
+    // Id
+    cvtUInt64ToVarInt128(file->id, buffer, &bufferPos, sizeof(buffer));
+
     // Size
     cvtUInt64ToVarInt128(file->size, buffer, &bufferPos, sizeof(buffer));
 
@@ -288,6 +291,9 @@ manifestFileUnpack(const Manifest *const manifest, const ManifestFilePack *const
     result.delta = (flag >> manifestFilePackFlagDelta) & 1;
     result.resume = (flag >> manifestFilePackFlagResume) & 1;
 
+    // id
+    result.id = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
+
     // Size
     result.size = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
 
@@ -370,7 +376,7 @@ manifestFileUnpack(const Manifest *const manifest, const ManifestFilePack *const
     FUNCTION_TEST_RETURN_TYPE(ManifestFile, result);
 }
 
-static void
+static uint64_t
 manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, SqliteStmt *const stmt)
 {
     FUNCTION_TEST_BEGIN();
@@ -379,26 +385,34 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         FUNCTION_TEST_PARAM(SQLITE_STMT, stmt);
     FUNCTION_TEST_END();
 
+    uint64_t result = 0;
+
     MEM_CONTEXT_TEMP_BEGIN()
     {
         sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
-        unsigned int pathId;
+        unsigned int pathId = 0;
 
-        if (sqliteStmtNext(this->dbPathSelectStmt))
-            pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
-        else
+        if (stmt == this->dbFileInsertStmt)
         {
-            sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
-            sqliteStmtExec(this->dbPathInsertStmt);
-            CHECK_FMT(
-                AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted", strZ(strPath(file->name)));
-            sqliteStmtReset(this->dbPathInsertStmt);
 
-            CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
-            pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+            if (sqliteStmtNext(this->dbPathSelectStmt))
+                pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+            else
+            {
+                sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
+                sqliteStmtExec(this->dbPathInsertStmt);
+                CHECK_FMT(
+                    AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted",
+                    strZ(strPath(file->name)));
+                sqliteStmtReset(this->dbPathInsertStmt);
+
+                CHECK_FMT(DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'",
+                strZ(strPath(file->name)));
+                pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
+            }
+
+            sqliteStmtReset(this->dbPathSelectStmt);
         }
-
-        sqliteStmtReset(this->dbPathSelectStmt);
 
         // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
         sqliteStmtBindBoolP(stmt, 1, file->copy, .defaultNull = true, .defaultValue = true);
@@ -464,16 +478,27 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->checksumPageErrorList != NULL)
             sqliteStmtBindStr(stmt, 23, file->checksumPageErrorList);
 
-        sqliteStmtBindUInt(stmt, 24, pathId);
-        sqliteStmtBindStr(stmt, 25, strBase(file->name));
+        if (stmt == this->dbFileInsertStmt)
+        {
+            sqliteStmtBindUInt(stmt, 24, pathId);
+            sqliteStmtBindStr(stmt, 25, strBase(file->name));
 
-        sqliteStmtExec(stmt);
-        CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
+            sqliteStmtNext(stmt);
+            result = sqliteStmtInsertRowId(stmt);
+            CHECK_FMT(DbQueryError, result != 0, "unable to insert file %s", strZ(file->name));
+        }
+        else
+        {
+            sqliteStmtBindU63P(stmt, 24, file->id);
+            sqliteStmtExec(stmt);
+
+            CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
+        }
         sqliteStmtReset(stmt);
     }
     MEM_CONTEXT_TEMP_END();
 
-    FUNCTION_TEST_RETURN_VOID();
+    FUNCTION_TEST_RETURN(UINT64, result);
 }
 
 FN_EXTERN ManifestFile
@@ -484,8 +509,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        sqliteStmtBindStr(this->dbFileSelectStmt, 1, strBase(file.name));
-        sqliteStmtBindStr(this->dbFileSelectStmt, 2, strPath(file.name));
+        sqliteStmtBindU63P(this->dbFileSelectStmt, 1, file.id);
         CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(file.name));
 
         CHECK(AssertError, strEq(file.name, sqliteStmtStr(this->dbFileSelectStmt, 0)), "file.name is not equal");
@@ -562,6 +586,8 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             AssertError, strEq(file.checksumPageErrorList, sqliteStmtStr(this->dbFileSelectStmt, 23)),
             "checksumPageErrorList is not equal");
 
+        CHECK(AssertError, file.id == sqliteStmtU63P(this->dbFileSelectStmt, 24), "id is not equal");
+
         sqliteStmtReset(this->dbFileSelectStmt);
     }
     MEM_CONTEXT_TEMP_END();
@@ -585,10 +611,10 @@ manifestFileAdd(Manifest *const this, ManifestFile *const file)
 
     MEM_CONTEXT_BEGIN(lstMemContext(this->pub.fileList))
     {
+        file->id = manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
+
         const ManifestFilePack *const filePack = manifestFilePack(this, file);
         lstAdd(this->pub.fileList, &filePack);
-
-        manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
     }
     MEM_CONTEXT_END();
 

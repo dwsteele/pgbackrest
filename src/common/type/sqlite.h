@@ -109,6 +109,9 @@ FN_EXTERN unsigned int sqliteStmtChanged(SqliteStmt *const this);
 // Get next result
 FN_EXTERN bool sqliteStmtNext(SqliteStmt *this);
 
+// Inserted row id
+FN_EXTERN uint64_t sqliteStmtInsertRowId(SqliteStmt *const this);
+
 // Reset statement
 FN_EXTERN void sqliteStmtReset(SqliteStmt *this);
 
