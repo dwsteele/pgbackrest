@@ -29,7 +29,6 @@ struct Manifest
     StringList *ownerList;                                          // List of users/groups
     Sqlite *db;                                                     // Manifest database
     SqliteStmt *dbPathInsertStmt;                                   // Insert into path table
-    SqliteStmt *dbPathSelectStmt;                                   // Select from path table
     SqliteStmt *dbFileInsertStmt;                                   // Insert into file table
     SqliteStmt *dbFileSelectStmt;                                   // Select from file table
     SqliteStmt *dbFileUpdateStmt;                                   // Update file table
@@ -75,124 +74,7 @@ manifestNewInternal(void)
         .ownerList = strLstNew(),
     };
 
-    // Prepare statements in the db context since they will exist for the lifetime of the db
-    MEM_CONTEXT_OBJ_BEGIN(this->db)
-    {
-        sqliteExec(
-            this->db,
-            STRDEF(
-                // {uncrustify_off - indentation}
-                "create table path"
-                "("
-                    "id integer constraint path_id_nn constraint path_pk primary key,"
-                    "name text constraint path_name_nn not null constraint path_name_unq unique"
-                ")"
-                // {uncrustify_on}
-                ));
-
-        sqliteExec(
-            this->db,
-            STRDEF(
-                // {uncrustify_off - indentation}
-                "create table file_raw"
-                "(\n"
-                    "id integer constraint file_id_nn not null constraint file_pk primary key,"
-                    "path_id integer constraint file_pathid_nn not null constraint file_pathid_path_id_fk references path (id),"
-                    "name text constraint file_name_nn not null,"
-                    "flag integer,"
-                    "checksum blob,"
-                    "checksumRepo blob,"
-                    "mode integer,"
-                    "user_name text,"
-                    "group_name text,"
-                    "reference integer,"
-                    "bundleId integer,"
-                    "bundleOffset integer,"
-                    "blockIncrSize,"
-                    "blockIncrChecksumSize,"
-                    "blockIncrMapSize,"
-                    "size integer,"
-                    "sizeOriginal integer,"
-                    "sizeRepo integer,"
-                    "timestamp integer,"
-                    "checksumPageErrorList text"
-#ifdef DEBUG
-                    ",constraint file_pathid_name_unq unique (path_id, name)"
-#endif
-                ")"
-                // {uncrustify_on}
-                ));
-
-        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)"));
-        this->dbPathSelectStmt = sqliteStmtNew(this->db, STRDEF("select id from path where name = ?"));
-
-        // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY
-        this->dbFileInsertStmt = sqliteStmtNew(
-            this->db,
-            STRDEF(
-                // {uncrustify_off - indentation}
-                "insert into file_raw("
-                    //  1        2            3    4         5          6,        7,       8,           9,           10
-                    "flag,checksum,checksumRepo,mode,user_name,group_name,reference,bundleId,bundleOffset,blockIncrSize,"
-                    //                  11               12   13           14       15        16                    17      18
-                    "blockIncrChecksumSize,blockIncrMapSize,size,sizeOriginal,sizeRepo,timestamp,checksumPageErrorList,path_id"
-                    //  19
-                    ",name) "
-                "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-                // {uncrustify_on}
-                ));
-
-        // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
-        this->dbFileUpdateStmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    // {uncrustify_off - indentation}
-                    "update file_raw set "
-                        //    1          2              3,     4,          5,           6,          7,         8              9
-                        "flag=?,checksum=?,checksumRepo=?,mode=?,user_name=?,group_name=?,reference=?,bundleId=?,bundleOffset=?,"
-                        //            10                      11                 12     13             14         15          16
-                        "blockIncrSize=?,blockIncrChecksumSize=?,blockIncrMapSize=?,size=?,sizeOriginal=?,sizeRepo=?,timestamp=?,"
-                        //                    17
-                        "checksumPageErrorList=? "
-                    //         18
-                    "where id = ?"
-                    // {uncrustify_on}
-                    ));
-
-        this->dbFileSelectStmt =
-            sqliteStmtNew(
-                this->db,
-                STRDEF(
-                    // {uncrustify_off - indentation}
-                    "select "
-                        "path.name || '/' || file_raw.name as name," // 0
-                        "flag," // 1
-                        "checksum," // 2
-                        "checksumRepo," // 3
-                        "file_raw.mode as mode," // 4
-                        "file_raw.user_name as user_name," // 5
-                        "file_raw.group_name as group_name," // 6
-                        "reference," // 7
-                        "bundleId," // 8
-                        "bundleOffset," // 9
-                        "blockIncrSize," // 10
-                        "blockIncrChecksumSize," // 11
-                        "blockIncrMapSize," // 12
-                        "size," // 13
-                        "sizeOriginal," // 14
-                        "sizeRepo," // 15
-                        "timestamp,"  // 16
-                        "checksumPageErrorList,"  // 17
-                        "file_raw.id as id " // 18
-                    "from "
-                        "file_raw inner join path "
-                            "on file_raw.path_id = path.id "
-                    "where file_raw.id = ?" // 1
-                    // {uncrustify_on}
-                    ));
-    }
-    MEM_CONTEXT_OBJ_END();
+    manifestStoreInit(this);
 
     FUNCTION_TEST_RETURN(MANIFEST, this);
 }
@@ -793,39 +675,13 @@ manifestBuildComplete(
         //         this->db,
         //         STRDEF(
         //             "select "
-        //                 "path.name || '/' || file_raw.name as name,"
-        //                 "copy as cpy,"
-        //                 "delta as dlt,"
-        //                 "resume as rsm,"
-        //                 "checksumPage as ckPg,"
-        //                 "checksum as ck,"
-        //                 "checksumRepo as ckRp,"
-        //                 "file_raw.mode as mode,"
-        //                 "user_null as usr_n,"
-        //                 "file_raw.user_name as usr,"
-        //                 "group_null as grp_n,"
-        //                 "file_raw.group_name as grp,"
-        //                 "reference as ref,"
-        //                 "bundleId as bndId,"
-        //                 "bundleOffset as bndOff,"
-        //                 "blockIncrSize as biSz,"
-        //                 "blockIncrChecksumSize as biChkSz,"
-        //                 "blockIncrMapSize as biMapSz,"
-        //                 "size as sz,"
-        //                 "sizeOriginal as szOrg,"
-        //                 "sizeRepo as szRp,"
-        //                 "timestamp as ts,"
-        //                 "checksumPageError as ckPgErr,"
-        //                 "checksumPageErrorList as ckPgErrLst "
-        //             "from "
-        //                 "file_raw inner join path "
-        //                     "on file_raw.path_id = path.id "
+        //                 "path.name || '/' || file.name as name,flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,"
+        //                 "szO,szR,time,ckPgErr "
+        //             "from file inner join path on file.path_id = path.id "
         //             "order by "
-        //                 "case when file_raw.reference is null then -1 else file_raw.reference end,"
-        //                 "case when file_raw.bundleId is null then 0 else file_raw.bundleId end,"
-        //                 "case when file_raw.bundleOffset is null then 0 else file_raw.bundleOffset end,"
-        //                 "case when file_raw.size is null then 0 else file_raw.size end desc,"
-        //                 "path.name || '/' || file_raw.name"));
+        //                 "case when ref is null then -1 else ref end,case when bndId is null then 0 else bndId end,"
+        //                 "case when bndOff is null then 0 else bndOff end,case when sz is null then 0 else sz end desc,"
+        //                 "path.name || '/' || file.name"));
 
         // fprintf(stdout, "!!!SQLITE:\n%s\n", strZ(hrnSqliteStmtToStr(stmt)));
         // fflush(stdout);

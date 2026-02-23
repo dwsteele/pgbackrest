@@ -14,6 +14,83 @@ STRING_EXTERN(MANIFEST_TARGET_PGTBLSPC_STR,                         MANIFEST_TAR
 #define BLOCK_INCR_SIZE_FACTOR                                      8192
 
 /***********************************************************************************************************************************
+// Initialize store
+***********************************************************************************************************************************/
+static void
+manifestStoreInit(Manifest *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+    FUNCTION_TEST_END();
+
+    // Prepare statements in the db context since they will exist for the lifetime of the db
+    MEM_CONTEXT_OBJ_BEGIN(this->db)
+    {
+        sqliteExec(this->db, STRDEF("create table path(id integer primary key,name text not null unique)strict"));
+
+        sqliteExec(
+            this->db,
+            STRDEF(
+                // {uncrustify_off - indentation}
+                "create table file("
+                    "id integer primary key,path_id integer not null references path (id),"
+                    "name text constraint file_name_nn not null,flg integer,ck blob,ckR blob,mode integer,usr text,grp text,"
+                    "ref integer,bndId integer,bndOff integer,biSz integer,biCkSz integer,biMapSz integer,sz integer,szO integer,"
+                    "szR integer,time integer,ckPgErr text"
+#ifdef DEBUG
+                    ",constraint file_pathid_name_unq unique (path_id, name)"
+#endif
+                ")strict"
+                // {uncrustify_on}
+                ));
+
+        this->dbPathInsertStmt = sqliteStmtNew(this->db, STRDEF("insert or ignore into path(name)values(?)"));
+
+        // !!! THIS CAN BE IMPROVED BY SELECTING FROM PATH RATHER THAN DOING A SEPARATE QUERY
+        this->dbFileInsertStmt = sqliteStmtNew(
+            this->db,
+            STRDEF(
+                // {uncrustify_off - indentation}
+                "insert into file("
+                    "flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,ckPgErr,name,path_id)"
+                "select ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,id "
+                "from path "
+                "where name=?"
+                // {uncrustify_on}
+                ));
+
+        // !!! THIS UPDATE CAN IMPROVED BY USING PATH.NAME INSTEAD OF LOOKING UP ID
+        this->dbFileUpdateStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "update file set "
+                        "flg=?,ck=?,ckR=?,mode=?,usr=?,grp=?,ref=?,bndId=?,bndOff=?,biSz=?,biCkSz=?,biMapSz=?,sz=?,szO=?,szR=?,"
+                        "time=?,ckPgErr=? "
+                    "where id=?"
+                    // {uncrustify_on}
+                    ));
+
+        this->dbFileSelectStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "select "
+                        "path.name||'/'||file.name,flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,"
+                        "ckPgErr,file.id "
+                    "from file inner join path on file.path_id=path.id "
+                    "where file.id=?" // 1
+                    // {uncrustify_on}
+                    ));
+    }
+    MEM_CONTEXT_OBJ_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/***********************************************************************************************************************************
 // Add owner to the owner list if it is not there already and return the pointer. This saves a lot of space.
 ***********************************************************************************************************************************/
 static const String *
@@ -401,29 +478,10 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        sqliteStmtBindStr(this->dbPathSelectStmt, 1, strPath(file->name));
-        unsigned int pathId = 0;
-
-        if (stmt == this->dbFileInsertStmt)
-        {
-            if (sqliteStmtNext(this->dbPathSelectStmt))
-                pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
-            else
-            {
-                sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
-                sqliteStmtExec(this->dbPathInsertStmt);
-                CHECK_FMT(
-                    AssertError, sqliteStmtChanged(this->dbPathInsertStmt) == 1, "path '%s' not inserted",
-                    strZ(strPath(file->name)));
-                sqliteStmtReset(this->dbPathInsertStmt);
-
-                CHECK_FMT(
-                    DbQueryError, sqliteStmtNext(this->dbPathSelectStmt), "unable to find path '%s'", strZ(strPath(file->name)));
-                pathId = sqliteStmtUIntP(this->dbPathSelectStmt, 0);
-            }
-
-            sqliteStmtReset(this->dbPathSelectStmt);
-        }
+        // Insert path if it does not already exist
+        sqliteStmtBindStr(this->dbPathInsertStmt, 1, strPath(file->name));
+        sqliteStmtExec(this->dbPathInsertStmt);
+        sqliteStmtReset(this->dbPathInsertStmt);
 
         // !!! THIS COULD BE IMPROVED BY CHECKING BACKUP TYPE
         unsigned int flag = 0;
@@ -504,8 +562,8 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
         if (stmt == this->dbFileInsertStmt)
         {
-            sqliteStmtBindUInt(stmt, 18, pathId);
-            sqliteStmtBindStr(stmt, 19, strBase(file->name));
+            sqliteStmtBindStr(stmt, 18, strBase(file->name));
+            sqliteStmtBindStr(stmt, 19, strPath(file->name));
 
             sqliteStmtNext(stmt);
             result = sqliteStmtInsertRowId(stmt);
@@ -518,6 +576,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
 
             CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
         }
+
         sqliteStmtReset(stmt);
     }
     MEM_CONTEXT_TEMP_END();
@@ -536,9 +595,9 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
         sqliteStmtBindU63P(this->dbFileSelectStmt, 1, file.id);
         CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(file.name));
 
-        const String *const name = sqliteStmtStr(this->dbFileSelectStmt, 0);
+        const String *const name = sqliteStmtStr(this->dbFileSelectStmt, 1);
         CHECK(AssertError, strEq(file.name, name), "file.name is not equal");
-        const unsigned int flag = sqliteStmtUIntP(this->dbFileSelectStmt, 1);
+        const unsigned int flag = sqliteStmtUIntP(this->dbFileSelectStmt, 2);
 
         CHECK(
             AssertError, file.copy == !(flag & (1 << manifestStoreFlagCopy)),
@@ -556,68 +615,68 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             "file.checksumPage does not equal db.checksumPage");
         CHECK(
             AssertError,
-            (file.checksumSha1 == NULL && sqliteStmtBuf(this->dbFileSelectStmt, 2) == NULL) ||
-            (file.checksumSha1 != NULL && sqliteStmtBuf(this->dbFileSelectStmt, 2) != NULL &&
-             bufEq(BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE), sqliteStmtBuf(this->dbFileSelectStmt, 2))),
+            (file.checksumSha1 == NULL && sqliteStmtBuf(this->dbFileSelectStmt, 3) == NULL) ||
+            (file.checksumSha1 != NULL && sqliteStmtBuf(this->dbFileSelectStmt, 3) != NULL &&
+             bufEq(BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE), sqliteStmtBuf(this->dbFileSelectStmt, 3))),
             "file.checksum does not equal db.checksum");
         CHECK(
             AssertError,
-            (file.checksumRepoSha1 == NULL && sqliteStmtBuf(this->dbFileSelectStmt, 3) == NULL) ||
-            (file.checksumRepoSha1 != NULL && sqliteStmtBuf(this->dbFileSelectStmt, 3) != NULL &&
-             bufEq(BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE), sqliteStmtBuf(this->dbFileSelectStmt, 3))),
+            (file.checksumRepoSha1 == NULL && sqliteStmtBuf(this->dbFileSelectStmt, 4) == NULL) ||
+            (file.checksumRepoSha1 != NULL && sqliteStmtBuf(this->dbFileSelectStmt, 4) != NULL &&
+             bufEq(BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE), sqliteStmtBuf(this->dbFileSelectStmt, 4))),
             "file.checksum does not equal db.checksumRepo");
 
         const mode_t mode =
-            sqliteStmtNull(this->dbFileSelectStmt, 4) ? this->fileModeDefault : sqliteStmtUIntP(this->dbFileSelectStmt, 4);
+            sqliteStmtNull(this->dbFileSelectStmt, 5) ? this->fileModeDefault : sqliteStmtUIntP(this->dbFileSelectStmt, 5);
         CHECK(AssertError, file.mode == mode, "file.mode does not equal db.mode");
 
         const String *const user =
             (bool)(flag & (1 << manifestStoreFlagUserNull)) ?
                 NULL :
-                (sqliteStmtNull(this->dbFileSelectStmt, 5) ? this->fileUserDefault : sqliteStmtStr(this->dbFileSelectStmt, 5));
+                (sqliteStmtNull(this->dbFileSelectStmt, 6) ? this->fileUserDefault : sqliteStmtStr(this->dbFileSelectStmt, 6));
         CHECK(AssertError, strEq(file.user, user), "file.user not equal");
 
         const String *const group =
             (bool)(flag & (1 << manifestStoreFlagGroupNull)) ?
                 NULL :
-                (sqliteStmtNull(this->dbFileSelectStmt, 6) ? this->fileGroupDefault : sqliteStmtStr(this->dbFileSelectStmt, 6));
+                (sqliteStmtNull(this->dbFileSelectStmt, 7) ? this->fileGroupDefault : sqliteStmtStr(this->dbFileSelectStmt, 7));
         CHECK(AssertError, strEq(file.group, group), "file.group not equal");
 
         const String *const reference =
-            sqliteStmtNull(this->dbFileSelectStmt, 7) ?
-                NULL : strLstGet(this->pub.referenceList, sqliteStmtUIntP(this->dbFileSelectStmt, 7));
+            sqliteStmtNull(this->dbFileSelectStmt, 8) ?
+                NULL : strLstGet(this->pub.referenceList, sqliteStmtUIntP(this->dbFileSelectStmt, 8));
         CHECK(AssertError, strEq(file.reference, reference), "file.reference not equal");
 
-        CHECK(AssertError, file.bundleId == sqliteStmtU63P(this->dbFileSelectStmt, 8), "bundleId is not equal");
-        CHECK(AssertError, file.bundleOffset == sqliteStmtU63P(this->dbFileSelectStmt, 9), "bundleOffset is not equal");
-        CHECK(AssertError, file.blockIncrSize == sqliteStmtU63P(this->dbFileSelectStmt, 10) * 8192, "blockIncrSize is not equal");
+        CHECK(AssertError, file.bundleId == sqliteStmtU63P(this->dbFileSelectStmt, 9), "bundleId is not equal");
+        CHECK(AssertError, file.bundleOffset == sqliteStmtU63P(this->dbFileSelectStmt, 10), "bundleOffset is not equal");
+        CHECK(AssertError, file.blockIncrSize == sqliteStmtU63P(this->dbFileSelectStmt, 11) * 8192, "blockIncrSize is not equal");
         CHECK(
-            AssertError, file.blockIncrChecksumSize == sqliteStmtU63P(this->dbFileSelectStmt, 11),
+            AssertError, file.blockIncrChecksumSize == sqliteStmtU63P(this->dbFileSelectStmt, 12),
             "blockIncrChecksumSize is not equal");
-        CHECK(AssertError, file.blockIncrMapSize == sqliteStmtU63P(this->dbFileSelectStmt, 12), "blockIncrMapSize is not equal");
-        CHECK(AssertError, file.size == sqliteStmtU63P(this->dbFileSelectStmt, 13), "size is not equal");
+        CHECK(AssertError, file.blockIncrMapSize == sqliteStmtU63P(this->dbFileSelectStmt, 13), "blockIncrMapSize is not equal");
+        CHECK(AssertError, file.size == sqliteStmtU63P(this->dbFileSelectStmt, 14), "size is not equal");
         CHECK(
             AssertError,
             file.sizeOriginal == sqliteStmtU63P(
-                this->dbFileSelectStmt, 14, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 13)),
+                this->dbFileSelectStmt, 15, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 14)),
             "sizeOriginal is not equal");
         CHECK(
             AssertError,
             file.sizeRepo == sqliteStmtU63P(
-                this->dbFileSelectStmt, 15, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 13)),
+                this->dbFileSelectStmt, 16, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 14)),
             "sizeRepo is not equal");
         CHECK(
-            AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 16),
+            AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 17),
             "timestamp is not equal");
 
         CHECK(
             AssertError, file.checksumPageError == (bool)(flag & (1 << manifestStoreFlagChecksumPageError)),
             "checksumPageError is not equal");
         CHECK(
-            AssertError, strEq(file.checksumPageErrorList, sqliteStmtStr(this->dbFileSelectStmt, 17)),
+            AssertError, strEq(file.checksumPageErrorList, sqliteStmtStr(this->dbFileSelectStmt, 18)),
             "checksumPageErrorList is not equal");
 
-        CHECK(AssertError, file.id == sqliteStmtU63P(this->dbFileSelectStmt, 18), "id is not equal");
+        CHECK(AssertError, file.id == sqliteStmtU63P(this->dbFileSelectStmt, 19), "id is not equal");
 
         sqliteStmtReset(this->dbFileSelectStmt);
     }
@@ -871,9 +930,6 @@ manifestPathAdd(Manifest *const this, const ManifestPath *const path)
         };
 
         lstAdd(this->pub.pathList, &pathAdd);
-
-        sqliteStmtBindStr(this->dbPathInsertStmt, 1, path->name);
-        sqliteStmtExec(this->dbPathInsertStmt);
     }
     MEM_CONTEXT_END();
 

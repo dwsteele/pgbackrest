@@ -59,17 +59,17 @@ testRun(void)
         TEST_ASSIGN(
             stmt, sqliteStmtNew(sqlite, STRDEF("select id, name, bin, more, all_null from test order by id")), "new select stmt");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), true, "next row");
-        TEST_RESULT_BOOL(sqliteStmtBoolP(stmt, 0), true, "bool");
-        TEST_RESULT_BOOL(sqliteStmtNull(stmt, 1), true, "null");
-        TEST_RESULT_BOOL(bufEq(sqliteStmtBuf(stmt, 2), BUF(bufShort, sizeof(bufShort))), true, "buf");
+        TEST_RESULT_BOOL(sqliteStmtBoolP(stmt, 1), true, "bool");
+        TEST_RESULT_BOOL(sqliteStmtNull(stmt, 2), true, "null");
+        TEST_RESULT_BOOL(bufEq(sqliteStmtBuf(stmt, 3), BUF(bufShort, sizeof(bufShort))), true, "buf");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), true, "next row");
-        TEST_RESULT_INT(sqliteStmtI64P(stmt, 0), 2, "i64");
-        TEST_RESULT_STR_Z(sqliteStmtStr(stmt, 1), "ABCDEFGH", "str");
-        TEST_RESULT_INT(sqliteStmtI64P(stmt, 3, .defaultValue = 2), 2, "i64 default");
-        TEST_RESULT_PTR(sqliteStmtBuf(stmt, 3), NULL, "buf null");
-        TEST_RESULT_PTR(sqliteStmtStr(stmt, 3), NULL, "str null");
+        TEST_RESULT_INT(sqliteStmtI64P(stmt, 1), 2, "i64");
+        TEST_RESULT_STR_Z(sqliteStmtStr(stmt, 2), "ABCDEFGH", "str");
+        TEST_RESULT_INT(sqliteStmtI64P(stmt, 4, .defaultValue = 2), 2, "i64 default");
+        TEST_RESULT_PTR(sqliteStmtBuf(stmt, 4), NULL, "buf null");
+        TEST_RESULT_PTR(sqliteStmtStr(stmt, 4), NULL, "str null");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), true, "next row");
-        TEST_RESULT_UINT(sqliteStmtU63P(stmt, 0), 999, "next");
+        TEST_RESULT_UINT(sqliteStmtU63P(stmt, 1), 999, "next");
         TEST_RESULT_BOOL(sqliteStmtNext(stmt), false, "no more rows");
 
         TEST_RESULT_VOID(sqliteStmtReset(stmt), "reset stmt");
