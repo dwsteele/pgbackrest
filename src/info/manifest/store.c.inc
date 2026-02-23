@@ -26,7 +26,7 @@ manifestStoreInit(Manifest *const this)
     // Prepare statements in the db context since they will exist for the lifetime of the db
     MEM_CONTEXT_OBJ_BEGIN(this->db)
     {
-        sqliteExec(this->db, STRDEF("create table path(id integer primary key,name text not null unique)strict"));
+        sqliteExec(this->db, STRDEF("create table path(id integer primary key,name text not null unique)"));
 
         sqliteExec(
             this->db,
@@ -40,7 +40,7 @@ manifestStoreInit(Manifest *const this)
 #ifdef DEBUG
                     ",constraint file_pathid_name_unq unique (path_id, name)"
 #endif
-                ")strict"
+                ")"
                 // {uncrustify_on}
                 ));
 
