@@ -33,14 +33,11 @@ manifestStoreInit(Manifest *const this)
             STRDEF(
                 // {uncrustify_off - indentation}
                 "create table file("
-                    "id integer primary key,path_id integer not null references path (id),"
-                    "name text constraint file_name_nn not null,flg integer,ck blob,ckR blob,mode integer,usr text,grp text,"
-                    "ref integer,bndId integer,bndOff integer,biSz integer,biCkSz integer,biMapSz integer,sz integer,szO integer,"
-                    "szR integer,time integer,ckPgErr text"
-#ifdef DEBUG
-                    ",constraint file_pathid_name_unq unique (path_id, name)"
-#endif
-                ")"
+                    "path_id integer not null references path (id),name text not null,flg integer,ck blob,ckR blob,mode integer,"
+                    "usr text,grp text,ref integer,bndId integer,bndOff integer,biSz integer,biCkSz integer,biMapSz integer,"
+                    "sz integer,szO integer,szR integer,time integer,ckPgErr text,"
+                    "constraint file_pk primary key (path_id, name)"
+                ")without rowid"
                 // {uncrustify_on}
                 ));
 
@@ -53,7 +50,7 @@ manifestStoreInit(Manifest *const this)
                 // {uncrustify_off - indentation}
                 "insert into file("
                     "flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,ckPgErr,name,path_id)"
-                "select ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,id "
+                "select?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,id "
                 "from path "
                 "where name=?"
                 // {uncrustify_on}
@@ -68,7 +65,8 @@ manifestStoreInit(Manifest *const this)
                     "update file set "
                         "flg=?,ck=?,ckR=?,mode=?,usr=?,grp=?,ref=?,bndId=?,bndOff=?,biSz=?,biCkSz=?,biMapSz=?,sz=?,szO=?,szR=?,"
                         "time=?,ckPgErr=? "
-                    "where id=?"
+                    "from path "
+                    "where file.name=?and path.name=?and file.path_id=path.id"
                     // {uncrustify_on}
                     ));
 
@@ -79,9 +77,9 @@ manifestStoreInit(Manifest *const this)
                     // {uncrustify_off - indentation}
                     "select "
                         "path.name||'/'||file.name,flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,"
-                        "ckPgErr,file.id "
+                        "ckPgErr "
                     "from file inner join path on file.path_id=path.id "
-                    "where file.id=?" // 1
+                    "where file.name=?and path.name=?"
                     // {uncrustify_on}
                     ));
     }
@@ -237,9 +235,6 @@ manifestFilePack(const Manifest *const manifest, const ManifestFile *const file)
 
     cvtUInt64ToVarInt128(flag, buffer, &bufferPos, sizeof(buffer));
 
-    // Id
-    cvtUInt64ToVarInt128(file->id, buffer, &bufferPos, sizeof(buffer));
-
     // Size
     cvtUInt64ToVarInt128(file->size, buffer, &bufferPos, sizeof(buffer));
 
@@ -367,9 +362,6 @@ manifestFileUnpack(const Manifest *const manifest, const ManifestFilePack *const
     result.copy = (flag >> manifestFilePackFlagCopy) & 1;
     result.delta = (flag >> manifestFilePackFlagDelta) & 1;
     result.resume = (flag >> manifestFilePackFlagResume) & 1;
-
-    // id
-    result.id = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
 
     // Size
     result.size = cvtUInt64FromVarInt128((const uint8_t *)filePack, &bufferPos, UINT_MAX);
@@ -560,24 +552,21 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->checksumPageErrorList != NULL)
             sqliteStmtBindStr(stmt, 17, file->checksumPageErrorList);
 
-        if (stmt == this->dbFileInsertStmt)
-        {
-            sqliteStmtBindStr(stmt, 18, strBase(file->name));
-            sqliteStmtBindStr(stmt, 19, strPath(file->name));
+        sqliteStmtBindStr(stmt, 18, strBase(file->name));
+        sqliteStmtBindStr(stmt, 19, strPath(file->name));
+        sqliteStmtNext(stmt);
 
-            sqliteStmtNext(stmt);
-            result = sqliteStmtInsertRowId(stmt);
-            CHECK_FMT(DbQueryError, result != 0, "unable to insert file %s", strZ(file->name));
-        }
-        else
-        {
-            sqliteStmtBindU63P(stmt, 18, file->id);
-            sqliteStmtExec(stmt);
-
-            CHECK_FMT(DbQueryError, sqliteStmtChanged(stmt) == 1, "unable to add/update file %s", strZ(file->name));
-        }
+        CHECK_FMT(
+            DbQueryError, sqliteStmtChanged(stmt) == 1, "unable %s %s", stmt == this->dbFileInsertStmt ? "insert" : "update",
+            strZ(file->name));
 
         sqliteStmtReset(stmt);
+
+        // SqliteStmt *stmt = sqliteStmtNew(this->db, STRDEF("select * from path order by name"));
+        // fprintf(stdout, "!!!FILE:\n%s\n", strZ(hrnSqliteStmtToStr(stmt)));
+        // stmt = sqliteStmtNew(this->db, STRDEF("select * from file order by path_id, name"));
+        // fprintf(stdout, "!!!FILE:\n%s\n", strZ(hrnSqliteStmtToStr(stmt)));
+        // fflush(stdout);
     }
     MEM_CONTEXT_TEMP_END();
 
@@ -592,7 +581,8 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
-        sqliteStmtBindU63P(this->dbFileSelectStmt, 1, file.id);
+        sqliteStmtBindStr(this->dbFileSelectStmt, 1, strBase(file.name));
+        sqliteStmtBindStr(this->dbFileSelectStmt, 2, strPath(file.name));
         CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileSelectStmt), "unable to find file '%s'", strZ(file.name));
 
         const String *const name = sqliteStmtStr(this->dbFileSelectStmt, 1);
@@ -676,8 +666,6 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             AssertError, strEq(file.checksumPageErrorList, sqliteStmtStr(this->dbFileSelectStmt, 18)),
             "checksumPageErrorList is not equal");
 
-        CHECK(AssertError, file.id == sqliteStmtU63P(this->dbFileSelectStmt, 19), "id is not equal");
-
         sqliteStmtReset(this->dbFileSelectStmt);
     }
     MEM_CONTEXT_TEMP_END();
@@ -701,7 +689,7 @@ manifestFileAdd(Manifest *const this, ManifestFile *const file)
 
     MEM_CONTEXT_BEGIN(lstMemContext(this->pub.fileList))
     {
-        file->id = manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
+        manifestFileAddUpdate(this, file, this->dbFileInsertStmt);
 
         const ManifestFilePack *const filePack = manifestFilePack(this, file);
         lstAdd(this->pub.fileList, &filePack);
