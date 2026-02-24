@@ -50,7 +50,7 @@ manifestStoreInit(Manifest *const this)
                 // {uncrustify_off - indentation}
                 "insert into file("
                     "flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,ckPgErr,name,path_id)"
-                "select?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,id "
+                "select ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,id "
                 "from path "
                 "where name=?"
                 // {uncrustify_on}
@@ -532,7 +532,10 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
             ASSERT(file->blockIncrSize % BLOCK_INCR_SIZE_FACTOR == 0);
 
             sqliteStmtBindU63P(stmt, 10, file->blockIncrSize / 8192);
-            sqliteStmtBindU63P(stmt, 11, file->blockIncrChecksumSize);
+
+            if (file->blockIncrChecksumSize != BLOCK_INCR_CHECKSUM_SIZE_MIN)
+                sqliteStmtBindU63P(stmt, 11, file->blockIncrChecksumSize);
+
             sqliteStmtBindU63P(stmt, 12, file->blockIncrMapSize);
         }
 
@@ -542,8 +545,8 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->sizeOriginal != file->size)
             sqliteStmtBindU63P(stmt, 14, file->sizeOriginal);
 
-        if (file->sizeRepo != file->size)
-            sqliteStmtBindU63P(stmt, 15, file->sizeRepo);
+        if (file->sizeRepo - file->blockIncrMapSize != file->size)
+            sqliteStmtBindU63P(stmt, 15, file->sizeRepo - file->blockIncrMapSize);
 
         ASSERT(this->pub.data.backupTimestampStart != 0);
         sqliteStmtBindI64P(stmt, 16, (int64_t)(this->pub.data.backupTimestampStart - file->timestamp));
@@ -640,10 +643,12 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
         CHECK(AssertError, file.bundleId == sqliteStmtU63P(this->dbFileSelectStmt, 9), "bundleId is not equal");
         CHECK(AssertError, file.bundleOffset == sqliteStmtU63P(this->dbFileSelectStmt, 10), "bundleOffset is not equal");
         CHECK(AssertError, file.blockIncrSize == sqliteStmtU63P(this->dbFileSelectStmt, 11) * 8192, "blockIncrSize is not equal");
-        CHECK(
-            AssertError, file.blockIncrChecksumSize == sqliteStmtU63P(this->dbFileSelectStmt, 12),
-            "blockIncrChecksumSize is not equal");
-        CHECK(AssertError, file.blockIncrMapSize == sqliteStmtU63P(this->dbFileSelectStmt, 13), "blockIncrMapSize is not equal");
+
+        const uint64_t blockIncrChecksumSize =
+            file.blockIncrSize == 0 ? 0 : sqliteStmtU63P(this->dbFileSelectStmt, 12, .defaultValue = BLOCK_INCR_CHECKSUM_SIZE_MIN);
+        CHECK(AssertError, file.blockIncrChecksumSize == blockIncrChecksumSize, "blockIncrChecksumSize is not equal");
+        const uint64_t blockIncrMapSize = file.blockIncrSize == 0 ? 0 : sqliteStmtU63P(this->dbFileSelectStmt, 13);
+        CHECK(AssertError, file.blockIncrMapSize == blockIncrMapSize, "blockIncrMapSize is not equal");
         CHECK(AssertError, file.size == sqliteStmtU63P(this->dbFileSelectStmt, 14), "size is not equal");
         CHECK(
             AssertError,
@@ -653,7 +658,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
         CHECK(
             AssertError,
             file.sizeRepo == sqliteStmtU63P(
-                this->dbFileSelectStmt, 16, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 14)),
+                this->dbFileSelectStmt, 16, .defaultValue = sqliteStmtU63P(this->dbFileSelectStmt, 14)) + blockIncrMapSize,
             "sizeRepo is not equal");
         CHECK(
             AssertError, file.timestamp == this->pub.data.backupTimestampStart - sqliteStmtI64P(this->dbFileSelectStmt, 17),
