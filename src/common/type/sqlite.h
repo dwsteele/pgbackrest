@@ -77,10 +77,20 @@ FN_EXTERN void sqliteStmtBindBuf(SqliteStmt *this, unsigned int column, const Bu
 FN_EXTERN void sqliteStmtBindNull(SqliteStmt *this, unsigned int column);
 FN_EXTERN void sqliteStmtBindStr(SqliteStmt *this, unsigned int column, const String *value);
 
-FN_INLINE_ALWAYS void
-sqliteStmtBindUInt(SqliteStmt *const this, const unsigned int column, const unsigned int value)
+typedef struct SqliteStmtBindUIntParam
 {
-    sqliteStmtBindI64P(this, column, (int64_t)value);
+    VAR_PARAM_HEADER;
+    bool defaultNull;                                               // Write default as NULL
+    unsigned int defaultValue;                                      // Default value
+} SqliteStmtBindUIntParam;
+
+#define sqliteStmtBindUIntP(this, column, value, ...)                                                                              \
+    sqliteStmtBindUInt(this, column, value, (SqliteStmtBindUIntParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindUInt(SqliteStmt *const this, const unsigned int column, const unsigned int value, const SqliteStmtBindUIntParam param)
+{
+    sqliteStmtBindI64P(this, column, (int64_t)value, .defaultNull = param.defaultNull, .defaultValue = (int64_t)param.defaultValue);
 }
 
 typedef struct SqliteStmtBindU63Param

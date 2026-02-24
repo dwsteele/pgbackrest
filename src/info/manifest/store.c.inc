@@ -499,7 +499,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->group == NULL)
             flag |= 1 << manifestStoreFlagGroupNull;
 
-        sqliteStmtBindUInt(stmt, 1, flag);
+        sqliteStmtBindUIntP(stmt, 1, flag, .defaultNull = true);
 
         if (file->checksumSha1 != NULL)
             sqliteStmtBindBuf(stmt, 2, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE));
@@ -508,7 +508,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
             sqliteStmtBindBuf(stmt, 3, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE));
 
         if (file->mode != this->fileModeDefault)
-            sqliteStmtBindUInt(stmt, 4, file->mode);
+            sqliteStmtBindUIntP(stmt, 4, file->mode);
 
         if (file->user != NULL && !strEq(file->user, this->fileUserDefault))
             sqliteStmtBindStr(stmt, 5, file->user);
@@ -517,7 +517,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
             sqliteStmtBindStr(stmt, 6, file->group);
 
         if (file->reference != NULL)
-            sqliteStmtBindUInt(stmt, 7, strLstFindIdxP(this->pub.referenceList, file->reference, .required = true));
+            sqliteStmtBindUIntP(stmt, 7, strLstFindIdxP(this->pub.referenceList, file->reference, .required = true));
 
         if (file->bundleId != 0)
         {
