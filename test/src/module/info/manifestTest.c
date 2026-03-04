@@ -1378,7 +1378,7 @@ testRun(void)
             manifest, .name = MANIFEST_TARGET_PGDATA "/block-incr-keep-size", .copy = true, .size = 16384, .sizeRepo = 6,
             .blockIncrSize = 16384, .blockIncrChecksumSize = 6, .timestamp = 1482182861, .group = "test", .user = "test");
         HRN_MANIFEST_FILE_ADD(
-            manifestPrior, .name = MANIFEST_TARGET_PGDATA "/block-incr-keep-size", .size = 8193, .sizeRepo = 4,
+            manifestPrior, .name = MANIFEST_TARGET_PGDATA "/block-incr-keep-size", .size = 8193, .sizeRepo = 35,
             .blockIncrSize = 8192, .blockIncrChecksumSize = 6, .blockIncrMapSize = 31, .timestamp = 1482182860,
             .checksumSha1 = "ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa");
 
@@ -1404,7 +1404,7 @@ testRun(void)
                     "[target:file]\n"
                     "pg_data/block-incr-add={\"bi\":1,\"size\":6,\"timestamp\":1482182861}\n"
                     "pg_data/block-incr-keep-size={\"bi\":1,\"bim\":31,\"checksum\":\"ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa\""
-                    ",\"reference\":\"20190101-010101F\",\"repo-size\":4,\"size\":8193,\"szo\":16384,\"timestamp\":1482182861}\n"
+                    ",\"reference\":\"20190101-010101F\",\"repo-size\":35,\"size\":8193,\"szo\":16384,\"timestamp\":1482182861}\n"
                     "pg_data/block-incr-sub={\"size\":6,\"timestamp\":1482182861}\n"
                     TEST_MANIFEST_FILE_DEFAULT
                     "\n"
