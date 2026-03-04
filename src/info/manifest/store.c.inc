@@ -620,7 +620,7 @@ manifestFile(const Manifest *const this, const unsigned int fileIdx)
             "file.checksum does not equal db.checksumRepo");
 
         const mode_t mode =
-            sqliteStmtNull(this->dbFileSelectStmt, 5) ? this->fileModeDefault : sqliteStmtUIntP(this->dbFileSelectStmt, 5);
+            sqliteStmtNull(this->dbFileSelectStmt, 5) ? this->fileModeDefault : (mode_t)sqliteStmtUIntP(this->dbFileSelectStmt, 5);
         CHECK(AssertError, file.mode == mode, "file.mode does not equal db.mode");
 
         const String *const user =
