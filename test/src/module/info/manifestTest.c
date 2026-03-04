@@ -1369,7 +1369,7 @@ testRun(void)
             manifest, .name = MANIFEST_TARGET_PGDATA "/block-incr-sub", .copy = true, .size = 6, .sizeRepo = 6,
             .timestamp = 1482182861, .group = "test", .user = "test");
         HRN_MANIFEST_FILE_ADD(
-            manifestPrior, .name = MANIFEST_TARGET_PGDATA "/block-incr-sub", .size = 4, .sizeRepo = 4, .blockIncrSize = 8192,
+            manifestPrior, .name = MANIFEST_TARGET_PGDATA "/block-incr-sub", .size = 4, .sizeRepo = 70, .blockIncrSize = 8192,
             .blockIncrMapSize = 66, .blockIncrChecksumSize = 1, .timestamp = 1482182860,
             .checksumSha1 = "ddddddddddbbbbbbbbbbccccccccccaaaaaaaaaa");
 

@@ -46,7 +46,7 @@ testRun(void)
         TEST_RESULT_VOID(sqliteStmtBindBoolP(stmt, 4, 1), "bind bool");
         TEST_RESULT_VOID(sqliteStmtExec(stmt), "exec stmt");
         TEST_RESULT_UINT(sqliteStmtChanged(stmt), 1, "changed rows");
-        TEST_RESULT_VOID(sqliteStmtBindUInt(stmt, 1, 2), "bind int");
+        TEST_RESULT_VOID(sqliteStmtBindUIntP(stmt, 1, 2), "bind int");
         TEST_RESULT_VOID(sqliteStmtBindStr(stmt, 2, STRDEF("ABCDEFGH")), "bind text");
         TEST_RESULT_VOID(sqliteStmtBindBuf(stmt, 3, BUF(bufLong, sizeof(bufLong))), "bind buf");
         TEST_RESULT_VOID(sqliteStmtBindNull(stmt, 4), "bind null");

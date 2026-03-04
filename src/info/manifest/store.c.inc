@@ -65,8 +65,7 @@ manifestStoreInit(Manifest *const this)
                     "update file set "
                         "flg=?,ck=?,ckR=?,mode=?,usr=?,grp=?,ref=?,bndId=?,bndOff=?,biSz=?,biCkSz=?,biMapSz=?,sz=?,szO=?,szR=?,"
                         "time=?,ckPgErr=? "
-                    "from path "
-                    "where file.name=?and path.name=?and file.path_id=path.id"
+                    "where file.name=? and file.path_id=(select id from path where path.name=?)"
                     // {uncrustify_on}
                     ));
 
