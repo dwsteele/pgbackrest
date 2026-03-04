@@ -544,6 +544,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         if (file->sizeOriginal != file->size)
             sqliteStmtBindU63P(stmt, 14, file->sizeOriginal);
 
+        ASSERT(file->sizeRepo >= file->blockIncrMapSize);
         if (file->sizeRepo - file->blockIncrMapSize != file->size)
             sqliteStmtBindU63P(stmt, 15, file->sizeRepo - file->blockIncrMapSize);
 
