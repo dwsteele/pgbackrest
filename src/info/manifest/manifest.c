@@ -28,10 +28,12 @@ struct Manifest
     ManifestPub pub;                                                // Publicly accessible variables
     StringList *ownerList;                                          // List of users/groups
     Sqlite *db;                                                     // Manifest database
-    SqliteStmt *dbPathInsertStmt;                                   // Insert into path table
-    SqliteStmt *dbFileInsertStmt;                                   // Insert into file table
-    SqliteStmt *dbFileSelectStmt;                                   // Select from file table
-    SqliteStmt *dbFileUpdateStmt;                                   // Update file table
+    SqliteStmt *dbPathInsertStmt;                                   // Insert path
+    SqliteStmt *dbFileInsertStmt;                                   // Insert file
+    SqliteStmt *dbFileSelectStmt;                                   // Select file
+    SqliteStmt *dbFileUpdateStmt;                                   // Update file
+    SqliteStmt *dbFileDeleteStmt;                                   // Delete file
+    SqliteStmt *dbFileExistsStmt;                                   // Does a file exist?
 
     const String *fileUserDefault;                                  // Default file user name to store as NULL
     const String *fileGroupDefault;                                 // Default file group name to store as NULL
@@ -350,17 +352,19 @@ manifestBuildValidate(Manifest *const this, const bool delta, const time_t copyS
     {
         MEM_CONTEXT_TEMP_BEGIN()
         {
-            for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(this); fileIdx++)
+            ManifestFileIterator *const fileItr = manifestFileItrNewP(this);
+
+            while (manifestFileItrNext(fileItr))
             {
-                const ManifestFile file = manifestFile(this, fileIdx);
+                const ManifestFile *const file = manifestFileItr(fileItr);
 
                 // Check for timestamp in the future
-                if (file.timestamp > copyStart)
+                if (file->timestamp > copyStart)
                 {
                     LOG_WARN_FMT(
                         "file '%s' has timestamp (%" PRId64 ") in the future (relative to copy start %" PRId64 "), enabling delta"
                         " checksum",
-                        strZ(manifestPathPg(file.name)), (int64_t)file.timestamp, (int64_t)copyStart);
+                        strZ(manifestPathPg(file->name)), (int64_t)file->timestamp, (int64_t)copyStart);
 
                     this->pub.data.backupOptionDelta = BOOL_TRUE_VAR;
                     break;
@@ -387,34 +391,36 @@ manifestDeltaCheck(Manifest *const this, const Manifest *const manifestPrior)
         // Check for anomalies between manifests if delta is not already enabled
         if (!varBool(this->pub.data.backupOptionDelta))
         {
-            for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(this); fileIdx++)
+            ManifestFileIterator *const fileItr = manifestFileItrNewP(this);
+
+            while (manifestFileItrNext(fileItr))
             {
-                const ManifestFile file = manifestFile(this, fileIdx);
+                const ManifestFile *const file = manifestFileItr(fileItr);
 
                 // If file was found in prior manifest then perform checks
-                if (manifestFileExists(manifestPrior, file.name))
+                if (manifestFileExists(manifestPrior, file->name))
                 {
-                    const ManifestFile filePrior = manifestFileFind(manifestPrior, file.name);
+                    const ManifestFile filePrior = manifestFileFind(manifestPrior, file->name);
 
                     // Check for timestamp earlier than the prior backup
-                    if (file.timestamp < filePrior.timestamp)
+                    if (file->timestamp < filePrior.timestamp)
                     {
                         LOG_WARN_FMT(
                             "file '%s' has timestamp earlier than prior backup (prior %" PRId64 ", current %" PRId64 "), enabling"
                             " delta checksum",
-                            strZ(manifestPathPg(file.name)), (int64_t)filePrior.timestamp, (int64_t)file.timestamp);
+                            strZ(manifestPathPg(file->name)), (int64_t)filePrior.timestamp, (int64_t)file->timestamp);
 
                         this->pub.data.backupOptionDelta = BOOL_TRUE_VAR;
                         break;
                     }
 
                     // Check for size change with no timestamp change
-                    if (file.sizeOriginal != filePrior.sizeOriginal && file.timestamp == filePrior.timestamp)
+                    if (file->sizeOriginal != filePrior.sizeOriginal && file->timestamp == filePrior.timestamp)
                     {
                         LOG_WARN_FMT(
                             "file '%s' has same timestamp (%" PRId64 ") as prior but different size (prior %" PRIu64 ", current"
                             " %" PRIu64 "), enabling delta checksum",
-                            strZ(manifestPathPg(file.name)), (int64_t)file.timestamp, filePrior.sizeOriginal, file.sizeOriginal);
+                            strZ(manifestPathPg(file->name)), (int64_t)file->timestamp, filePrior.sizeOriginal, file->sizeOriginal);
 
                         this->pub.data.backupOptionDelta = BOOL_TRUE_VAR;
                         break;
@@ -803,28 +809,30 @@ manifestValidate(Manifest *const this, const bool strict)
         String *const error = strNew();
 
         // Validate files
-        for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(this); fileIdx++)
+        ManifestFileIterator *const fileItr = manifestFileItrNewP(this);
+
+        while (manifestFileItrNext(fileItr))
         {
-            const ManifestFile file = manifestFile(this, fileIdx);
+            const ManifestFile *const file = manifestFileItr(fileItr);
 
             // All files must have a checksum
-            if (file.checksumSha1 == NULL)
-                strCatFmt(error, "\nmissing checksum for file '%s'", strZ(file.name));
+            if (file->checksumSha1 == NULL)
+                strCatFmt(error, "\nmissing checksum for file '%s'", strZ(file->name));
 
             // These are strict checks to be performed only after a backup and before the final manifest save
             if (strict)
             {
                 // Zero-length files must have a specific checksum
-                if (file.size == 0 && !bufEq(HASH_TYPE_SHA1_ZERO_BUF, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE)))
+                if (file->size == 0 && !bufEq(HASH_TYPE_SHA1_ZERO_BUF, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE)))
                 {
                     strCatFmt(
                         error, "\ninvalid checksum '%s' for zero size file '%s'",
-                        strZ(strNewEncode(encodingHex, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE))), strZ(file.name));
+                        strZ(strNewEncode(encodingHex, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE))), strZ(file->name));
                 }
 
                 // Non-zero size files must have non-zero repo size
-                if (file.sizeRepo == 0 && file.size != 0)
-                    strCatFmt(error, "\nrepo size must be > 0 for file '%s'", strZ(file.name));
+                if (file->sizeRepo == 0 && file->size != 0)
+                    strCatFmt(error, "\nrepo size must be > 0 for file '%s'", strZ(file->name));
             }
         }
 

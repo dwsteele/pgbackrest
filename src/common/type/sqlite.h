@@ -75,7 +75,19 @@ sqliteStmtBindBool(SqliteStmt *const this, const unsigned int column, const bool
 
 FN_EXTERN void sqliteStmtBindBuf(SqliteStmt *this, unsigned int column, const Buffer *value);
 FN_EXTERN void sqliteStmtBindNull(SqliteStmt *this, unsigned int column);
-FN_EXTERN void sqliteStmtBindStr(SqliteStmt *this, unsigned int column, const String *value);
+FN_EXTERN void sqliteStmtBindZN(SqliteStmt *this, unsigned int column, const char *value, size_t size);
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindZ(SqliteStmt *const this, const unsigned int column, const char *const value)
+{
+    sqliteStmtBindZN(this, column, value, strlen(value));
+}
+
+FN_INLINE_ALWAYS void
+sqliteStmtBindStr(SqliteStmt *const this, const unsigned int column, const String *const value)
+{
+    sqliteStmtBindZN(this, column, strZ(value), strSize(value));
+}
 
 typedef struct SqliteStmtBindUIntParam
 {
@@ -154,8 +166,24 @@ sqliteStmtBool(SqliteStmt *const this, const unsigned int column, const SqliteSt
 }
 
 FN_EXTERN Buffer *sqliteStmtBuf(SqliteStmt *this, unsigned int column);
+FN_EXTERN Buffer *sqliteStmtBufCat(SqliteStmt *this, unsigned int column, Buffer *value);
+
+FN_INLINE_ALWAYS Buffer *
+sqliteStmtBufReplace(SqliteStmt *const this, const unsigned int column, Buffer *const value)
+{
+    bufUsedZero(value);
+    return sqliteStmtBufCat(this, column, value);
+}
+
 FN_EXTERN bool sqliteStmtNull(SqliteStmt *this, unsigned int column);
 FN_EXTERN String *sqliteStmtStr(SqliteStmt *this, unsigned int column);
+FN_EXTERN String *sqliteStmtStrCat(SqliteStmt *this, unsigned int column, String *value);
+
+FN_INLINE_ALWAYS String *
+sqliteStmtStrReplace(SqliteStmt *const this, const unsigned int column, String *const value)
+{
+    return sqliteStmtStrCat(this, column, strTrunc(value));
+}
 
 typedef struct SqliteStmtUIntParam
 {

@@ -1865,7 +1865,7 @@ testRun(void)
         TEST_RESULT_STR_Z(
             manifestFileFind(manifest, STRDEF("pg_data/special-@#!$^&*()_+~`{}[]\\:;")).name,
             "pg_data/special-@#!$^&*()_+~`{}[]\\:;", "find special file");
-        TEST_RESULT_BOOL(manifestFileExists(manifest, STRDEF("bogus")), false, "manifest file does not exist");
+        TEST_RESULT_BOOL(manifestFileExists(manifest, STRDEF("pg_data/bogus")), false, "manifest file does not exist");
 
         // Munge the sha1 checksum to be blank
         ManifestFilePack **const fileMungePack = manifestFilePackFindInternal(manifest, STRDEF("pg_data/postgresql.conf"));

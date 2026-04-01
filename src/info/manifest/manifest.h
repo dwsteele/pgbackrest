@@ -34,6 +34,7 @@ STRING_DECLARE(MANIFEST_TARGET_PGTBLSPC_STR);
 Object type
 ***********************************************************************************************************************************/
 typedef struct Manifest Manifest;
+typedef struct ManifestFileIterator ManifestFileIterator;
 
 #include "command/backup/common.h"
 #include "common/compress/helper.h"
@@ -364,12 +365,7 @@ manifestFileFind(const Manifest *const this, const String *const name)
 }
 
 // Does the file exist?
-FN_INLINE_ALWAYS bool
-manifestFileExists(const Manifest *const this, const String *const name)
-{
-    ASSERT_INLINE(name != NULL);
-    return lstFindDefault(THIS_PUB(Manifest)->fileList, &name, NULL) != NULL;
-}
+FN_EXTERN bool manifestFileExists(const Manifest *this, const String *name);
 
 FN_EXTERN void manifestFileRemove(const Manifest *this, const String *name);
 
@@ -381,6 +377,25 @@ manifestFileTotal(const Manifest *const this)
 
 // Update a file with new data
 FN_EXTERN void manifestFileUpdate(Manifest *const this, const ManifestFile *file);
+
+/***********************************************************************************************************************************
+File iterator
+***********************************************************************************************************************************/
+typedef struct ManifestFileItrNewParam
+{
+    VAR_PARAM_HEADER;
+} ManifestFileItrNewParam;
+
+#define manifestFileItrNewP(this, ...)                                                                                             \
+    manifestFileItrNew(this, (ManifestFileItrNewParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_EXTERN ManifestFileIterator *manifestFileItrNew(Manifest *const manifest, ManifestFileItrNewParam param);
+
+// !!!
+FN_EXTERN bool manifestFileItrNext(ManifestFileIterator *this);
+
+// !!!
+FN_EXTERN const ManifestFile *manifestFileItr(ManifestFileIterator *this);
 
 /***********************************************************************************************************************************
 Link functions and getters/setters
@@ -513,6 +528,10 @@ Macros for function logging
     ManifestFile *
 #define FUNCTION_LOG_MANIFEST_FILE_FORMAT(value, buffer, bufferSize)                                                               \
     objNameToLog(value, "ManifestFile", buffer, bufferSize)
+#define FUNCTION_LOG_MANIFEST_FILE_ITERATOR_TYPE                                                                                   \
+    ManifestFileIterator *
+#define FUNCTION_LOG_MANIFEST_FILE_ITERATOR_FORMAT(value, buffer, bufferSize)                                                      \
+    objNameToLog(value, "ManifestFileIterator", buffer, bufferSize)
 
 #define FUNCTION_LOG_MANIFEST_LINK_TYPE                                                                                            \
     ManifestLink *

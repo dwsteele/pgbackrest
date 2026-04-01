@@ -839,82 +839,84 @@ manifestSaveCallback(void *const callbackData, const String *const sectionNext, 
     {
         MEM_CONTEXT_TEMP_RESET_BEGIN()
         {
-            for (unsigned int fileIdx = 0; fileIdx < manifestFileTotal(manifest); fileIdx++)
+            ManifestFileIterator *const fileItr = manifestFileItrNewP(manifest);
+
+            while (manifestFileItrNext(fileItr))
             {
-                const ManifestFile file = manifestFile(manifest, fileIdx);
+                const ManifestFile *const file = manifestFileItr(fileItr);
                 JsonWrite *const json = jsonWriteObjectBegin(jsonWriteNewP());
 
                 // Block incremental info
-                if (file.blockIncrSize != 0)
+                if (file->blockIncrSize != 0)
                 {
-                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR), file.blockIncrSize / BLOCK_INCR_SIZE_FACTOR);
+                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR), file->blockIncrSize / BLOCK_INCR_SIZE_FACTOR);
 
-                    if (file.blockIncrChecksumSize != BLOCK_INCR_CHECKSUM_SIZE_MIN)
-                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_CHECKSUM), file.blockIncrChecksumSize);
+                    if (file->blockIncrChecksumSize != BLOCK_INCR_CHECKSUM_SIZE_MIN)
+                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_CHECKSUM), file->blockIncrChecksumSize);
 
-                    if (file.blockIncrMapSize != 0)
-                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_MAP), file.blockIncrMapSize);
+                    if (file->blockIncrMapSize != 0)
+                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BLOCK_INCR_MAP), file->blockIncrMapSize);
                 }
 
                 // Bundle info
-                if (file.bundleId != 0)
+                if (file->bundleId != 0)
                 {
-                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BUNDLE_ID), file.bundleId);
+                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BUNDLE_ID), file->bundleId);
 
-                    if (file.bundleOffset != 0)
-                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BUNDLE_OFFSET), file.bundleOffset);
+                    if (file->bundleOffset != 0)
+                        jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_BUNDLE_OFFSET), file->bundleOffset);
                 }
 
                 // Save if the file size is not zero and the checksum exists. The checksum might not exist if this is a partial save
                 // performed during a backup.
-                if (file.size != 0 && file.checksumSha1 != NULL)
+                if (file->size != 0 && file->checksumSha1 != NULL)
                 {
                     jsonWriteStr(
                         jsonWriteKeyStrId(json, MANIFEST_KEY_CHECKSUM),
-                        strNewEncode(encodingHex, BUF(file.checksumSha1, HASH_TYPE_SHA1_SIZE)));
+                        strNewEncode(encodingHex, BUF(file->checksumSha1, HASH_TYPE_SHA1_SIZE)));
                 }
 
-                if (file.checksumPage)
+                if (file->checksumPage)
                 {
-                    jsonWriteBool(jsonWriteKeyZ(json, MANIFEST_KEY_CHECKSUM_PAGE), !file.checksumPageError);
+                    jsonWriteBool(jsonWriteKeyZ(json, MANIFEST_KEY_CHECKSUM_PAGE), !file->checksumPageError);
 
-                    if (file.checksumPageErrorList != NULL)
-                        jsonWriteJson(jsonWriteKeyZ(json, MANIFEST_KEY_CHECKSUM_PAGE_ERROR), file.checksumPageErrorList);
+                    if (file->checksumPageErrorList != NULL)
+                        jsonWriteJson(jsonWriteKeyZ(json, MANIFEST_KEY_CHECKSUM_PAGE_ERROR), file->checksumPageErrorList);
                 }
 
-                if (!varEq(manifestOwnerVar(file.group), saveData->groupDefault))
-                    jsonWriteVar(jsonWriteKeyZ(json, MANIFEST_KEY_GROUP), manifestOwnerVar(file.group));
+                if (!varEq(manifestOwnerVar(file->group), saveData->groupDefault))
+                    jsonWriteVar(jsonWriteKeyZ(json, MANIFEST_KEY_GROUP), manifestOwnerVar(file->group));
 
-                if (file.mode != saveData->fileModeDefault)
-                    jsonWriteStrFmt(jsonWriteKeyZ(json, MANIFEST_KEY_MODE), "%04o", file.mode);
+                if (file->mode != saveData->fileModeDefault)
+                    jsonWriteStrFmt(jsonWriteKeyZ(json, MANIFEST_KEY_MODE), "%04o", file->mode);
 
                 // Save if the repo checksum is not null. The repo checksum for zero-length files may vary depending on compression
                 // and encryption applied.
-                if (file.checksumRepoSha1 != NULL)
+                if (file->checksumRepoSha1 != NULL)
                 {
                     jsonWriteStr(
                         jsonWriteKeyStrId(json, MANIFEST_KEY_CHECKSUM_REPO),
-                        strNewEncode(encodingHex, BUF(file.checksumRepoSha1, HASH_TYPE_SHA1_SIZE)));
+                        strNewEncode(encodingHex, BUF(file->checksumRepoSha1, HASH_TYPE_SHA1_SIZE)));
                 }
 
-                if (file.reference != NULL)
-                    jsonWriteStr(jsonWriteKeyStrId(json, MANIFEST_KEY_REFERENCE), file.reference);
+                if (file->reference != NULL)
+                    jsonWriteStr(jsonWriteKeyStrId(json, MANIFEST_KEY_REFERENCE), file->reference);
 
-                if (file.sizeRepo != file.size)
-                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE_REPO), file.sizeRepo);
+                if (file->sizeRepo != file->size)
+                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE_REPO), file->sizeRepo);
 
-                jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE), file.size);
+                jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE), file->size);
 
-                if (file.sizeOriginal != file.size)
-                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE_ORIGINAL), file.sizeOriginal);
+                if (file->sizeOriginal != file->size)
+                    jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_SIZE_ORIGINAL), file->sizeOriginal);
 
-                jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_TIMESTAMP), (uint64_t)file.timestamp);
+                jsonWriteUInt64(jsonWriteKeyStrId(json, MANIFEST_KEY_TIMESTAMP), (uint64_t)file->timestamp);
 
-                if (!varEq(manifestOwnerVar(file.user), saveData->userDefault))
-                    jsonWriteVar(jsonWriteKeyZ(json, MANIFEST_KEY_USER), manifestOwnerVar(file.user));
+                if (!varEq(manifestOwnerVar(file->user), saveData->userDefault))
+                    jsonWriteVar(jsonWriteKeyZ(json, MANIFEST_KEY_USER), manifestOwnerVar(file->user));
 
                 infoSaveValue(
-                    infoSaveData, MANIFEST_SECTION_TARGET_FILE, strZ(file.name), jsonWriteResult(jsonWriteObjectEnd(json)));
+                    infoSaveData, MANIFEST_SECTION_TARGET_FILE, strZ(file->name), jsonWriteResult(jsonWriteObjectEnd(json)));
 
                 MEM_CONTEXT_TEMP_RESET(1000);
             }

@@ -14,6 +14,22 @@ STRING_EXTERN(MANIFEST_TARGET_PGTBLSPC_STR,                         MANIFEST_TAR
 #define BLOCK_INCR_SIZE_FACTOR                                      8192
 
 /***********************************************************************************************************************************
+Object type
+***********************************************************************************************************************************/
+struct ManifestFileIterator
+{
+    ManifestFile file;                                              // Manifest file
+    Manifest *manifest;                                             // Manifest
+    String *name;                                                   // File name
+    Buffer *checksumSha1;                                           // SHA1 checksum
+    Buffer *checksumRepoSha1;                                       // SHA1 checksum as stored in repo (including compression, etc.)
+    String *checksumPageErrorList;                                  // List of page checksum errors if there are any
+    String *user;                                                   // User name
+    String *group;                                                  // Group name
+    SqliteStmt *stmt;                                               // Iterator statement
+};
+
+/***********************************************************************************************************************************
 // Initialize store
 ***********************************************************************************************************************************/
 static void
@@ -77,6 +93,27 @@ manifestStoreInit(Manifest *const this)
                     "select "
                         "path.name||'/'||file.name,flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,"
                         "ckPgErr "
+                    "from file inner join path on file.path_id=path.id "
+                    "where file.name=?and path.name=?"
+                    // {uncrustify_on}
+                    ));
+
+        this->dbFileDeleteStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "delete from file "
+                    "where file.name=? and file.path_id=(select id from path where path.name=?)"
+                    // {uncrustify_on}
+                    ));
+
+        this->dbFileExistsStmt =
+            sqliteStmtNew(
+                this->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "select count(*) "
                     "from file inner join path on file.path_id=path.id "
                     "where file.name=?and path.name=?"
                     // {uncrustify_on}
@@ -530,7 +567,7 @@ manifestFileAddUpdate(Manifest *const this, const ManifestFile *const file, Sqli
         {
             ASSERT(file->blockIncrSize % BLOCK_INCR_SIZE_FACTOR == 0);
 
-            sqliteStmtBindU63P(stmt, 10, file->blockIncrSize / 8192);
+            sqliteStmtBindU63P(stmt, 10, file->blockIncrSize / BLOCK_INCR_SIZE_FACTOR);
 
             if (file->blockIncrChecksumSize != BLOCK_INCR_CHECKSUM_SIZE_MIN)
                 sqliteStmtBindU63P(stmt, 11, file->blockIncrChecksumSize);
@@ -750,7 +787,32 @@ manifestFilePackFindInternal(const Manifest *const this, const String *const nam
     FUNCTION_TEST_RETURN_TYPE_PP(ManifestFilePack, filePack);
 }
 
-const ManifestFilePack *
+FN_EXTERN bool
+manifestFileExists(const Manifest *const this, const String *const name)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+        FUNCTION_TEST_PARAM(STRING, name);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(name != NULL);
+    ASSERT(strSize(name) - strlen(strBaseZ(name)) >= 2);
+
+    const char *const base = strBaseZ(name);
+
+    sqliteStmtBindZ(this->dbFileExistsStmt, 1, base);
+    sqliteStmtBindZN(this->dbFileExistsStmt, 2, strZ(name), (size_t)(base - strZ(name) - 1));
+    CHECK_FMT(AssertError, sqliteStmtNext(this->dbFileExistsStmt), "unable to check file '%s' exists", strZ(name));
+
+    const bool result = sqliteStmtBoolP(this->dbFileExistsStmt, 1);
+
+    sqliteStmtReset(this->dbFileExistsStmt);
+
+    FUNCTION_TEST_RETURN(BOOL, result);
+}
+
+FN_EXTERN const ManifestFilePack *
 manifestFilePackFind(const Manifest *const this, const String *const name)
 {
     FUNCTION_TEST_BEGIN();
@@ -774,9 +836,19 @@ manifestFileRemove(const Manifest *const this, const String *const name)
 
     ASSERT(this != NULL);
     ASSERT(name != NULL);
+    ASSERT(strSize(name) - strlen(strBaseZ(name)) >= 2);
 
     if (!lstRemove(this->pub.fileList, &name))
         THROW_FMT(AssertError, "unable to remove '%s' from manifest file list", strZ(name));
+
+    const char *const base = strBaseZ(name);
+
+    sqliteStmtBindZ(this->dbFileDeleteStmt, 1, base);
+    sqliteStmtBindZN(this->dbFileDeleteStmt, 2, strZ(name), (size_t)(base - strZ(name) - 1));
+    sqliteStmtNext(this->dbFileDeleteStmt);
+
+    CHECK_FMT(AssertError, sqliteStmtChanged(this->dbFileDeleteStmt) == 1, "unable to delete %s", strZ(name));
+    sqliteStmtReset(this->dbFileDeleteStmt);
 
     FUNCTION_TEST_RETURN_VOID();
 }
@@ -801,6 +873,123 @@ manifestFileUpdate(Manifest *const this, const ManifestFile *const file)
     manifestFilePackUpdate(this, filePack, file);
 
     FUNCTION_TEST_RETURN_VOID();
+}
+
+/***********************************************************************************************************************************
+File iterator
+***********************************************************************************************************************************/
+FN_EXTERN ManifestFileIterator *
+manifestFileItrNew(Manifest *const manifest, const ManifestFileItrNewParam param)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, manifest);
+        (void)param;
+    FUNCTION_TEST_END();
+
+    ASSERT(manifest != NULL);
+
+    OBJ_NEW_BEGIN(ManifestFileIterator, .childQty = MEM_CONTEXT_QTY_MAX)
+    {
+        *this = (ManifestFileIterator)
+        {
+            .manifest = manifest,
+            .name = strNew(),
+            .checksumSha1 = bufNew(HASH_TYPE_SHA1_SIZE),
+            .checksumRepoSha1 = bufNew(HASH_TYPE_SHA1_SIZE),
+            .checksumPageErrorList = strNew(),
+            .user = strNew(),
+            .group = strNew(),
+        };
+
+        this->file.name = this->name;
+        this->stmt =
+            sqliteStmtNew(
+                manifest->db,
+                STRDEF(
+                    // {uncrustify_off - indentation}
+                    "select "
+                        "path.name||'/'||file.name,flg,ck,ckR,mode,usr,grp,ref,bndId,bndOff,biSz,biCkSz,biMapSz,sz,szO,szR,time,"
+                        "ckPgErr "
+                    "from file inner join path on file.path_id=path.id "
+                    "order by path.name||'/'||file.name"
+                    // {uncrustify_on}
+                    ));
+    }
+    OBJ_NEW_END();
+
+    FUNCTION_TEST_RETURN(MANIFEST_FILE_ITERATOR, this);
+}
+
+FN_EXTERN bool
+manifestFileItrNext(ManifestFileIterator *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST_FILE_ITERATOR, this);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(this->stmt != NULL);
+
+    FUNCTION_TEST_RETURN(BOOL, sqliteStmtNext(this->stmt));
+}
+
+FN_EXTERN const ManifestFile *
+manifestFileItr(ManifestFileIterator *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST_FILE_ITERATOR, this);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(this->stmt != NULL);
+
+    sqliteStmtStrReplace(this->stmt, 1, this->name);
+
+    const unsigned int flag = sqliteStmtUIntP(this->stmt, 2);
+    this->file.copy = !(flag & (1 << manifestStoreFlagCopy));
+    this->file.delta = (bool)(flag & (1 << manifestStoreFlagDelta));
+    this->file.resume = (bool)(flag & (1 << manifestStoreFlagResume));
+    this->file.checksumPage =
+        (bool)(flag & (1 << manifestStoreFlagChecksumPage)) ?
+            !this->manifest->checksumPageDefault : this->manifest->checksumPageDefault;
+
+    this->file.checksumSha1 =
+        sqliteStmtNull(this->stmt, 3) ? NULL : bufPtr(sqliteStmtBufReplace(this->stmt, 3, this->checksumSha1));
+    this->file.checksumRepoSha1 =
+        sqliteStmtNull(this->stmt, 4) ? NULL : bufPtr(sqliteStmtBufReplace(this->stmt, 4, this->checksumRepoSha1));
+
+    this->file.mode = sqliteStmtNull(this->stmt, 5) ? this->manifest->fileModeDefault : (mode_t)sqliteStmtUIntP(this->stmt, 5);
+    this->file.user =
+        (bool)(flag & (1 << manifestStoreFlagUserNull)) ?
+            NULL :
+            (sqliteStmtNull(this->stmt, 6) ? this->manifest->fileUserDefault : sqliteStmtStrReplace(this->stmt, 6, this->user));
+    this->file.group =
+        (bool)(flag & (1 << manifestStoreFlagGroupNull)) ?
+            NULL :
+            (sqliteStmtNull(this->stmt, 7) ? this->manifest->fileGroupDefault : sqliteStmtStrReplace(this->stmt, 7, this->group));
+
+    this->file.reference =
+        sqliteStmtNull(this->stmt, 8) ? NULL : strLstGet(this->manifest->pub.referenceList, sqliteStmtUIntP(this->stmt, 8));
+
+    this->file.bundleId = sqliteStmtU63P(this->stmt, 9);
+    this->file.bundleOffset = sqliteStmtU63P(this->stmt, 10);
+
+    this->file.blockIncrSize = sqliteStmtU63P(this->stmt, 11) * BLOCK_INCR_SIZE_FACTOR;
+    this->file.blockIncrChecksumSize =
+        this->file.blockIncrSize == 0 ? 0 : sqliteStmtU63P(this->stmt, 12, .defaultValue = BLOCK_INCR_CHECKSUM_SIZE_MIN);
+    this->file.blockIncrMapSize = this->file.blockIncrSize == 0 ? 0 : sqliteStmtU63P(this->stmt, 13);
+
+    this->file.size = sqliteStmtU63P(this->stmt, 14);
+    this->file.sizeOriginal = sqliteStmtU63P(this->stmt, 15, .defaultValue = this->file.size);
+    this->file.sizeRepo = sqliteStmtU63P(this->stmt, 16, .defaultValue = this->file.size) + this->file.blockIncrMapSize;
+
+    this->file.timestamp = this->manifest->pub.data.backupTimestampStart - sqliteStmtI64P(this->stmt, 17);
+
+    this->file.checksumPageError = (bool)(flag & (1 << manifestStoreFlagChecksumPageError));
+    this->file.checksumPageErrorList =
+        sqliteStmtNull(this->stmt, 18) ? NULL : sqliteStmtStrReplace(this->stmt, 18, this->checksumPageErrorList);
+
+    FUNCTION_TEST_RETURN_CONST(MANIFEST_FILE, &this->file);
 }
 
 /***********************************************************************************************************************************
