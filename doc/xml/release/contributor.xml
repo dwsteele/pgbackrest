@@ -80,6 +80,11 @@
     <contributor-id type="github">anarazel</contributor-id>
 </contributor>
 
+<contributor id="andrew.jackson">
+    <contributor-name-display>Andrew Jackson</contributor-name-display>
+    <contributor-id type="github">AndrewJackson2020</contributor-id>
+</contributor>
+
 <contributor id="andrew.lecuyer">
     <contributor-name-display>Andrew L'Ecuyer</contributor-name-display>
     <contributor-id type="github">andrewlecuyer</contributor-id>
@@ -451,6 +456,11 @@
 <contributor id="gunnar.bluth">
     <contributor-name-display>Gunnar "Nick" Bluth</contributor-name-display>
     <contributor-id type="github">bluthg</contributor-id>
+</contributor>
+
+<contributor id="gunnar.lindholm">
+    <contributor-name-display>Gunnar Lindholm</contributor-name-display>
+    <contributor-id type="github">GLFNSE</contributor-id>
 </contributor>
 
 <contributor id="gurucubano">
@@ -875,6 +885,11 @@
     <contributor-id type="github">melrifa1</contributor-id>
 </contributor>
 
+<contributor id="mohammad.ali.nazir.kosar">
+    <contributor-name-display>Mohammad Ali Nazir Kosar</contributor-name-display>
+    <contributor-id type="github">AliNazirKosar</contributor-id>
+</contributor>
+
 <contributor id="moiz.ibrar">
     <contributor-name-display>Moiz Ibrar</contributor-name-display>
     <contributor-id type="github">moizpgedge</contributor-id>
@@ -995,6 +1010,11 @@
     <contributor-id type="github">rob-donovan</contributor-id>
 </contributor>
 
+<contributor id="roberto.mello">
+    <contributor-name-display>Roberto Mello</contributor-name-display>
+    <contributor-id type="github">roberto-mello</contributor-id>
+</contributor>
+
 <contributor id="rohit.raveendran">
     <contributor-name-display>Rohit Raveendran</contributor-name-display>
     <contributor-id type="github">rohitrav33ndran</contributor-id>
@@ -1063,6 +1083,11 @@
 <contributor id="seth.daniel">
     <contributor-name-display>Seth Daniel</contributor-name-display>
     <contributor-id type="github">sethdaniel</contributor-id>
+</contributor>
+
+<contributor id="shiva.kumar.ambigi">
+    <contributor-name-display>Shiva Kumar Ambigi</contributor-name-display>
+    <contributor-id type="github">ShivakumarAmbigiTR</contributor-id>
 </contributor>
 
 <contributor id="slava.moudry">

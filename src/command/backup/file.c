@@ -20,7 +20,6 @@ Backup File
 #include "common/regExp.h"
 #include "common/type/convert.h"
 #include "common/type/json.h"
-#include "info/manifest.h"
 #include "storage/helper.h"
 
 /***********************************************************************************************************************************

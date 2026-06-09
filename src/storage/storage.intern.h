@@ -51,6 +51,7 @@ Error messages
 #define STORAGE_ERROR_WRITE_CLOSE                                   "unable to close file '%s' after write"
 #define STORAGE_ERROR_WRITE_OPEN                                    "unable to open file '%s' for write"
 #define STORAGE_ERROR_WRITE_MISSING                                 "unable to open file '%s' for write in missing path"
+#define STORAGE_ERROR_WRITE_SEEK                                    "unable to seek to %" PRIu64 " in file '%s'"
 #define STORAGE_ERROR_WRITE_SYNC                                    "unable to sync file '%s' after write"
 
 /***********************************************************************************************************************************
@@ -119,19 +120,14 @@ typedef struct StorageInterfaceNewReadParam
     // Limit bytes read from the file. NULL for no limit.
     const Variant *limit;
 
-    // Target a specific file version. This requires a boolean as well as the versionId because file missing is indicated when the
-    // file is opened rather than when it is created. So if version = true and versionId = NULL then the file will be reported as
-    // missing on open.
-    bool version;                                                   // Target a file version
-    const String *versionId;                                        // Id when targeting a version (NULL if version is missing)
+    // Target a specific file version (NULL for current version)
+    const String *versionId;
 } StorageInterfaceNewReadParam;
 
-typedef StorageRead *StorageInterfaceNewRead(
-    void *thisVoid, const String *file, bool ignoreMissing, StorageInterfaceNewReadParam param);
+typedef void *StorageInterfaceNewRead(void *thisVoid, const String *file, StorageInterfaceNewReadParam param);
 
-#define storageInterfaceNewReadP(thisVoid, file, ignoreMissing, ...)                                                               \
-    STORAGE_COMMON_INTERFACE(thisVoid).newRead(                                                                                    \
-        thisVoid, file, ignoreMissing, (StorageInterfaceNewReadParam){VAR_PARAM_INIT, __VA_ARGS__})
+#define storageInterfaceNewReadP(thisVoid, file, ...)                                                                              \
+    STORAGE_COMMON_INTERFACE(thisVoid).newRead(thisVoid, file, (StorageInterfaceNewReadParam){VAR_PARAM_INIT, __VA_ARGS__})
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Create a file write object. The file should not be opened immediately -- open() will be called on the IoWrite interface when the
@@ -170,7 +166,7 @@ typedef struct StorageInterfaceNewWriteParam
     bool compressible;
 } StorageInterfaceNewWriteParam;
 
-typedef StorageWrite *StorageInterfaceNewWrite(void *thisVoid, const String *file, StorageInterfaceNewWriteParam param);
+typedef void *StorageInterfaceNewWrite(void *thisVoid, const String *file, StorageInterfaceNewWriteParam param);
 
 #define storageInterfaceNewWriteP(thisVoid, file, ...)                                                                             \
     STORAGE_COMMON_INTERFACE(thisVoid).newWrite(thisVoid, file, (StorageInterfaceNewWriteParam){VAR_PARAM_INIT, __VA_ARGS__})
@@ -296,8 +292,8 @@ typedef struct StorageInterface
     // Features implemented by the storage driver
     uint64_t feature;
 
-    // Allowed number of concurrent read/writes
-    unsigned int concurrency;
+    // Number of reads to prefetch
+    unsigned int prefetch;
 
     // Bytes to read over rather than open file with new offset
     uint64_t readOver;

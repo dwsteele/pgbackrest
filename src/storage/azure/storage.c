@@ -686,30 +686,27 @@ storageAzureList(THIS_VOID, const String *const path, const StorageInfoLevel lev
 }
 
 /**********************************************************************************************************************************/
-static StorageRead *
-storageAzureNewRead(THIS_VOID, const String *const file, const bool ignoreMissing, const StorageInterfaceNewReadParam param)
+static void *
+storageAzureNewRead(THIS_VOID, const String *const file, const StorageInterfaceNewReadParam param)
 {
     THIS(StorageAzure);
 
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(STORAGE_AZURE, this);
         FUNCTION_LOG_PARAM(STRING, file);
-        FUNCTION_LOG_PARAM(BOOL, ignoreMissing);
         FUNCTION_LOG_PARAM(UINT64, param.offset);
         FUNCTION_LOG_PARAM(VARIANT, param.limit);
-        FUNCTION_LOG_PARAM(BOOL, param.version);
         FUNCTION_LOG_PARAM(STRING, param.versionId);
     FUNCTION_LOG_END();
 
     ASSERT(this != NULL);
     ASSERT(file != NULL);
 
-    FUNCTION_LOG_RETURN(
-        STORAGE_READ, storageReadAzureNew(this, file, ignoreMissing, param.offset, param.limit, param.version, param.versionId));
+    FUNCTION_LOG_RETURN(STORAGE_READ_AZURE, storageReadAzureNew(this, file, param.offset, param.limit, param.versionId));
 }
 
 /**********************************************************************************************************************************/
-static StorageWrite *
+static void *
 storageAzureNewWrite(THIS_VOID, const String *const file, const StorageInterfaceNewWriteParam param)
 {
     THIS(StorageAzure);
@@ -728,7 +725,7 @@ storageAzureNewWrite(THIS_VOID, const String *const file, const StorageInterface
     ASSERT(param.group == NULL);
     ASSERT(param.timeModified == 0);
 
-    FUNCTION_LOG_RETURN(STORAGE_WRITE, storageWriteAzureNew(this, file, this->fileId++, this->blockSize));
+    FUNCTION_LOG_RETURN(STORAGE_WRITE_AZURE, storageWriteAzureNew(this, file, this->fileId++, this->blockSize));
 }
 
 /**********************************************************************************************************************************/
@@ -834,7 +831,7 @@ storageAzureRemove(THIS_VOID, const String *const file, const StorageInterfaceRe
 /**********************************************************************************************************************************/
 static const StorageInterface storageInterfaceAzure =
 {
-    .feature = 1 << storageFeatureVersioning,
+    .feature = 1 << storageFeatureVersioning | 1 << storageFeatureReadRetry,
 
     .info = storageAzureInfo,
     .list = storageAzureList,
@@ -850,7 +847,7 @@ storageAzureNew(
     const String *const container, const String *const account, const StorageAzureKeyType keyType, const String *const key,
     const size_t blockSize, const KeyValue *const tag, const String *const endpoint, const StorageAzureUriStyle uriStyle,
     const unsigned int port, const TimeMSec timeout, const HttpProtocolType protocolType, const bool verifyPeer,
-    const String *const caFile, const String *const caPath)
+    const String *const caFile, const String *const caPath, const unsigned int prefetch, const uint64_t readOver)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(STRING, path);
@@ -871,6 +868,8 @@ storageAzureNew(
         FUNCTION_LOG_PARAM(BOOL, verifyPeer);
         FUNCTION_LOG_PARAM(STRING, caFile);
         FUNCTION_LOG_PARAM(STRING, caPath);
+        FUNCTION_LOG_PARAM(UINT, prefetch);
+        FUNCTION_LOG_PARAM(UINT64, readOver);
     FUNCTION_LOG_END();
 
     ASSERT(path != NULL);
@@ -895,9 +894,9 @@ storageAzureNew(
             .keyType = keyType,
         };
 
-        // Set concurrency
-        this->interface.concurrency = 1;
-        // !!! ADD READ OVER
+        // Set prefetch and read over
+        this->interface.prefetch = prefetch;
+        this->interface.readOver = readOver;
 
         // Create tag query string
         if (tag != NULL)

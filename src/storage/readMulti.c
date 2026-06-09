@@ -62,6 +62,9 @@ storageReadMultiQueue(StorageReadMulti *const this, const bool prelim)
         FUNCTION_LOG_PARAM(BOOL, prelim);
     FUNCTION_LOG_END();
 
+    ASSERT(this != NULL);
+    ASSERT(!prelim || !lstEmpty(this->requestList));
+
     // If the read queue is less than max then queue more reads
     if (lstSize(this->queue) < this->queueMax)
     {
@@ -161,7 +164,10 @@ storageReadMulti(THIS_VOID, Buffer *const buffer, const bool block)
     FUNCTION_LOG_END();
 
     ASSERT(this != NULL);
-    // ASSERT(buffer != NULL && !bufEmpty(buffer));
+    ASSERT(!this->eof);
+    ASSERT(!lstEmpty(this->requestList));
+    ASSERT(!lstEmpty(this->queue));
+    ASSERT(buffer != NULL && bufEmpty(buffer));
 
     size_t result = 0;
 
@@ -172,7 +178,7 @@ storageReadMulti(THIS_VOID, Buffer *const buffer, const bool block)
         StorageRead *const read = *(StorageRead **)lstGet(this->queue, 0);
         IoRead *const readIo = storageReadIo(read);
 
-        // !!!
+        // Set buffer limit so the current range is not overread
         bufLimitClear(buffer);
 
         if (range != NULL && lstSize(request->rangeList) > 1)
@@ -185,7 +191,7 @@ storageReadMulti(THIS_VOID, Buffer *const buffer, const bool block)
 
         result = ioRead(readIo, buffer);
 
-        // !!!
+        // Check range completion
         if (range != NULL)
         {
             request->rangeRead += result;
@@ -236,7 +242,8 @@ storageReadMultiClose(THIS_VOID)
 
     ASSERT(this != NULL);
 
-    // this->ioInterface.close(this->driver);
+    for (unsigned int queueIdx = 0; queueIdx < lstSize(this->queue); queueIdx++)
+        ioReadClose(storageReadIo(*(StorageRead **)lstGet(this->queue, queueIdx)));
 
     FUNCTION_LOG_RETURN_VOID();
 }
@@ -353,16 +360,15 @@ static const IoReadInterface storageIoReadMultiInterface =
 };
 
 FN_EXTERN StorageReadMulti *
-storageReadMultiNew(const Storage *const storage, const unsigned int concurrency, const uint64_t readOver)
+storageReadMultiNew(const Storage *const storage, const unsigned int prefetch, const uint64_t readOver)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(STORAGE, storage);
-        FUNCTION_LOG_PARAM(UINT, concurrency);
+        FUNCTION_LOG_PARAM(UINT, prefetch);
         FUNCTION_LOG_PARAM(UINT64, readOver);
     FUNCTION_LOG_END();
 
     ASSERT(storage != NULL);
-    ASSERT(concurrency != 0);
 
     OBJ_NEW_BEGIN(StorageReadMulti, .childQty = MEM_CONTEXT_QTY_MAX)
     {
@@ -371,7 +377,7 @@ storageReadMultiNew(const Storage *const storage, const unsigned int concurrency
             .storage = storage,
             .requestList = lstNewP(sizeof(StorageReadMultiRequest), .comparator = lstComparatorStr),
             .queue = lstNewP(sizeof(StorageRead *)),
-            .queueMax = concurrency,
+            .queueMax = prefetch + 1,
             .readOver = readOver,
             .pub =
             {
@@ -381,7 +387,6 @@ storageReadMultiNew(const Storage *const storage, const unsigned int concurrency
     }
     OBJ_NEW_END();
 
-    // !!! SHOULD WE EXPOSE A StorageRead INTERFACE? This would allow it to work with storageGetP() etc.
     FUNCTION_LOG_RETURN(STORAGE_READ_MULTI, this);
 }
 

@@ -1024,6 +1024,7 @@
                                 <list-item><id>shared</id> - Shared keys</list-item>
                                 <list-item><id>auto</id> - Automatically retrieve temporary credentials</list-item>
                                 <list-item><id>web-id</id> - Automatically retrieve web identity credentials</list-item>
+                                <list-item><id>pod-id</id> - Automatically retrieve EKS pod identity credentials</list-item>
                             </list>
                         </text>
 
@@ -1112,6 +1113,16 @@
                         </text>
 
                         <example>n</example>
+                    </config-key>
+
+                    <config-key id="repo-s3-service" name="S3 Repository Service">
+                        <summary>S3 signing service.</summary>
+
+                        <text>
+                            <p>The S3 signing service used in SigV4 authentication. Defaults to <id>s3</id> for standard S3 endpoints. Set to <id>s3-outposts</id> when using an S3 Outposts endpoint.</p>
+                        </text>
+
+                        <example>s3-outposts</example>
                     </config-key>
 
                     <config-key id="repo-s3-uri-style" name="S3 Repository URI Style">
@@ -1256,16 +1267,17 @@
                         <example>/etc/pki/tls/certs</example>
                     </config-key>
 
-                    <config-key id="repo-storage-concurrency" name="Repository Storage Concurrency">
-                        <summary>Repository storage concurrency.</summary>
+                    <config-key id="repo-storage-prefetch" name="Repository Storage Prefetch">
+                        <summary>Repository storage prefetch.</summary>
 
                         <text>
-                            <p>!!!</p>
+                            <p>Determines the number of requests to prefetch when read from object stores, e.g. <proper>S3</proper>. This is not true concurrency but it reduces the latency involved in submitting requests.</p>
+
+                            <p>Note that the number of open requests per read will be one greater than prefetch, since the initial read cannot be prefetched.</p>
                         </text>
 
-                        <example>8</example>
+                        <example>7</example>
                     </config-key>
-
 
                     <config-key id="repo-storage-host" name="Repository Storage Host">
                         <summary>Repository storage host.</summary>
@@ -1291,10 +1303,10 @@
                         <summary>Repository storage read over.</summary>
 
                         <text>
-                            <p>!!!</p>
+                            <p>Bundles may contain data that is not needed during restore, for example files that already exist. This option skips over unneeded data without starting a new read request on object stores. This is generally faster since the latency on new read requests is higher than continuing a read already in progress. It is also less expensive for most storage classes.</p>
                         </text>
 
-                        <example>16KiB</example>
+                        <example>128KiB</example>
                     </config-key>
 
                     <config-key id="repo-storage-tag" name="Repository Storage Tag">
@@ -2645,7 +2657,7 @@
 
                     <p>Each stanza has a separate section and it is possible to limit output to a single stanza with the <br-option>--stanza</br-option> option. The stanza '<id>status</id>' gives a brief indication of the stanza's health. If this is '<id>ok</id>' then <backrest/> is functioning normally. If there are multiple repositories, then a status of '<id>mixed</id>' indicates that the stanza is not in a healthy state on one or more of the repositories; in this case the state of the stanza will be detailed per repository. For cases in which an error on a repository occurred that is not one of the known error codes, then an error code of '<id>other</id>' will be used and the full error details will be provided. The '<id>wal archive min/max</id>' shows the minimum and maximum WAL currently stored in the archive and, in the case of multiple repositories, will be reported across all repositories unless the <br-option>{[dash]}-repo</br-option> option is set. Note that there may be gaps due to archive retention policies or other reasons.</p>
 
-                    <p>The '<id>backup/expire running</id>' and/or '<id>restore running</id>' messages will appear beside the '<id>status</id>' information if any of those commands are currently running on the host.</p>
+                    <p>The '<id>backup/expire running</id>' and/or '<id>restore running</id>' messages will appear beside the '<id>status</id>' information if any of those commands are currently running on the host. Per-repo progress will be also reported in text output and a '<id>repo</id>' array will be included in JSON output.</p>
 
                     <p>The backups are displayed oldest to newest. The oldest backup will <i>always</i> be a full backup (indicated by an <id>F</id> at the end of the label) but the newest backup can be full, differential (ends with <id>D</id>), or incremental (ends with <id>I</id>).</p>
 

@@ -287,7 +287,7 @@ testRun(void)
             (StorageGcs *)storageDriver(
                 storageGcsNew(
                     STRDEF("/repo"), false, 0, NULL, TEST_BUCKET_STR, storageGcsKeyTypeService, TEST_KEY_FILE_STR, TEST_CHUNK_SIZE,
-                    NULL, TEST_ENDPOINT_STR, TEST_TIMEOUT, true, NULL, NULL, NULL)),
+                    NULL, TEST_ENDPOINT_STR, TEST_TIMEOUT, true, NULL, NULL, NULL, 1, 0)),
             "read-only gcs storage - service key");
         TEST_RESULT_STR_Z(httpUrlHost(storage->authUrl), "test.com", "check host");
         TEST_RESULT_STR_Z(httpUrlPath(storage->authUrl), "/token", "check path");
@@ -312,7 +312,7 @@ testRun(void)
             (StorageGcs *)storageDriver(
                 storageGcsNew(
                     STRDEF("/repo"), true, 0, NULL, TEST_BUCKET_STR, storageGcsKeyTypeService, TEST_KEY_FILE_STR, TEST_CHUNK_SIZE,
-                    NULL, TEST_ENDPOINT_STR, TEST_TIMEOUT, true, NULL, NULL, NULL)),
+                    NULL, TEST_ENDPOINT_STR, TEST_TIMEOUT, true, NULL, NULL, NULL, 1, 0)),
             "read/write gcs storage - service key");
 
         TEST_RESULT_STR_Z(
@@ -452,29 +452,69 @@ testRun(void)
                 const size_t ioBufferSizeDefault = ioBufferSize();
                 ioBufferSizeSet(20);
 
-                TEST_RESULT_STR_Z(
-                    strNewBuf(storageGetP(storageNewReadP(storage, STRDEF("file.txt")))), "123456789112345678921234567893",
-                    "get file");
+                StorageReadMulti *readMulti;
+                TEST_ASSIGN(readMulti, storageNewReadMultiP(storage), "new read multi");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 0, .limit = NULL), "add read");
+                TEST_RESULT_VOID(ioReadOpen(storageReadMultiIo(readMulti)), "open read");
+
+                Buffer *buffer = bufNew(256);
+                TEST_RESULT_VOID(ioRead(storageReadMultiIo(readMulti), buffer), "read");
+                TEST_RESULT_STR_Z(strNewBuf(buffer), "123456789112345678921234567893", "check read");
+                TEST_RESULT_VOID(ioReadClose(storageReadMultiIo(readMulti)), "close read");
 
                 ioBufferSizeSet(ioBufferSizeDefault);
 
                 // -----------------------------------------------------------------------------------------------------------------
-                TEST_TITLE("get file with retry, offset, and limit");
+                TEST_TITLE("get file with retry and ranges");
 
                 testRequestP(service, HTTP_VERB_GET, .object = "file.txt", .query = "alt=media", .range = "1-29");
-                testResponseP(service, .content = "23456789112345678921X", .contentSize = VARUINT(30));
+                testResponseP(service, .content = "12345678901234567890X", .contentSize = VARUINT(30));
 
                 hrnServerScriptAbort(service);
                 hrnServerScriptAccept(service);
 
                 testRequestP(service, HTTP_VERB_GET, .object = "file.txt", .query = "alt=media", .range = "21-29");
-                testResponseP(service, .content = "23456789");
+                testResponseP(service, .content = "ABCDEFG-");
+
+                testRequestP(service, HTTP_VERB_GET, .object = "file.txt", .query = "alt=media", .range = "35-37");
+                testResponseP(service, .content = "YY-");
+
+                testRequestP(service, HTTP_VERB_GET, .object = "file.txt", .query = "alt=media", .range = "50-85");
+                testResponseP(service, .content = "ZZZ-!!M-S-!!01234567890123456789-!T-");
+
+                testRequestP(service, HTTP_VERB_GET, .object = "file2.txt", .query = "alt=media");
+                testResponseP(service, .content = "X");
 
                 ioBufferSizeSet(20);
 
+                TEST_ASSIGN(readMulti, storageNewReadMultiP(storage), "new read multi");
+                readMulti->queueMax = 1;
+                readMulti->readOver = 2;
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 1, .limit = VARUINT64(20)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 21, .limit = VARUINT64(9)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 35, .limit = VARUINT64(3)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 50, .limit = VARUINT64(4)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 56, .limit = VARUINT64(2)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 58, .limit = VARUINT64(2)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 62, .limit = VARUINT64(21)), "add read");
+                TEST_RESULT_VOID(
+                    storageReadMultiAddP(readMulti, STRDEF("file.txt"), .offset = 84, .limit = VARUINT64(2)), "add read");
+                TEST_RESULT_VOID(storageReadMultiAddP(readMulti, STRDEF("file2.txt")), "add read");
+                TEST_RESULT_VOID(ioReadOpen(storageReadMultiIo(readMulti)), "open read");
+
+                buffer = bufNew(256);
+                TEST_RESULT_VOID(ioRead(storageReadMultiIo(readMulti), buffer), "read");
                 TEST_RESULT_STR_Z(
-                    strNewBuf(storageGetP(storageNewReadP(storage, STRDEF("file.txt"), .offset = 1, .limit = VARUINT64(29)))),
-                    "2345678911234567892123456789", "get file");
+                    strNewBuf(buffer), "12345678901234567890ABCDEFG-YY-ZZZ-M-S-01234567890123456789-T-X", "check read");
+                TEST_RESULT_VOID(ioReadClose(storageReadMultiIo(readMulti)), "close read");
 
                 ioBufferSizeSet(ioBufferSizeDefault);
 
@@ -605,7 +645,7 @@ testRun(void)
                 TEST_RESULT_BOOL(storageWriteSyncPath(write), true, "path is synced");
                 TEST_RESULT_BOOL(storageWriteTruncate(write), true, "file will be truncated");
 
-                TEST_RESULT_VOID(storageWriteGcsClose(ioWriteDriver(storageWriteIo(write))), "close file again");
+                TEST_RESULT_VOID(storageWriteGcsClose(write->driver), "close file again");
 
                 // -----------------------------------------------------------------------------------------------------------------
                 TEST_TITLE("write zero-length file");
@@ -1410,14 +1450,11 @@ testRun(void)
                 ioWriteOpen(storageWriteIo(write));
                 ioWrite(storageWriteIo(write), BUFSTRDEF("123456789012345678"));
 
-                TEST_RESULT_VOID(
-                    bufResize(((StorageWriteGcs *)ioWriteDriver(storageWriteIo(write)))->chunkBuffer, 17),
-                    "resize part buffer to 17");
+                TEST_RESULT_VOID(bufResize(((StorageWriteGcs *)write->driver)->chunkBuffer, 17), "resize part buffer to 17");
 
                 ioWrite(storageWriteIo(write), BUFSTRDEF("90"));
 
-                TEST_RESULT_UINT(
-                    ((StorageWriteGcs *)ioWriteDriver(storageWriteIo(write)))->chunkSize, 16, "part buffer reset to 16 (default)");
+                TEST_RESULT_UINT(((StorageWriteGcs *)write->driver)->chunkSize, 16, "part buffer reset to 16 (default)");
 
                 ioWriteClose(storageWriteIo(write));
                 ioBufferSizeSet(ioBufferSizeDefault);
