@@ -30,7 +30,7 @@ format it was written with, so a repository may contain more than one format whi
 
 A constant is defined for each format so that code which varies by format can be explicit about the format it applies to.
 REPOSITORY_FORMAT_MIN/MAX are the range that can be read. REPOSITORY_FORMAT_DEFAULT is the format used for new repositories when
-repo-format is not specified.
+repo-format is not specified. The allow list for repo-format in build/config.yaml must be kept in sync with MIN/MAX.
 ***********************************************************************************************************************************/
 #define REPOSITORY_FORMAT_5                                         5
 #define REPOSITORY_FORMAT_6                                         6

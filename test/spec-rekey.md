@@ -1,55 +1,32 @@
-# Repository Format 6 and Key Rotation
+# Key Rotation
 
-**Working Document!!!** This spec guides development and will be removed before the final commit. Anything durable (user-facing behavior, the format feature table, migration guidance) moves to the user documentation before this file is deleted. The work will probably land as two commits -- the repository format infrastructure (adopting new formats at `stanza-create` and `stanza-upgrade`) and the key rotation feature built on it -- so the sections are grouped to allow the format infrastructure to be pulled out into its own spec later. Key pruning at expire is also in scope for the release and may land as a third commit.
+**Working Document!!!** This spec guides development and will be removed before the final commit. Anything durable (user-facing behavior, the format feature table, migration guidance) moves to the user documentation before this file is deleted. The repository format 6 infrastructure this builds on is already merged and is specified separately in `spec-repofmt.md` on `dws-repofmt-ci`; format 6 carries no features yet, and this branch is what fills it. Key pruning at expire is also in scope for the release and may land as a separate commit.
 
 ## Goals
 
-- Introduce repository format 6 as a single opt-in boundary that bundles format changes, rather than adding an option per feature.
-- Provide a migration path for existing stanzas via `stanza-upgrade`, so large repositories can adopt format 6 without being recreated.
-- Enable key rotation: an archive sub-passphrase per archive-id, a single sub-passphrase per backup set covering its manifests and data files, optional user passphrase rotation, and automatic archive rotation on a schedule.
+- Rotate the archive sub-passphrase, which is the only bulk-data key that never rotates today.
+- Replace the stanza-wide manifest key and the per-set data key with a single sub-passphrase per backup set, which rotates on its own with every full backup.
+- Rotate the user passphrase without touching bulk data, when the user asks for it.
+- Rotate the archive sub-passphrase automatically on a schedule.
 
 ## Current State (Format 5)
-
-### Format handling
-
-- `REPOSITORY_FORMAT` is a compile-time constant (`src/version.h:31`) stored as `backrest-format` in every info file and manifest.
-- Any mismatch at load is a hard `FormatError` (`src/info/info.c:182`), raised before any data is read.
 
 ### Encryption envelope
 
 - `repo-cipher-pass` (user-supplied) encrypts `backup.info` and `archive.info`.
 - `backup.info` holds a sub-passphrase that encrypts every `backup.manifest` (and `.copy`).
-- Each manifest holds a sub-passphrase that encrypts the data files of its backup set. A new sub-passphrase is generated per full backup (`src/command/backup/backup.c:244`) and inherited by diff/incr backups (`src/command/backup/incr.c.inc:146`), so one sub-passphrase covers an entire backup set and expires with it. This level of the hierarchy already rotates.
+- Each manifest holds a sub-passphrase that encrypts the data files of its backup set. A new sub-passphrase is generated per full backup (`src/command/backup/backup.c:245`) and inherited by diff/incr backups (`src/command/backup/incr.c.inc:147`), so one sub-passphrase covers an entire backup set and expires with it. This level of the hierarchy already rotates.
 - `archive.info` holds a single stanza-wide sub-passphrase that encrypts all WAL across all archive-ids for the life of the stanza -- the only bulk-data key that never rotates.
 - Sub-passphrases are 48 random bytes, base64-encoded to 64 characters (`cipherPassGen()`, `src/command/stanza/common.c:19`).
 
-## Repository Format Infrastructure
+## What Format 6 Already Provides
 
-### Format option
+Summarized here so this spec stands on its own; the design and its reasoning are in `spec-repofmt.md`.
 
-- New repo-indexed option `repo-format` (so `repoN-format` in config), consistent with `repo-cipher-type`.
-- Valid only for `stanza-create` and `stanza-upgrade` (see Migration); every other command derives the format from repository state. Not required after creation since the repository is self-describing.
-- Allowed values: 5, 6. Default remains 5 when format 6 is introduced.
-- Error message when a binary is too old for the repository: `repository format 6 requires pgBackRest X.Y or later` (X.Y = the release that introduces format 6). Older released binaries will report `expected format 5 but found 6`, which fails cleanly at info load before any data is touched.
-
-### Format handling rules
-
-- **Readers trust the per-file stored format.** Every manifest and info file already records `backrest-format`; loaders branch on the stored value, not a global constant.
-- **The info file format is the write target.** `backup.info` / `archive.info` format determines the format of new WAL and of new backup sets. Individual backups within a stanza may be older formats until they expire.
-- **Backups adopt a new format only at a full backup.** After `stanza-upgrade --repo-format=6`, diff/incr backups inherit the format of their set from the prior manifest (parallel to sub-passphrase inheritance, `src/command/backup/incr.c.inc:146`), so a backup set is never mixed-format. The full backup is thus the single adoption boundary for the backup domain: format and the set sub-passphrase change only there.
-- Consequence: once the info files are format 6, binaries that only support format 5 cannot read the stanza at all, including its remaining format 5 backups. This is accepted; the info files gate everything.
-
-### Migration
-
-- `stanza-upgrade --repo-format=6` flips the write target on an existing stanza. This ships in the first format 6 release; the loader's per-file format reading (above) supports it from the start.
-- `stanza-upgrade` is the intentional adoption boundary: it already rotates the archive-id, and a full backup already starts a new backup set with a fresh sub-passphrase, so both data domains have natural points where the new format begins.
-- Old backup sets remain format 5 until expired; old archive-ids remain format 5 until expired.
-- This also allows key rotation features to be adopted opt-in on existing repositories without recreation.
-
-### Default format bump
-
-- The `stanza-create` default moves from 5 to 6 in a designated future release, announced when format 6 first ships. Roughly a year out -- about four releases that support format 6 before the default flips -- so a buggy release always leaves supported fallbacks. Release-tied, never wall-clock-tied: the same binary and config must always produce the same repository.
-- The default flip is the point where mixed-version deployments can break on new stanzas (new repo host writes format 6, old db host cannot read it). It gets a prominent release note, and `--repo-format=5` remains the explicit escape hatch for as long as format 5 is writable.
+- Each info file and manifest stores the format it was written with, and readers trust the stored value, so a repository holds more than one format at once while older backups and archives expire.
+- The info file format is the write target for new WAL and new backup sets. Backups adopt a format only at a full backup, since diff/incr inherit their set's format from the prior manifest.
+- A stanza is created at a format with `stanza-create --repoN-format`, and an existing stanza is migrated with `stanza-upgrade --repoN-format`. Migration rewrites the two info files and nothing else, and cannot be downgraded.
+- Once the info files are format 6, a version that does not support format 6 cannot read the stanza at all. That gate is what makes it safe for the features below to change how keys are stored.
 
 ## Key Rotation
 
@@ -60,7 +37,7 @@ A `stanza-rekey` run rotates the archive sub-passphrase immediately by starting 
 ### Archive sub-passphrase per archive-id
 
 - Format 6 stores a sub-passphrase per archive-id in `archive.info`, created with the archive-id and stamped with its creation time. Every file in an archive-id -- WAL segments, `.partial`, `.backup`, and timeline `.history` files alike -- uses that id's key: exact lookup, no boundary comparison, no trial decryption.
-- Rotation starts a new archive-id with an unchanged PostgreSQL version and system-id: a new `db:history` id recorded in `archive.info` and `backup.info` together, since `checkStanzaInfo()` errors when the current ids diverge (`src/command/stanza/upgrade.c:82`). A PostgreSQL upgrade via `stanza-upgrade` rotates naturally the same way.
+- Rotation starts a new archive-id with an unchanged PostgreSQL version and system-id: a new `db:history` id recorded in `archive.info` and `backup.info` together, since `checkStanzaInfo()` errors when the current ids diverge (`src/command/stanza/upgrade.c:118`). A PostgreSQL upgrade via `stanza-upgrade` rotates naturally the same way.
 - Running archivers cannot conflict with rotation: a pusher still holding the previous `archive.info` keeps writing to the previous archive-id with that id's key, which remains fully consistent -- late gap fills included. On its next load it sees the new archive-id and switches. archive-push writes only to the current archive-id (`src/command/archive/push/push.c:242`) and archive-get already searches every archive-id matching the current version and system-id (`src/command/archive/get/get.c:428`), so no fallback logic is required anywhere.
 - A same-content repush that lands in a newer archive-id than the original is benign: get collects matches across archive-ids and dedups by the content hash in the stored name, erroring only when content differs (`src/command/archive/get/get.c:280`).
 - Cross-archive-id PITR is expected to work today: get searches all candidate ids per request, and unit coverage exists for same-version ids (`test/src/module/command/archiveGetTest.c:262`). Any missing coverage -- notably an end-to-end recovery replaying WAL across an archive-id boundary -- is written and committed separately, ahead of the rotation work.
@@ -71,7 +48,7 @@ A `stanza-rekey` run rotates the archive sub-passphrase immediately by starting 
 
 - Format 6 stores a single sub-passphrase per backup set in `backup.info`, keyed by the full backup label, and it encrypts both the set's manifests and its data files. Every full backup generates a fresh entry, so rotation is automatic and needs no option, marker, or age tracking.
 - This replaces two format 5 levels at once: the stanza-wide manifest key and the per-set data key embedded in the manifest. The split had no security value -- the data key is stored inside a manifest encrypted with the manifest key, so holding the manifest key always transitively unlocked the data -- and once the manifest key is per-set, they are the same key. Format 6 manifests drop the `[cipher]` sub-passphrase field; format 5 manifests keep theirs and are read per stored format.
-- Lookup is exact, not ordered: a diff/incr label embeds its full's label as the prefix before `_`, so the key for any manifest or data file -- current or under `backup.history` -- is found by parsing the backup label. No boundary comparison exists anywhere in the design. The prior-manifest inheritance of the data key (`src/command/backup/incr.c.inc:146`) is no longer needed for format 6 sets.
+- Lookup is exact, not ordered: a diff/incr label embeds its full's label as the prefix before `_`, so the key for any manifest or data file -- current or under `backup.history` -- is found by parsing the backup label. No boundary comparison exists anywhere in the design. The prior-manifest inheritance of the data key (`src/command/backup/incr.c.inc:147`) is no longer needed for format 6 sets, though the format inheritance beside it stays.
 - The entry is recorded at label assignment, before the first manifest copy is saved, so a resumed backup finds its key by the normal lookup with no special cases -- the data key included, which today comes from the resumed manifest copy. An entry from an aborted full is inert and is pruned once no manifest references it.
 - A migrated stanza retains the format 5 stanza-wide manifest key in `backup.info` until the last format 5 manifest expires; format 5 sets keep reading their data keys from their manifests as always.
 
@@ -103,7 +80,7 @@ A `stanza-rekey` run rotates the archive sub-passphrase immediately by starting 
 
 ### Key pruning at expire
 
-- In scope for the format 6 release, though it can land as a commit separate from the rotation work.
+- In scope for the release, though it can land as a commit separate from the rotation work.
 - Archive: a key lives and dies with its archive-id. Expire already removes archive-ids that no retained backup needs; the key entry goes with the id. No new pruning logic beyond dropping the entry.
 - Backup set: an entry serves exactly one set, so it is dropped when the last manifest of that set -- current or under `backup.history`, which can outlive the set under `repo-retention-history` -- is removed. Expire performs both removals, so it knows when that happens. The entry for the newest set is never pruned.
 - Unpruned entries are only wasted bytes, so skipping pruning is always safe.
@@ -119,6 +96,6 @@ A `stanza-rekey` run rotates the archive sub-passphrase immediately by starting 
 
 ## Documentation Plan
 
-- The `repo-format` option reference carries a table of features per format version -- the one place users look to answer "what do I get at format 6".
-- Migration guidance (stanza-upgrade path, mixed-format stanzas, old-binary behavior) goes in the user guide.
-- Release notes announce the introduction and, later, the default flip.
+- The features per format version table in the `repo-format` option reference is a stub today. This work fills in the format 6 entries.
+- The `stanza-rekey` command reference, the rotation option, and guidance on the config-first passphrase flow.
+- Release notes announce key rotation and the `repo-cipher-pass-old` continuity mechanism.
