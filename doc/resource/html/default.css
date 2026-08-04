@@ -50,6 +50,11 @@ Tokens
     --border: #e3e8ef;
     --border-strong: #cbd4e1;
 
+    /* The end of a menu that carries on past the window: the color of the rules the bar is drawn with against a light bar, and a
+       shade inside them against a dark bar, where the same step away from the bar reads harder. The band holds this color across a
+       fifth of its width before it gives out, and that is what carries it, so a color picked to carry on its own is too much. */
+    --menu-edge: var(--border);
+
     --accent: #0d5f9e;
     --accent-hover: #0a4a7c;
     --accent-soft: #e8f1f9;
@@ -88,6 +93,7 @@ Tokens
         --text-muted: #94a3b8;
         --border: #1f2937;
         --border-strong: #334155;
+        --menu-edge: #1d2634;
 
         --accent: #64a8ef;
         --accent-hover: #8fc3f5;
@@ -124,15 +130,6 @@ html
     font-family: var(--font-body);
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
-}
-
-/* Jumping from the contents to a section glides rather than cuts, for readers who have not asked for less motion */
-@media (prefers-reduced-motion: no-preference)
-{
-    html
-    {
-        scroll-behavior: smooth;
-    }
 }
 
 body
@@ -246,15 +243,64 @@ Menu
     box-shadow: var(--shadow);
 }
 
+/* The bar keeps its height however many pages are in the menu, so a menu wider than the window scrolls sideways rather than
+   wrapping into rows the height would cut off. It is centered by the margins at its ends rather than by the bar, since a centered
+   row that overflows hangs out both ends and the start of it is past where the scroll can reach. */
 .menu-body
 {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    gap: 0 1.75rem;
+    gap: 1.75rem;
     height: var(--bar-height);
     overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+
+/* An end the menu carries on past fades out rather than stopping flat, since a phone draws the scrollbar only while a finger is on
+   it and at rest nothing else says there is more menu than the window is showing. Drawn over the bar rather than cut out of the
+   menu, since a cutout is measured against everything the menu can be scrolled to rather than against the part of it the window is
+   showing, which lands the fade somewhere off the side of the window. Drawn in a color of its own rather than in the color of the
+   bar, since where the menu breaks between one page and the next there is no text beneath the fade for it to take, and a fade in
+   the color of the bar would be a fade over nothing. It holds that color across the near third of its width before it gives out,
+   since a fade at full color in nothing but its last pixel is hardly a fade at all. Drawn inside the rules the bar is drawn with,
+   so those run the full width whichever end is fading. Which ends fade only a measurement can say, so the script says it. */
+.page-menu::before, .page-menu::after
+{
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.page-menu::before
+{
+    left: 0;
+    background: linear-gradient(to right, var(--menu-edge) 20%, transparent);
+}
+
+.page-menu::after
+{
+    right: 0;
+    background: linear-gradient(to left, var(--menu-edge) 20%, transparent);
+}
+
+.page-menu-fade-left::before, .page-menu-fade-right::after
+{
+    opacity: 1;
+}
+
+.menu:first-child
+{
+    margin-left: auto;
+}
+
+.menu:last-child
+{
+    margin-right: auto;
 }
 
 .menu
@@ -262,7 +308,7 @@ Menu
     white-space: nowrap;
 }
 
-a.menu-link:link, a.menu-link:visited
+a.menu-link:link, a.menu-link:visited, .menu-current
 {
     display: block;
     color: var(--text-muted);
@@ -276,6 +322,17 @@ a.menu-link:hover, a.menu-link:active
 {
     color: var(--accent);
     text-decoration: none;
+}
+
+/* The page a reader is on, marked by full-strength text and a rule in the accent color so it reads as where they are rather than
+   as somewhere to go */
+.menu-current
+{
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: .5em;
 }
 
 /***********************************************************************************************************************************
