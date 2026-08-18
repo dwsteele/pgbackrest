@@ -104,8 +104,6 @@ infoBackupPg(const InfoBackup *const this)
 
 FN_EXTERN InfoBackup *infoBackupPgSet(InfoBackup *this, unsigned int pgVersion, uint64_t pgSystemId, unsigned int pgCatalogVersion);
 
-FN_EXTERN void infoBackupFormatSet(InfoBackup *this, unsigned int format);
-
 // Cipher spec for dependent files
 FN_INLINE_ALWAYS const CipherSpec *
 infoBackupCipherSpec(const InfoBackup *const this)
@@ -119,6 +117,8 @@ infoBackupFormat(const InfoBackup *const this)
 {
     return infoPgFormat(infoBackupPg(this));
 }
+
+FN_EXTERN void infoBackupFormatSet(InfoBackup *this, unsigned int format);
 
 // Return a structure of the backup data from a specific index
 FN_EXTERN InfoBackupData infoBackupData(const InfoBackup *this, unsigned int backupDataIdx);

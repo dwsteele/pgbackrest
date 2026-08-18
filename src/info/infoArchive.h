@@ -53,8 +53,6 @@ infoArchivePg(const InfoArchive *const this)
 
 FN_EXTERN InfoArchive *infoArchivePgSet(InfoArchive *this, unsigned int pgVersion, uint64_t pgSystemId);
 
-FN_EXTERN void infoArchiveFormatSet(InfoArchive *this, unsigned int format);
-
 // Current archive id
 FN_INLINE_ALWAYS const String *
 infoArchiveId(const InfoArchive *const this)
@@ -75,6 +73,8 @@ infoArchiveFormat(const InfoArchive *const this)
 {
     return infoPgFormat(infoArchivePg(this));
 }
+
+FN_EXTERN void infoArchiveFormatSet(InfoArchive *this, unsigned int format);
 
 /***********************************************************************************************************************************
 Functions

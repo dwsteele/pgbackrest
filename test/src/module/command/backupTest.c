@@ -3004,16 +3004,19 @@ testRun(void)
             HRN_STORAGE_PATH_REMOVE(storagePgWrite(), strZ(pgWalPath(PG_VERSION_14)));
             HRN_STORAGE_PATH_CREATE(storagePgWrite(), strZ(pgWalPath(PG_VERSION_11)), .noParentCreate = true);
 
-            // Upgrade stanza
+            // Upgrade stanza to format 6
             StringList *argList = strLstNew();
             hrnCfgArgRawZ(argList, cfgOptStanza, "test1");
             hrnCfgArgRaw(argList, cfgOptRepoPath, repoPath);
+            hrnCfgArgRawZ(argList, cfgOptRepoFormat, "6");
             hrnCfgArgRaw(argList, cfgOptPgPath, pg1Path);
             hrnCfgArgRawBool(argList, cfgOptOnline, false);
             HRN_CFG_LOAD(cfgCmdStanzaUpgrade, argList);
 
             cmdStanzaUpgrade();
-            TEST_RESULT_LOG("P00   INFO: stanza-upgrade for stanza 'test1' on repo1");
+            TEST_RESULT_LOG(
+                "P00   INFO: stanza-upgrade for stanza 'test1' on repo1\n"
+                "P00   INFO: upgrade repository format from 5 to 6");
 
             // Load options
             argList = strLstNew();
@@ -3022,7 +3025,7 @@ testRun(void)
             hrnCfgArgRaw(argList, cfgOptPgPath, pg1Path);
             hrnCfgArgRawZ(argList, cfgOptRepoRetentionFull, "1");
             hrnCfgArgRawBool(argList, cfgOptRepoSymlink, false);
-            hrnCfgArgRawStrId(argList, cfgOptType, backupTypeFull);
+            // Do not specify type=full since the update to repo format 6 should force a full upgrade
             hrnCfgArgRawBool(argList, cfgOptRepoHardlink, true);
             hrnCfgArgRawZ(argList, cfgOptManifestSaveThreshold, "1");
             hrnCfgArgRawBool(argList, cfgOptArchiveCopy, true);
@@ -3104,6 +3107,7 @@ testRun(void)
 #pragma GCC diagnostic pop
 
             TEST_RESULT_LOG(
+                "P00   WARN: no prior backup exists, incr backup has been changed to full\n"
                 "P00   INFO: execute backup start: backup begins after the next regular checkpoint completes\n"
                 "P00   INFO: backup start archive = 0000000105DB5DE000000000, lsn = 5db5de0/0\n"
                 "P00   INFO: check archive for segment 0000000105DB5DE000000000\n"
