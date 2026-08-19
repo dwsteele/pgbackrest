@@ -269,7 +269,7 @@ testRun(void)
         #undef TEST_HEADER_DAMAGE
 
         CipherBlock *cipherBlock = (CipherBlock *)ioFilterDriver(cipherBlockNewP(cipherModeEncrypt, cipherSpec));
-        TEST_RESULT_INT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
+        TEST_RESULT_UINT(cipherBlock->mode, cipherModeEncrypt, "mode is valid");
         TEST_RESULT_UINT(bufSize(cipherBlock->pass), strlen(TEST_PASS), "passphrase size is valid");
         TEST_RESULT_BOOL(memcmp(bufPtrConst(cipherBlock->pass), TEST_PASS, strlen(TEST_PASS)) == 0, true, "passphrase is valid");
         TEST_RESULT_BOOL(cipherBlock->saltDone, false, "salt done is false");

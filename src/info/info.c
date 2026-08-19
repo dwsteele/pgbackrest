@@ -305,6 +305,11 @@ infoNewLoad(
             }
             TRY_END();
 
+            // The format defines how everything else is read, so a file without one is not an info file this version can use. The
+            // format is zero until the key is found and the value stored, so if we got here then the key was not found.
+            if (infoFormat(this) == 0)
+                THROW(FormatError, "repository format not found\nHINT: is this a valid " PROJECT_NAME " info file?");
+
             // Only a cipher that read a header reports a format, so a result here is what says the file had one. The header is
             // written from the same format as the content, so a file where they disagree has been damaged or put together from
             // parts of two files.
