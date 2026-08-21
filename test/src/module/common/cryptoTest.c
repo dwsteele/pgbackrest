@@ -126,9 +126,7 @@ testRun(void)
 
         ioFilterGroupAdd(
             ioWriteFilterGroup(headerWrite),
-            cipherBlockNewP(
-                cipherModeEncrypt, cipherSpecNewP(cipherTypeAes256Cbc, testPass), .header = true,
-                .format = REPOSITORY_FORMAT_6));
+            cipherBlockNewP(cipherModeEncrypt, cipherSpecNewP(cipherTypeAes256Cbc, testPass), .format = REPOSITORY_FORMAT_6));
         ioWriteOpen(headerWrite);
         ioWrite(headerWrite, testPlainText);
         ioWriteClose(headerWrite);
@@ -189,9 +187,7 @@ testRun(void)
 
         ioFilterGroupAdd(
             ioWriteFilterGroup(headerWrite),
-            cipherBlockNewP(
-                cipherModeEncrypt, cipherSpecNewP(cipherTypeAes256Cbc, testPass), .header = true,
-                .format = REPOSITORY_FORMAT_6));
+            cipherBlockNewP(cipherModeEncrypt, cipherSpecNewP(cipherTypeAes256Cbc, testPass), .format = REPOSITORY_FORMAT_6));
         ioWriteOpen(headerWrite);
         ioWrite(headerWrite, testPlainText);
         ioWriteClose(headerWrite);
@@ -480,12 +476,12 @@ testRun(void)
         IoFilterGroup *filterGroup = ioFilterGroupNew();
 
         TEST_RESULT_PTR(
-            cipherBlockFilterGroupAdd(
+            cipherBlockFilterGroupAddP(
                 filterGroup, cipherModeEncrypt, cipherSpecNewNone()), filterGroup, "   no filter add");
         TEST_RESULT_UINT(ioFilterGroupSize(filterGroup), 0, "    check no filter add");
 
         TEST_RESULT_VOID(
-            cipherBlockFilterGroupAdd(
+            cipherBlockFilterGroupAddP(
                 filterGroup, cipherModeEncrypt, cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("X"))), "   filter add");
         TEST_RESULT_UINT(ioFilterGroupSize(filterGroup), 1, "    check filter add");
     }

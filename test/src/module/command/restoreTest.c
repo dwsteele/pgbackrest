@@ -2320,7 +2320,7 @@ testRun(void)
 
         // Add encryption filter and save the encrypted manifest
         #define TEST_CIPHER_PASS_MANIFEST "backpass"
-        cipherBlockFilterGroupAdd(
+        cipherBlockFilterGroupAddP(
             ioWriteFilterGroup(write), cipherModeEncrypt,
             cipherSpecNewP(
                 cfgOptionIdxStrId(cfgOptRepoCipherType, 1), BUFSTRDEF(TEST_CIPHER_PASS_MANIFEST), .digest = hashTypeSha1));

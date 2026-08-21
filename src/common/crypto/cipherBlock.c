@@ -550,11 +550,10 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
     ASSERT(cipherSpecPass(cipherSpec) != NULL && !bufEmpty(cipherSpecPass(cipherSpec)));
 
     // The header takes the place of the magic, so a file that contains one is never also raw
-    ASSERT(!param.header || !param.raw);
+    ASSERT(!param.raw || (!param.header && param.format == 0));
 
-    // The format must be known to write a header. On decrypt it is optional since the header defines the format, but when it is
-    // given the header must agree with it.
-    ASSERT(mode != cipherModeEncrypt || !param.header || param.format != 0);
+    // On encrypt the format defines whether a header is written, so a header is only ever requested on decrypt
+    ASSERT(mode == cipherModeDecrypt || !param.header);
 
     // Init crypto subsystem
     cryptoInit();
@@ -573,7 +572,7 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
     // in that case the lookup waits until the header has been read.
     const EVP_MD *digest = NULL;
 
-    if (!param.header || mode == cipherModeEncrypt)
+    if (!param.header)
     {
         // A format defines the digest, otherwise it comes from the spec
         digest = cipherBlockDigest(param.format != 0 ? repoFormatDigest(param.format) : cipherSpecDigest(cipherSpec));
@@ -585,7 +584,7 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
         {
             .mode = mode,
             .raw = param.raw,
-            .headerFormat = param.header,
+            .headerFormat = mode == cipherModeEncrypt ? param.format >= REPOSITORY_FORMAT_6 : param.header,
             .format = param.format,
             .cipher = cipher,
             .digest = digest,
@@ -619,7 +618,7 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
             .inputSame = cipherBlockInputSame,
 
             // Only a filter that reads a header has a format to report
-            .result = param.header && mode == cipherModeDecrypt ? cipherBlockResult : NULL));
+            .result = param.header ? cipherBlockResult : NULL));
 }
 
 FN_EXTERN IoFilter *
@@ -646,19 +645,22 @@ cipherBlockNewPack(const Pack *const paramList)
 
 /**********************************************************************************************************************************/
 FN_EXTERN IoFilterGroup *
-cipherBlockFilterGroupAdd(IoFilterGroup *const filterGroup, const CipherMode mode, const CipherSpec *const cipherSpec)
+cipherBlockFilterGroupAdd(
+    IoFilterGroup *const filterGroup, const CipherMode mode, const CipherSpec *const cipherSpec,
+    const CipherBlockFilterGroupAddParam param)
 {
     FUNCTION_LOG_BEGIN(logLevelTrace);
         FUNCTION_LOG_PARAM(IO_FILTER_GROUP, filterGroup);
         FUNCTION_LOG_PARAM(STRING_ID, mode);
         FUNCTION_LOG_PARAM(CIPHER_SPEC, cipherSpec);
+        FUNCTION_LOG_PARAM(UINT, param.format);
     FUNCTION_LOG_END();
 
     ASSERT(filterGroup != NULL);
     ASSERT(cipherSpec != NULL);
 
     if (cipherSpecType(cipherSpec) != cipherTypeNone)
-        ioFilterGroupAdd(filterGroup, cipherBlockNewP(mode, cipherSpec));
+        ioFilterGroupAdd(filterGroup, cipherBlockNewP(mode, cipherSpec, .format = param.format));
 
     FUNCTION_LOG_RETURN(IO_FILTER_GROUP, filterGroup);
 }

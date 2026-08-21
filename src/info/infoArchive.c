@@ -337,7 +337,9 @@ infoArchiveSaveFile(
     {
         // Write output into a buffer since it needs to be saved to storage twice
         Buffer *const buffer = bufNew(ioBufferSize());
-        IoWrite *const write = infoWriteNew(buffer, infoArchiveFormat(infoArchive), cipherSpec);
+        IoWrite *const write = ioBufferWriteNew(buffer);
+        cipherBlockFilterGroupAddP(
+            ioWriteFilterGroup(write), cipherModeEncrypt, cipherSpec, .format = infoArchiveFormat(infoArchive));
         infoArchiveSave(infoArchive, write);
 
         // Save the file and make a copy

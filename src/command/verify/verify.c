@@ -187,7 +187,7 @@ verifyFileLoad(const String *const pathFileName, const CipherSpec *const cipherS
     // checksum is over the file as it is stored. The file and its copy are written from the same bytes, which is all the checksum
     // is used to compare.
     if (decrypt)
-        cipherBlockFilterGroupAdd(ioReadFilterGroup(read), cipherModeDecrypt, cipherSpec);
+        cipherBlockFilterGroupAddP(ioReadFilterGroup(read), cipherModeDecrypt, cipherSpec);
 
     ioFilterGroupAdd(ioReadFilterGroup(read), cryptoHashNew(hashTypeSha1));
 

@@ -98,11 +98,6 @@ infoBackrestVersion(const Info *const this)
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
-// Create a write to save an info file into a buffer. The header is written and the encryption filter added according to the
-// format, so the caller has only to save into the write it gets back. The write side is the one that knows the format, so unlike
-// the load there is nothing to work out first.
-FN_EXTERN IoWrite *infoWriteNew(Buffer *buffer, unsigned int format, const CipherSpec *cipherSpec);
-
 // Save to file
 FN_EXTERN void infoSave(Info *this, IoWrite *write, InfoSaveCallback *callbackFunction, void *callbackData);
 

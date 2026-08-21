@@ -309,37 +309,6 @@ infoNewLoad(
 }
 
 /**********************************************************************************************************************************/
-FN_EXTERN IoWrite *
-infoWriteNew(Buffer *const buffer, const unsigned int format, const CipherSpec *const cipherSpec)
-{
-    FUNCTION_LOG_BEGIN(logLevelDebug);
-        FUNCTION_LOG_PARAM(BUFFER, buffer);
-        FUNCTION_LOG_PARAM(UINT, format);
-        FUNCTION_LOG_PARAM(CIPHER_SPEC, cipherSpec);
-    FUNCTION_LOG_END();
-
-    FUNCTION_AUDIT_HELPER();
-
-    ASSERT(buffer != NULL);
-    ASSERT(format >= REPOSITORY_FORMAT_MIN && format <= REPOSITORY_FORMAT_MAX);
-    ASSERT(cipherSpec != NULL);
-
-    IoWrite *const result = ioBufferWriteNew(buffer);
-
-    // The cipher writes the header and derives the pass with the digest the format calls for. Format 5 gets no header since it is
-    // the format a reader assumes when no header defines one.
-    if (cipherSpecType(cipherSpec) != cipherTypeNone)
-    {
-        ioFilterGroupAdd(
-            ioWriteFilterGroup(result),
-            cipherBlockNewP(
-                cipherModeEncrypt, cipherSpec, .header = format >= REPOSITORY_FORMAT_6, .format = format));
-    }
-
-    FUNCTION_LOG_RETURN(IO_WRITE, result);
-}
-
-/**********************************************************************************************************************************/
 FN_EXTERN bool
 infoSaveSection(InfoSave *const infoSaveData, const char *const section, const String *const sectionNext)
 {

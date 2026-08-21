@@ -94,8 +94,11 @@ testRun(void)
 
         contentSave = bufNew(0);
 
-        TEST_RESULT_VOID(
-            infoArchiveSave(info, infoWriteNew(contentSave, REPOSITORY_FORMAT_DEFAULT, cipherSpec)), "save new with cipher");
+        IoWrite *write = ioBufferWriteNew(contentSave);
+        cipherBlockFilterGroupAddP(
+            ioWriteFilterGroup(write), cipherModeEncrypt, cipherSpec, .format = REPOSITORY_FORMAT_DEFAULT);
+
+        TEST_RESULT_VOID(infoArchiveSave(info, write), "save new with cipher");
         TEST_RESULT_BOOL(
             strBeginsWithZ(strNewBuf(contentSave), "PGBR"), false, "no header before the format that added it");
 

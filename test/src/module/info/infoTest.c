@@ -74,7 +74,8 @@ static Buffer *
 testInfoEncrypt(const Buffer *const content, const unsigned int format, const CipherSpec *const cipherSpec)
 {
     Buffer *const result = bufNew(0);
-    IoWrite *const write = infoWriteNew(result, format, cipherSpec);
+    IoWrite *const write = ioBufferWriteNew(result);
+    cipherBlockFilterGroupAddP(ioWriteFilterGroup(write), cipherModeEncrypt, cipherSpec, .format = format);
 
     ioWriteOpen(write);
     ioWrite(write, content);
@@ -296,10 +297,11 @@ testRun(void)
         // An unencrypted file has no header no matter the format, since the format is read from the content
         contentSave = bufNew(0);
 
-        TEST_RESULT_VOID(
-            infoSave(
-                info, infoWriteNew(contentSave, REPOSITORY_FORMAT_6, cipherSpecNewNone()), testInfoSaveCallback, strNewZ("1")),
-            "info save");
+        IoWrite *const writeNone = ioBufferWriteNew(contentSave);
+        cipherBlockFilterGroupAddP(
+            ioWriteFilterGroup(writeNone), cipherModeEncrypt, cipherSpecNewNone(), .format = REPOSITORY_FORMAT_6);
+
+        TEST_RESULT_VOID(infoSave(info, writeNone, testInfoSaveCallback, strNewZ("1")), "info save");
         TEST_RESULT_BOOL(strBeginsWithZ(strNewBuf(contentSave), "PGBR"), false, "    check no header");
 
         contentLoad = harnessInfoChecksumFormat(

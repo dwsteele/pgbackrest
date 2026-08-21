@@ -95,8 +95,10 @@ testRun(void)
 
         contentSave = bufNew(0);
 
-        TEST_RESULT_VOID(
-            infoBackupSave(infoBackup, infoWriteNew(contentSave, REPOSITORY_FORMAT_6, cipherSpec)), "save new with cipher sub");
+        IoWrite *write = ioBufferWriteNew(contentSave);
+        cipherBlockFilterGroupAddP(ioWriteFilterGroup(write), cipherModeEncrypt, cipherSpec, .format = REPOSITORY_FORMAT_6);
+
+        TEST_RESULT_VOID(infoBackupSave(infoBackup, write), "save new with cipher sub");
         TEST_RESULT_STR_Z(
             strNewZN((const char *)bufPtrConst(contentSave), 8), "PGBR006_", "header names the format");
 
