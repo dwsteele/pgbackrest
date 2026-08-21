@@ -104,13 +104,13 @@ cmdStanzaUpgrade(void)
             if (format != formatArchive || format != formatBackup)
             {
                 // Report a repository that was found at two formats. It is repaired here but a prior upgrade did not finish, which
-                // the user has not been told about since the run it happened on did not get far enough to say so.
+                // the user has not been told about since the run it happened on did not get far enough to report it.
                 if (formatArchive != formatBackup)
                     LOG_WARN("repository format mismatch from an interrupted " CFGCMD_STANZA_UPGRADE " will be repaired");
 
                 // Log the format the repository is migrating from, which is the lower of the two when an interrupted upgrade left
                 // them at different formats. This cannot be undone and a version that does not support the new format will no
-                // longer be able to read the stanza, so say so rather than migrating silently.
+                // longer be able to read the stanza, so report it rather than migrating silently.
                 LOG_INFO_FMT(
                     "upgrade repository format from %u to %u", formatArchive < formatBackup ? formatArchive : formatBackup, format);
 
