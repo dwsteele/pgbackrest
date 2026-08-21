@@ -11,6 +11,7 @@ Info Handler
 #include "common/crypto/cipherBlock.h"
 #include "common/crypto/hash.h"
 #include "common/debug.h"
+#include "common/format.h"
 #include "common/ini.h"
 #include "common/io/bufferRead.h"
 #include "common/io/bufferWrite.h"
@@ -122,50 +123,6 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
     FUNCTION_LOG_RETURN(INFO, this);
 }
 
-// Error when the format cannot be read by this version. Called for the format in the header before anything is decrypted and again
-// for the format in the content, since the two are written together but stored apart.
-static void
-infoFormatValidate(const uint64_t format)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(UINT64, format);
-    FUNCTION_TEST_END();
-
-    // A format newer than this version can read requires an upgrade. Do not suggest a version since this version cannot know which
-    // version added the format.
-    if (format > REPOSITORY_FORMAT_MAX)
-    {
-        THROW_FMT(
-            FormatError,
-            "repository format %" PRIu64 " requires a newer version of " PROJECT_NAME "\n"
-            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-    }
-
-    // A format older than this version can read requires an older version to migrate the repository
-    if (format < REPOSITORY_FORMAT_MIN)
-    {
-        THROW_FMT(
-            FormatError,
-            "repository format %" PRIu64 " is no longer supported by " PROJECT_NAME "\n"
-            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-    }
-
-    FUNCTION_TEST_RETURN_VOID();
-}
-
-/**********************************************************************************************************************************/
-FN_EXTERN HashType
-infoFormatDigest(const unsigned int format)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(UINT, format);
-    FUNCTION_TEST_END();
-
-    FUNCTION_TEST_RETURN(STRING_ID, format >= REPOSITORY_FORMAT_6 ? hashTypeSha256 : hashTypeSha1);
-}
-
 /**********************************************************************************************************************************/
 #define INFO_SECTION_BACKREST                                       "backrest"
 #define INFO_KEY_CHECKSUM                                           "backrest-checksum"
@@ -245,10 +202,10 @@ infoNewLoad(
                             // Validate and store format
                             if (strEqZ(value->key, INFO_KEY_FORMAT))
                             {
-                                const uint64_t format = varUInt64(jsonToVar(value->value));
-                                infoFormatValidate(format);
+                                const unsigned int format = jsonReadUInt(jsonReadNew(value->value));
+                                repoFormatValidate(format);
 
-                                this->pub.format = (unsigned int)format;
+                                this->pub.format = format;
                             }
                             // Store pgBackRest version
                             else if (strEqZ(value->key, INFO_KEY_VERSION))
@@ -282,7 +239,7 @@ infoNewLoad(
                                     // since the sections come out in order and backrest sorts before cipher.
                                     this->pub.cipherSpec = cipherSpecNewP(
                                         cipherSpecType(cipherSpec), BUFSTR(varStr(jsonToVar(value->value))),
-                                        .digest = infoFormatDigest(this->pub.format));
+                                        .digest = repoFormatDigest(this->pub.format));
                                 }
                                 MEM_CONTEXT_OBJ_END();
                             }

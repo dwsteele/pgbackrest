@@ -118,11 +118,6 @@ Helper functions
 // Load info file(s) and throw error for each attempt if none are successful
 FN_EXTERN void infoLoad(const String *error, InfoLoadCallback *callbackFunction, void *callbackData);
 
-// Digest a pass stored in a file at this format derives the key with. SHA-1 is what every repository used before format 6 and is
-// kept for those, so a repository that has not been migrated is read and written exactly as it was. A pass is generated with the
-// digest of the file it will be stored in, since that is what a reader will derive it with.
-FN_EXTERN HashType infoFormatDigest(unsigned int format);
-
 /***********************************************************************************************************************************
 Macros for function logging
 ***********************************************************************************************************************************/

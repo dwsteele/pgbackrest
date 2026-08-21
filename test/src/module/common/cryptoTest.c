@@ -6,6 +6,7 @@ Test Block Cipher
 #include "common/io/filter/filter.h"
 #include "common/io/io.h"
 #include "common/type/json.h"
+#include "version.h"
 
 /***********************************************************************************************************************************
 Data for testing

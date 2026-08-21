@@ -6,6 +6,7 @@ Stanza Commands Handler
 #include "command/check/common.h"
 #include "command/stanza/common.h"
 #include "common/debug.h"
+#include "common/format.h"
 #include "common/log.h"
 #include "config/config.h"
 #include "db/helper.h"
@@ -38,7 +39,7 @@ cipherSpecGen(const CipherType cipherType, const unsigned int format)
             // digest is the one the file it will be stored in is read with, since that is what will derive it later.
             result = cipherSpecNewP(
                 cipherType, BUFSTR(strNewEncode(encodingBase64, BUF(buffer, sizeof(buffer)))),
-                .digest = infoFormatDigest(format));
+                .digest = repoFormatDigest(format));
             cipherSpecMove(result, memContextPrior());
         }
         MEM_CONTEXT_TEMP_END();

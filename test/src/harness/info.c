@@ -8,6 +8,7 @@ Harness for Loading Test Configurations
 #include "common/assert.h"
 #include "common/crypto/cipherBlock.h"
 #include "common/crypto/hash.h"
+#include "common/format.h"
 #include "common/io/bufferRead.h"
 #include "common/io/bufferWrite.h"
 #include "common/io/filter/filter.h"

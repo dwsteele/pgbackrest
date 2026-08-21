@@ -12,11 +12,11 @@ Block Cipher
 #include "common/crypto/cipherBlock.h"
 #include "common/crypto/common.h"
 #include "common/debug.h"
+#include "common/format.h"
 #include "common/io/filter/filter.h"
 #include "common/log.h"
 #include "common/type/convert.h"
 #include "common/type/object.h"
-#include "version.h"
 
 /***********************************************************************************************************************************
 Magic constant for salted encrypt, written before the salt unless the cipher is raw. Only salted encrypt is done here, but this
@@ -32,18 +32,18 @@ A file written with a header begins with fixed-size plaintext naming the reposit
 because the digest the pass derives with follows the format, and the format is recorded inside the file that the pass encrypts. A
 reader that could not see the format in advance would have to decrypt to learn what it should have decrypted with.
 
-The header takes the place of the salted magic, which is why a file that carries one is written raw. Both are eight bytes followed
+The header takes the place of the salted magic, which is why a file that contains one is written raw. Both are eight bytes followed
 by the salt, so the eight bytes are consumed either way and what follows begins with the salt no matter which was there. It also
 means a file of either kind is opened with the openssl command-line tool the same way: replace the first eight bytes with the magic
 that tool expects.
 
 A file that begins with the magic rather than the header was written at format 5, the only format there was before the header, so
-that start is not an error when a header was expected.
+that is not an error when a header was expected.
 
-Of the four bytes after the header magic, the first three are the format and the last is held back for whatever the header turns
-out to need, e.g. naming which key the file was encrypted with once a repository can hold more than one. The format comes first so
-that it is always at the same place, which is what lets a version work out whether it can read the file at all. Only once the
-format turns out to be one this version knows is the spare byte examined, and then it must be the underscore this version writes.
+For the four bytes after the header magic, the first three are the format and the last is reserved for future use, e.g. naming which
+key the file was encrypted with once a repository can hold more than one. The format comes first so that it is always at the same
+place, which is what lets a version work out whether it can read the file at all. Once the format is identified as compatible with
+this version, the spare byte is examined, and it must only be the underscore this version writes.
 
 The header is not part of the file content. This filter adds it on encrypt and consumes it on decrypt, so nothing on either side
 sees anything but the content.
@@ -57,53 +57,24 @@ sees anything but the content.
 #define CIPHER_BLOCK_HEADER_SIZE                                    (CIPHER_BLOCK_MAGIC_SIZE + PKCS5_SALT_LEN)
 
 /***********************************************************************************************************************************
-Digest the pass derives the key with at a format. A format that predates the header derived with SHA-1, which is why a file with no
-header is read with it.
+Digest the pass derives the key with. The lookup is by name, so a digest must be one openssl knows.
 ***********************************************************************************************************************************/
 static const EVP_MD *
-cipherBlockFormatDigest(const unsigned int format)
+cipherBlockDigest(const HashType type)
 {
     FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(UINT, format);
+        FUNCTION_TEST_PARAM(STRING_ID, type);
     FUNCTION_TEST_END();
 
-    // Both accessors always return a digest, so unlike a lookup by name this cannot fail
-    FUNCTION_TEST_RETURN_TYPE_CONST_P(EVP_MD, format >= REPOSITORY_FORMAT_6 ? EVP_sha256() : EVP_sha1());
-}
+    char typeZ[STRID_MAX + 1];
+    strIdToZ(type, typeZ);
 
-/***********************************************************************************************************************************
-Error when the format read from a header cannot be read by this version. This is checked before anything is decrypted since
-decrypting requires knowing what the format expects and this version does not know what a newer format expects.
-***********************************************************************************************************************************/
-static void
-cipherBlockFormatValidate(const unsigned int format)
-{
-    FUNCTION_TEST_BEGIN();
-        FUNCTION_TEST_PARAM(UINT, format);
-    FUNCTION_TEST_END();
+    const EVP_MD *const result = EVP_get_digestbyname(typeZ);
 
-    // A format newer than this version can read requires an upgrade. Do not suggest a version since this version cannot know which
-    // version added the format.
-    if (format > REPOSITORY_FORMAT_MAX)
-    {
-        THROW_FMT(
-            FormatError,
-            "repository format %u requires a newer version of " PROJECT_NAME "\n"
-            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-    }
+    if (result == NULL)
+        THROW_FMT(AssertError, "unable to load digest '%s'", typeZ);
 
-    // A format older than this version can read requires an older version to migrate the repository
-    if (format < REPOSITORY_FORMAT_MIN)
-    {
-        THROW_FMT(
-            FormatError,
-            "repository format %u is no longer supported by " PROJECT_NAME "\n"
-            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-    }
-
-    FUNCTION_TEST_RETURN_VOID();
+    FUNCTION_TEST_RETURN_TYPE_CONST_P(EVP_MD, result);
 }
 
 /***********************************************************************************************************************************
@@ -219,14 +190,11 @@ cipherBlockProcessBlock(CipherBlock *const this, const uint8_t *source, size_t s
             {
                 memcpy(destination, CIPHER_BLOCK_HEADER_MAGIC, CIPHER_BLOCK_HEADER_MAGIC_SIZE);
 
-                // Write the format right-aligned in the digits it gets so it is always at the same place
-                unsigned int format = this->format;
-
-                for (unsigned int digitIdx = CIPHER_BLOCK_HEADER_FORMAT_SIZE; digitIdx > 0; digitIdx--)
-                {
-                    destination[CIPHER_BLOCK_HEADER_MAGIC_SIZE + digitIdx - 1] = (uint8_t)('0' + format % 10);
-                    format /= 10;
-                }
+                // Write the format zero-padded so it is always the same size. The terminator lands on the reserved byte, which is
+                // written next.
+                snprintf(
+                    (char *)destination + CIPHER_BLOCK_HEADER_MAGIC_SIZE, CIPHER_BLOCK_HEADER_FORMAT_SIZE + 1, "%0*u",
+                    CIPHER_BLOCK_HEADER_FORMAT_SIZE, this->format);
 
                 destination[CIPHER_BLOCK_MAGIC_SIZE - 1] = CIPHER_BLOCK_HEADER_RESERVED;
 
@@ -281,7 +249,7 @@ cipherBlockProcessBlock(CipherBlock *const this, const uint8_t *source, size_t s
                         format = cvtZSubNToUInt(headerZ, CIPHER_BLOCK_HEADER_MAGIC_SIZE, CIPHER_BLOCK_HEADER_FORMAT_SIZE);
 
                         // Error on a format this version cannot read before anything is decrypted
-                        cipherBlockFormatValidate(format);
+                        repoFormatValidate(format);
 
                         // The format is one this version knows, so the byte held back for later must be the one this version writes
                         if (headerZ[CIPHER_BLOCK_MAGIC_SIZE - 1] != CIPHER_BLOCK_HEADER_RESERVED)
@@ -318,7 +286,7 @@ cipherBlockProcessBlock(CipherBlock *const this, const uint8_t *source, size_t s
         {
             // Resolve the digest now that the format is known, which for a header that was read is only true here
             if (this->digest == NULL)
-                this->digest = cipherBlockFormatDigest(this->format);
+                this->digest = cipherBlockDigest(repoFormatDigest(this->format));
 
             // Generate key and initialization vector
             uint8_t key[EVP_MAX_KEY_LENGTH];
@@ -607,19 +575,8 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
 
     if (!param.header || mode == cipherModeEncrypt)
     {
-        // A format says which digest, otherwise it comes from the spec and must be one openssl knows
-        if (param.format != 0)
-            digest = cipherBlockFormatDigest(param.format);
-        else
-        {
-            char digestZ[STRID_MAX + 1];
-            strIdToZ(cipherSpecDigest(cipherSpec), digestZ);
-
-            digest = EVP_get_digestbyname(digestZ);
-
-            if (!digest)
-                THROW_FMT(AssertError, "unable to load digest '%s'", digestZ);
-        }
+        // A format says which digest, otherwise it comes from the spec
+        digest = cipherBlockDigest(param.format != 0 ? repoFormatDigest(param.format) : cipherSpecDigest(cipherSpec));
     }
 
     OBJ_NEW_BEGIN(CipherBlock, .childQty = MEM_CONTEXT_QTY_MAX, .callbackQty = 1)

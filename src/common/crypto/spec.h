@@ -4,17 +4,14 @@ Cipher Spec
 Everything needed to encrypt or decrypt, kept together so that adding to it does not mean changing every function and protocol
 message that carries it.
 
-The pass is the bytes the key is derived from rather than the text it was stored as. Whatever reads a pass from the repository
-decides how to interpret it and builds a cipher spec from the result, so nothing downstream needs to know how it was stored. The
-digest travels with the pass because the two are chosen together and deriving with the wrong digest produces a wrong key rather
-than an error.
+The pass holds the bytes used to derive the key. The digest travels with the pass because the two are chosen together and deriving
+with the wrong digest gives a wrong key instead of an error.
 
-The pass is a buffer rather than a string so an absent pass is simply NULL, which saves callers from guarding a conversion that
-cannot represent one. It is copied into the object, so the caller is free to release whatever it was read from.
+The pass is a buffer rather than a string because it may be binary or it may be text and nothing here needs to know which. It is
+copied into the object, so the caller can release whatever it read the pass from.
 
-The digest defaults to SHA-256, so a caller that has no reason to choose gets the digest new work should use. Deriving with SHA-1
-is what every repository did before repository format 6 and is now specified explicitly, which also marks the places that are
-waiting on a way to tell an old pass from a new one.
+The digest defaults to SHA-256, so a caller with no preference gets the digest new work should use. Repositories before format 6
+derived with SHA-1, so a caller that works with that format must pass SHA-1 rather than taking the default.
 
 There is no digest or pass when the type is none, and the pass is never logged.
 ***********************************************************************************************************************************/
@@ -34,7 +31,7 @@ typedef struct CipherSpec CipherSpec;
 /***********************************************************************************************************************************
 Constructors
 ***********************************************************************************************************************************/
-// Create from a pass, which is the key bytes or the passphrase text rather than what either was stored as
+// Create from a pass, which is the key bytes or the passphrase text
 typedef struct CipherSpecNewParam
 {
     VAR_PARAM_HEADER;

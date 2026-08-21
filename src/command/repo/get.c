@@ -48,7 +48,7 @@ storageGetProcess(IoWrite *const destination)
         IoRead *const source = storageReadIo(
             storageNewReadP(storageRepo(), file, .ignoreMissing = cfgOptionBool(cfgOptIgnoreMissing)));
 
-        // Is the file an info file, i.e. one that carries a header in front of its content?
+        // Is the file an info file, i.e. one that has a header in front of its content?
         bool fileIsInfo = false;
 
         // Add decryption if needed
