@@ -123,7 +123,7 @@ checkStanzaInfo(const unsigned int repoIdx, const InfoPg *const archiveInfoPg, c
     }
 
     // Error if the info files are at different repository formats. The formats are written together but stored apart, so an
-    // upgrade interrupted between the two saves leaves them here.
+    // upgrade interrupted between the two saves leaves them mismatched.
     if (infoPgFormat(archiveInfoPg) != infoPgFormat(backupInfoPg))
     {
         const unsigned int formatArchive = infoPgFormat(archiveInfoPg);

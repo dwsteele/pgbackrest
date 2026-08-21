@@ -3,14 +3,19 @@ Info Handler
 ***********************************************************************************************************************************/
 #include <build.h>
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/crypto/cipherBlock.h"
 #include "common/crypto/hash.h"
 #include "common/debug.h"
 #include "common/ini.h"
+#include "common/io/bufferRead.h"
+#include "common/io/bufferWrite.h"
 #include "common/io/filter/filter.h"
+#include "common/io/io.h"
 #include "common/log.h"
 #include "common/type/convert.h"
 #include "common/type/json.h"
@@ -117,6 +122,50 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
     FUNCTION_LOG_RETURN(INFO, this);
 }
 
+// Error when the format cannot be read by this version. Called for the format in the header before anything is decrypted and again
+// for the format in the content, since the two are written together but stored apart.
+static void
+infoFormatValidate(const uint64_t format)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT64, format);
+    FUNCTION_TEST_END();
+
+    // A format newer than this version can read requires an upgrade. Do not suggest a version since this version cannot know which
+    // version added the format.
+    if (format > REPOSITORY_FORMAT_MAX)
+    {
+        THROW_FMT(
+            FormatError,
+            "repository format %" PRIu64 " requires a newer version of " PROJECT_NAME "\n"
+            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
+            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
+    }
+
+    // A format older than this version can read requires an older version to migrate the repository
+    if (format < REPOSITORY_FORMAT_MIN)
+    {
+        THROW_FMT(
+            FormatError,
+            "repository format %" PRIu64 " is no longer supported by " PROJECT_NAME "\n"
+            "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
+            format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
+    }
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN HashType
+infoFormatDigest(const unsigned int format)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(UINT, format);
+    FUNCTION_TEST_END();
+
+    FUNCTION_TEST_RETURN(STRING_ID, format >= REPOSITORY_FORMAT_6 ? hashTypeSha256 : hashTypeSha1);
+}
+
 /**********************************************************************************************************************************/
 #define INFO_SECTION_BACKREST                                       "backrest"
 #define INFO_KEY_CHECKSUM                                           "backrest-checksum"
@@ -125,13 +174,15 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
 
 FN_EXTERN Info *
 infoNewLoad(
-    IoRead *const read, const CipherSpec *const cipherSpec, InfoLoadNewCallback *const callbackFunction, void *const callbackData)
+    IoRead *const read, const CipherSpec *const cipherSpec, InfoLoadNewCallback *const callbackFunction,
+    void *const callbackData, const InfoNewLoadParam param)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
         FUNCTION_LOG_PARAM(IO_READ, read);
         FUNCTION_LOG_PARAM(CIPHER_SPEC, cipherSpec);
         FUNCTION_LOG_PARAM(FUNCTIONP, callbackFunction);
         FUNCTION_LOG_PARAM_P(VOID, callbackData);
+        FUNCTION_LOG_PARAM(BOOL, param.header);
     FUNCTION_LOG_END();
 
     FUNCTION_AUDIT_CALLBACK();
@@ -150,12 +201,22 @@ infoNewLoad(
             String *const sectionLast = strNew();                               // The last section seen during load
             IoFilter *const checksumActualFilter = cryptoHashNew(hashTypeSha1); // Checksum calculated from the file
             const String *checksumExpected = NULL;                              // Checksum found in ini file
+            unsigned int formatHeader = 0;                                      // Format the header gave, 0 when there is none
+            IoRead *contentRead = read;                                         // Read the content comes from
 
             INFO_CHECKSUM_BEGIN(checksumActualFilter);
 
             TRY_BEGIN()
             {
-                Ini *const ini = iniNewP(read, .strict = true);
+                // The content is decrypted as it is parsed. A file that may carry a header is read with one, which the cipher
+                // consumes and reports the format of once the read is done.
+                if (cipherSpecType(cipherSpec) != cipherTypeNone)
+                {
+                    ioFilterGroupAdd(
+                        ioReadFilterGroup(read), cipherBlockNewP(cipherModeDecrypt, cipherSpec, .header = param.header));
+                }
+
+                Ini *const ini = iniNewP(contentRead, .strict = true);
 
                 MEM_CONTEXT_TEMP_RESET_BEGIN()
                 {
@@ -187,27 +248,7 @@ infoNewLoad(
                             if (strEqZ(value->key, INFO_KEY_FORMAT))
                             {
                                 const uint64_t format = varUInt64(jsonToVar(value->value));
-
-                                // A format newer than this version can read requires an upgrade. Do not suggest a version since
-                                // this version cannot know which version added the format.
-                                if (format > REPOSITORY_FORMAT_MAX)
-                                {
-                                    THROW_FMT(
-                                        FormatError,
-                                        "repository format %" PRIu64 " requires a newer version of " PROJECT_NAME "\n"
-                                        "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-                                        format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-                                }
-
-                                // A format older than this version can read requires an older version to migrate the repository
-                                if (format < REPOSITORY_FORMAT_MIN)
-                                {
-                                    THROW_FMT(
-                                        FormatError,
-                                        "repository format %" PRIu64 " is no longer supported by " PROJECT_NAME "\n"
-                                        "HINT: " PROJECT_NAME " " PROJECT_VERSION " supports repository format %d to %d.",
-                                        format, REPOSITORY_FORMAT_MIN, REPOSITORY_FORMAT_MAX);
-                                }
+                                infoFormatValidate(format);
 
                                 this->pub.format = (unsigned int)format;
                             }
@@ -238,9 +279,12 @@ infoNewLoad(
                             {
                                 MEM_CONTEXT_OBJ_BEGIN(this)
                                 {
-                                    // The dependent files are encrypted with the same cipher type as this one
-                                    this->pub.cipherSpec = cipherSpecNew(
-                                        cipherSpecType(cipherSpec), BUFSTR(varStr(jsonToVar(value->value))));
+                                    // The dependent files are encrypted with the same cipher type as this one and derive with the
+                                    // digest that goes with the format this file was written at. The format is read before this
+                                    // since the sections come out in order and backrest sorts before cipher.
+                                    this->pub.cipherSpec = cipherSpecNewP(
+                                        cipherSpecType(cipherSpec), BUFSTR(varStr(jsonToVar(value->value))),
+                                        .digest = infoFormatDigest(this->pub.format));
                                 }
                                 MEM_CONTEXT_OBJ_END();
                             }
@@ -281,6 +325,22 @@ infoNewLoad(
             // format is zero until the key is found and the value stored, so if we got here then the key was not found.
             if (infoFormat(this) == 0)
                 THROW(FormatError, "repository format not found\nHINT: is this a valid " PROJECT_NAME " info file?");
+
+            // Only a cipher that read a header reports a format, so a result here is what says the file had one. The header is
+            // written from the same format as the content, so a file where they disagree has been damaged or put together from
+            // parts of two files.
+            PackRead *const cipherResult = ioFilterGroupResultP(ioReadFilterGroup(read), CIPHER_BLOCK_FILTER_TYPE);
+
+            if (cipherResult != NULL)
+            {
+                formatHeader = cipherBlockFormat(cipherResult);
+
+                if (this->pub.format != formatHeader)
+                {
+                    THROW_FMT(
+                        FormatError, "repository format %u does not match header format %u", this->pub.format, formatHeader);
+                }
+            }
         }
         MEM_CONTEXT_TEMP_END();
 
@@ -291,6 +351,37 @@ infoNewLoad(
     OBJ_NEW_END();
 
     FUNCTION_LOG_RETURN(INFO, this);
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN IoWrite *
+infoWriteNew(Buffer *const buffer, const unsigned int format, const CipherSpec *const cipherSpec)
+{
+    FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(BUFFER, buffer);
+        FUNCTION_LOG_PARAM(UINT, format);
+        FUNCTION_LOG_PARAM(CIPHER_SPEC, cipherSpec);
+    FUNCTION_LOG_END();
+
+    FUNCTION_AUDIT_HELPER();
+
+    ASSERT(buffer != NULL);
+    ASSERT(format >= REPOSITORY_FORMAT_MIN && format <= REPOSITORY_FORMAT_MAX);
+    ASSERT(cipherSpec != NULL);
+
+    IoWrite *const result = ioBufferWriteNew(buffer);
+
+    // The cipher writes the header and derives the pass with the digest the format calls for. Format 5 gets no header since it is
+    // the format a reader assumes when there is nothing to say otherwise.
+    if (cipherSpecType(cipherSpec) != cipherTypeNone)
+    {
+        ioFilterGroupAdd(
+            ioWriteFilterGroup(result),
+            cipherBlockNewP(
+                cipherModeEncrypt, cipherSpec, .header = format >= REPOSITORY_FORMAT_6, .format = format));
+    }
+
+    FUNCTION_LOG_RETURN(IO_WRITE, result);
 }
 
 /**********************************************************************************************************************************/
