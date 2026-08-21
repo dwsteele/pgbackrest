@@ -1,7 +1,7 @@
 /***********************************************************************************************************************************
 Repository Format
 
-Defines format for info and manifest files as well as on-disk structure. Each info file and manifest stores the format it was
+Defines the format for info and manifest files as well as on-disk structure. Each info file and manifest stores the format it was
 written with, so a repository may contain more than one format while older backups and archives expire.
 
 A constant is defined for each format so that code which varies by format can be explicit about the format it applies to.
