@@ -98,13 +98,6 @@ infoBackrestVersion(const Info *const this)
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
-// Read the header of an encrypted info file and return a read of the content behind it. The read must already be open since the
-// header is read from it immediately, and it is consumed and closed here so that filters the caller added to it produce their
-// results. The header has to be read before the digest is known, by which time an encryption filter can no longer be added, so the
-// content is decrypted into a buffer here rather than as it is read. An info file is small enough for that to be reasonable, and is
-// already built whole in a buffer when it is saved so that it can be written twice. The format the header gives is returned when
-// format is not NULL, so that the content can be checked against it.
-
 // Create a write to save an info file into a buffer. The header is written and the encryption filter added according to the
 // format, so the caller has only to save into the write it gets back. The write side is the one that knows the format, so unlike
 // the load there is nothing to work out first.

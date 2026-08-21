@@ -201,8 +201,6 @@ infoNewLoad(
             String *const sectionLast = strNew();                               // The last section seen during load
             IoFilter *const checksumActualFilter = cryptoHashNew(hashTypeSha1); // Checksum calculated from the file
             const String *checksumExpected = NULL;                              // Checksum found in ini file
-            unsigned int formatHeader = 0;                                      // Format the header gave, 0 when there is none
-            IoRead *contentRead = read;                                         // Read the content comes from
 
             INFO_CHECKSUM_BEGIN(checksumActualFilter);
 
@@ -216,7 +214,7 @@ infoNewLoad(
                         ioReadFilterGroup(read), cipherBlockNewP(cipherModeDecrypt, cipherSpec, .header = param.header));
                 }
 
-                Ini *const ini = iniNewP(contentRead, .strict = true);
+                Ini *const ini = iniNewP(read, .strict = true);
 
                 MEM_CONTEXT_TEMP_RESET_BEGIN()
                 {
@@ -333,7 +331,7 @@ infoNewLoad(
 
             if (cipherResult != NULL)
             {
-                formatHeader = cipherBlockFormat(cipherResult);
+                const unsigned int formatHeader = cipherBlockFormat(cipherResult);
 
                 if (this->pub.format != formatHeader)
                 {
