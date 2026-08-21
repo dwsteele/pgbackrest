@@ -1453,6 +1453,7 @@ testRun(void)
                 "pg_data={\"path\":\"/pg/base\",\"type\":\"path\"}\n"
                 "\n"
                 "[cipher]\n"
+                "cipher-digest=\"sha256\"\n"
                 "cipher-pass=\"somepass\"\n"
                 "\n"
                 "[target:file]\n"

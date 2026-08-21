@@ -292,6 +292,25 @@ testRun(void)
         TEST_RESULT_VOID(infoSave(info, ioBufferWriteNew(contentSave), testInfoSaveCallback, strNewZ("1")), "info save");
         TEST_RESULT_STR(strNewBuf(contentSave), strNewBuf(contentLoad), "   check save");
 
+        // Migrating to a format that stores the digest does not change the digest the pass derives with, since the files the pass
+        // encrypted before the migration are not rewritten
+        contentSave = bufNew(0);
+
+        TEST_RESULT_VOID(infoFormatSet(info, REPOSITORY_FORMAT_6), "migrate to format 6");
+        TEST_RESULT_VOID(
+            infoSave(info, ioBufferWriteNew(contentSave), testInfoSaveCallback, strNewZ("1")), "save migrated info");
+        TEST_RESULT_BOOL(
+            strstr(strZ(strNewBuf(contentSave)), "cipher-digest=\"sha1\"") != NULL, true, "    check digest stored with pass");
+
+        TEST_ASSIGN(
+            info,
+            infoNewLoadP(
+                ioBufferReadNew(testInfoEncrypt(contentSave, REPOSITORY_FORMAT_6, cipherSpec)), cipherSpec,
+                harnessInfoLoadNewCallback, strNew(), .header = true),
+            "load migrated info");
+        TEST_RESULT_UINT(infoFormat(info), REPOSITORY_FORMAT_6, "    check format");
+        TEST_RESULT_UINT(cipherSpecDigest(infoCipherSpec(info)), hashTypeSha1, "    check cipher sub digest unchanged");
+
         // Header
         // -------------------------------------------------------------------------------------------------------------------------
         // An unencrypted file has no header no matter the format, since the format is read from the content
@@ -308,6 +327,7 @@ testRun(void)
             REPOSITORY_FORMAT_6,
             STRDEF(
                 "[cipher]\n"
+                "cipher-digest=\"sha256\"\n"
                 "cipher-pass=\"somepass\"\n"));
 
         callbackContent = strNew();
@@ -320,6 +340,23 @@ testRun(void)
             "info with header");
         TEST_RESULT_UINT(infoFormat(info), REPOSITORY_FORMAT_6, "    check format");
         TEST_RESULT_UINT(cipherSpecDigest(infoCipherSpec(info)), hashTypeSha256, "    check cipher sub digest");
+
+        // A pass migrated from a format that could not store the digest keeps deriving with SHA-1, so the files it encrypted
+        // before the migration are still readable
+        const Buffer *const contentMigrated = harnessInfoChecksumFormat(
+            REPOSITORY_FORMAT_6,
+            STRDEF(
+                "[cipher]\n"
+                "cipher-digest=\"sha1\"\n"
+                "cipher-pass=\"somepass\"\n"));
+
+        TEST_ASSIGN(
+            info,
+            infoNewLoadP(
+                ioBufferReadNew(testInfoEncrypt(contentMigrated, REPOSITORY_FORMAT_6, cipherSpec)), cipherSpec,
+                harnessInfoLoadNewCallback, callbackContent, .header = true),
+            "info migrated to the format that stores the digest");
+        TEST_RESULT_UINT(cipherSpecDigest(infoCipherSpec(info)), hashTypeSha1, "    check cipher sub digest");
 
         // The content on its own, which is how a caller that wants the file rather than the values in it reads an info file
         IoRead *const infoRead = ioBufferReadNew(testInfoEncrypt(contentLoad, REPOSITORY_FORMAT_6, cipherSpec));

@@ -127,6 +127,7 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
 #define INFO_SECTION_BACKREST                                       "backrest"
 #define INFO_KEY_CHECKSUM                                           "backrest-checksum"
 #define INFO_SECTION_CIPHER                                         "cipher"
+#define INFO_KEY_CIPHER_DIGEST                                      "cipher-digest"
 #define INFO_KEY_CIPHER_PASS                                        "cipher-pass"
 
 FN_EXTERN Info *
@@ -158,6 +159,7 @@ infoNewLoad(
             String *const sectionLast = strNew();                               // The last section seen during load
             IoFilter *const checksumActualFilter = cryptoHashNew(hashTypeSha1); // Checksum calculated from the file
             const String *checksumExpected = NULL;                              // Checksum found in ini file
+            HashType cipherDigest = hashTypeSha1;                               // Digest the stored pass derives with
 
             INFO_CHECKSUM_BEGIN(checksumActualFilter);
 
@@ -229,17 +231,23 @@ infoNewLoad(
                         // Process cipher section
                         else if (strEqZ(value->section, INFO_SECTION_CIPHER))
                         {
+                            // Store the digest the pass derives with. A file written before the digest was stored has none, so the
+                            // default is what every repository derived with then.
+                            if (strEqZ(value->key, INFO_KEY_CIPHER_DIGEST))
+                            {
+                                cipherDigest = jsonReadStrId(jsonReadNew(value->value));
+                            }
                             // No validation needed for cipher-pass, just store it
-                            if (strEqZ(value->key, INFO_KEY_CIPHER_PASS))
+                            else if (strEqZ(value->key, INFO_KEY_CIPHER_PASS))
                             {
                                 MEM_CONTEXT_OBJ_BEGIN(this)
                                 {
                                     // The dependent files are encrypted with the same cipher type as this one and derive with the
-                                    // digest that goes with the format this file was written at. The format is read before this
-                                    // since the sections come out in order and backrest sorts before cipher.
+                                    // digest stored with the pass. The digest is read before this since the keys come out in order
+                                    // and digest sorts before pass.
                                     this->pub.cipherSpec = cipherSpecNewP(
                                         cipherSpecType(cipherSpec), BUFSTR(varStr(jsonToVar(value->value))),
-                                        .digest = repoFormatDigest(this->pub.format));
+                                        .digest = cipherDigest);
                                 }
                                 MEM_CONTEXT_OBJ_END();
                             }
@@ -421,6 +429,17 @@ infoSave(Info *const this, IoWrite *const write, InfoSaveCallback *const callbac
         if (cipherSpecType(infoCipherSpec(this)) != cipherTypeNone)
         {
             callbackFunction(callbackData, STRDEF(INFO_SECTION_CIPHER), &data);
+
+            // Store the digest the pass derives with so that a pass outlives the format of the file it is stored in. A pass in a
+            // file written before this could be stored derives with SHA-1, which is what a reader assumes when it finds no digest.
+            if (infoFormat(this) >= REPOSITORY_FORMAT_6)
+            {
+                char digestZ[STRID_MAX + 1];
+                strIdToZ(cipherSpecDigest(infoCipherSpec(this)), digestZ);
+
+                infoSaveValue(&data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_DIGEST, jsonFromVar(VARSTRZ(digestZ)));
+            }
+
             infoSaveValue(
                 &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS,
                 jsonFromVar(VARSTR(strNewBuf(cipherSpecPass(infoCipherSpec(this))))));
