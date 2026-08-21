@@ -1194,7 +1194,7 @@ testRun(void)
         TEST_TITLE("stanza-upgrade - every format that can be read can be requested");
 
         // The allow list for repo-format in build/config.yaml and REPOSITORY_FORMAT_MIN/MAX in version.h are declared separately,
-        // so make sure they say the same thing
+        // so make sure they match
         for (unsigned int format = REPOSITORY_FORMAT_MIN; format <= REPOSITORY_FORMAT_MAX; format++)
         {
             argList = strLstDup(argListBase);

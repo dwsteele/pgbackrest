@@ -273,8 +273,8 @@ testRun(void)
 
         const CipherSpec *const cipherSpec = cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("x"));
 
-        // A file with no header, e.g. a manifest, is decrypted with the spec as it was given since there is nothing to say the
-        // digest should be anything else
+        // A file with no header, e.g. a manifest, is decrypted with the spec as it was given since nothing defines the digest
+        // as anything else
         TEST_ASSIGN(
             info,
             infoNewLoadP(

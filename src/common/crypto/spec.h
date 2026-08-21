@@ -2,7 +2,7 @@
 Cipher Spec
 
 Everything needed to encrypt or decrypt, kept together so that adding to it does not mean changing every function and protocol
-message that carries it.
+message that contains it.
 
 The pass holds the bytes used to derive the key. The digest travels with the pass because the two are chosen together and deriving
 with the wrong digest gives a wrong key instead of an error.

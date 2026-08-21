@@ -491,7 +491,7 @@ cipherBlockInputSame(const THIS_VOID)
 }
 
 /***********************************************************************************************************************************
-Report the format the header gave
+Report the format the header contained
 ***********************************************************************************************************************************/
 static Pack *
 cipherBlockResult(THIS_VOID)
@@ -549,11 +549,11 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
     ASSERT(cipherSpecType(cipherSpec) != cipherTypeNone);
     ASSERT(cipherSpecPass(cipherSpec) != NULL && !bufEmpty(cipherSpecPass(cipherSpec)));
 
-    // The header takes the place of the magic, so a file that carries one is never also raw
+    // The header takes the place of the magic, so a file that contains one is never also raw
     ASSERT(!param.header || !param.raw);
 
-    // The format must be known to write a header. On decrypt it is optional since the header is what says which format it is, but
-    // when it is given the header must agree with it.
+    // The format must be known to write a header. On decrypt it is optional since the header defines the format, but when it is
+    // given the header must agree with it.
     ASSERT(mode != cipherModeEncrypt || !param.header || param.format != 0);
 
     // Init crypto subsystem
@@ -569,13 +569,13 @@ cipherBlockNew(const CipherMode mode, const CipherSpec *const cipherSpec, const 
 
     zFree(cipherTypeZ);
 
-    // Lookup digest. A header that has yet to be read is what says which format the file is, and the format is what says which
-    // digest, so in that case the lookup waits until the header has been read.
+    // Lookup digest. A header that has yet to be read is what defines the format of the file, and the format defines the digest, so
+    // in that case the lookup waits until the header has been read.
     const EVP_MD *digest = NULL;
 
     if (!param.header || mode == cipherModeEncrypt)
     {
-        // A format says which digest, otherwise it comes from the spec
+        // A format defines the digest, otherwise it comes from the spec
         digest = cipherBlockDigest(param.format != 0 ? repoFormatDigest(param.format) : cipherSpecDigest(cipherSpec));
     }
 

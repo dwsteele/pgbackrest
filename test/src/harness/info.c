@@ -142,7 +142,7 @@ hrnInfoPut(const Storage *const storage, const char *const file, const char *con
 
     const Buffer *content = harnessInfoChecksumFormat(param.format, STR(info));
 
-    // Encrypt the way the format stores the file. A file that carries a header gets it in place of the magic the cipher writes,
+    // Encrypt the way the format stores the file. A file that contains a header gets it in place of the magic the cipher writes,
     // and from format 6 the pass derives with SHA-256 rather than SHA-1.
     if (param.cipherSpec != NULL && cipherSpecType(param.cipherSpec) != cipherTypeNone)
     {

@@ -189,7 +189,7 @@ infoPgNewLoad(
             .infoPg = this,
         };
 
-        // The archive.info and backup.info files are the only users of this object and both carry a header
+        // The archive.info and backup.info files are the only users of this object and both contain a header
         this->pub.info = infoNewLoadP(read, cipherSpec, infoPgLoadCallback, &loadData, .header = true);
 
         CHECK(FormatError, !lstEmpty(this->pub.history), "history is missing");

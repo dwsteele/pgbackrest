@@ -70,7 +70,7 @@ testStorageGet(const Storage *const storage, const char *const file, const char 
     if (param.cipherSpec != NULL && cipherSpecType(param.cipherSpec) != cipherTypeNone)
     {
         // Derive with SHA-1 since the harness reads and writes files the way a repository at the format these tests build stores
-        // them, which is the format that had no header to say anything else
+        // them, which is the format that had no header to define anything else
         ioFilterGroupAdd(
             filterGroup,
             cipherBlockNewP(

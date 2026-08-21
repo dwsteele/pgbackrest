@@ -41,7 +41,7 @@ Constructors
 ***********************************************************************************************************************************/
 FN_EXTERN Info *infoNew(unsigned int format, const CipherSpec *cipherSpecSub);
 
-// Create new object and load contents from a file. Decryption is added here rather than by the caller because a file that carries
+// Create new object and load contents from a file. Decryption is added here rather than by the caller because a file that contains
 // a header cannot be decrypted until the header has been read. The cipher spec supplies the type and pass; the digest comes from
 // the format the file turns out to be at. The same spec supplies the type for the cipher spec built from the pass stored in the
 // file.

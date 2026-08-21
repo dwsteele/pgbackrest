@@ -163,7 +163,7 @@ infoNewLoad(
 
             TRY_BEGIN()
             {
-                // The content is decrypted as it is parsed. A file that may carry a header is read with one, which the cipher
+                // The content is decrypted as it is parsed. A file that may contain a header is read with one, which the cipher
                 // consumes and reports the format of once the read is done.
                 if (cipherSpecType(cipherSpec) != cipherTypeNone)
                 {
@@ -281,9 +281,9 @@ infoNewLoad(
             if (infoFormat(this) == 0)
                 THROW(FormatError, "repository format not found\nHINT: is this a valid " PROJECT_NAME " info file?");
 
-            // Only a cipher that read a header reports a format, so a result here is what says the file had one. The header is
-            // written from the same format as the content, so a file where they disagree has been damaged or put together from
-            // parts of two files.
+            // Only a cipher that read a header reports a format, so a result here means the file had one. The header is written
+            // from the same format as the content, so a file where they disagree has been damaged or put together from parts of two
+            // files.
             PackRead *const cipherResult = ioFilterGroupResultP(ioReadFilterGroup(read), CIPHER_BLOCK_FILTER_TYPE);
 
             if (cipherResult != NULL)
@@ -327,7 +327,7 @@ infoWriteNew(Buffer *const buffer, const unsigned int format, const CipherSpec *
     IoWrite *const result = ioBufferWriteNew(buffer);
 
     // The cipher writes the header and derives the pass with the digest the format calls for. Format 5 gets no header since it is
-    // the format a reader assumes when there is nothing to say otherwise.
+    // the format a reader assumes when no header defines one.
     if (cipherSpecType(cipherSpec) != cipherTypeNone)
     {
         ioFilterGroupAdd(

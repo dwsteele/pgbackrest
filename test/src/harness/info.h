@@ -20,7 +20,7 @@ typedef struct HrnInfoPutParam
 {
     VAR_PARAM_HEADER;
     unsigned int format;                                            // Repository format, default format when zero
-    bool header;                                                    // Does the file carry a header, i.e. is it an info file?
+    bool header;                                                    // Does the file contain a header, i.e. is it an info file?
     const CipherSpec *cipherSpec;                                   // Cipher spec when the file is encrypted, digest set by format
     const char *comment;                                            // Comment
 } HrnInfoPutParam;
@@ -42,7 +42,7 @@ Buffer *harnessInfoChecksum(const String *info);
 Buffer *harnessInfoChecksumFormat(unsigned int format, const String *info);
 Buffer *harnessInfoChecksumZ(const char *info);
 
-// Encrypt content the way a file that carries no header is stored, e.g. a manifest
+// Encrypt content the way a file that contains no header is stored, e.g. a manifest
 Buffer *harnessInfoEncrypt(const Buffer *content, const CipherSpec *cipherSpec);
 
 void harnessInfoLoadNewCallback(void *callbackData, const String *section, const String *key, JsonRead *json);
