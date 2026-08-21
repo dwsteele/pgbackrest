@@ -502,7 +502,7 @@ testRun(void)
             STORAGE_REPO_ARCHIVE "/9.5-2/0000000100000000/000000010000000000000001-ac61b8f1ec7b1e6c3eaee9345214595eb7daa9a1.gz",
             .comment = "write WAL db2 timeline 1 repo1");
 
-        // The repository was migrated to format 6 after the first backup, so each backup carries the format it was written
+        // The repository was migrated to format 6 after the first backup, so each backup contains the format it was written
         // with rather than the format of the info file
         const Buffer *const backupInfoContent = harnessInfoChecksumFormat(
             REPOSITORY_FORMAT_6,
