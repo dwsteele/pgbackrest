@@ -334,9 +334,28 @@ backupResume(Manifest *const manifest, const CipherSpec *const cipherSpecManifes
             // Copy cipher subpass since it was used to encrypt the resumable files
             manifestCipherSpecSet(manifest, manifestCipherSpec(manifestResume));
 
-            // Clean resumed backup
+            // Path of the backup being resumed
             const String *const backupPath = strNewFmt(STORAGE_REPO_BACKUP "/%s", strZ(manifestData(manifest)->backupLabel));
 
+            // Continue bundle ids after the highest id written by the backup being resumed so an id is never reused. The bundles
+            // are removed below, since a bundle can only be reused when every file in it can be, but their ids must not be. The
+            // last id in the resumed manifest is only as current as the last time that backup stored it, so scan the bundles that
+            // were written to find the highest id.
+            uint64_t bundleIdLast = manifestData(manifestResume)->bundleIdLast;
+            const StringList *const bundleList = storageListP(
+                storageRepo(), strNewFmt("%s/" MANIFEST_PATH_BUNDLE, strZ(backupPath)));
+
+            for (unsigned int bundleIdx = 0; bundleIdx < strLstSize(bundleList); bundleIdx++)
+            {
+                const uint64_t bundleId = cvtZToUInt64(strZ(strLstGet(bundleList, bundleIdx)));
+
+                if (bundleId > bundleIdLast)
+                    bundleIdLast = bundleId;
+            }
+
+            manifestBundleIdLastSet(manifest, bundleIdLast);
+
+            // Clean resumed backup
             backupResumeClean(
                 storageNewItrP(storageRepo(), backupPath, .sortOrder = sortOrderAsc), manifest, manifestResume,
                 compressTypeEnum(cfgOptionStrId(cfgOptCompressType)), cfgOptionBool(cfgOptDelta), backupPath, NULL);

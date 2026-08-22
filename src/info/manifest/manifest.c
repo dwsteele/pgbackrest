@@ -449,6 +449,9 @@ manifestBuildIncr(
 
         // Bundle raw must not change in a backup set
         this->pub.data.bundleRaw = manifestPrior->pub.data.bundleRaw;
+
+        // Continue bundle ids from the prior backup since they are unique within a backup set
+        this->pub.data.bundleIdLast = manifestPrior->pub.data.bundleIdLast;
     }
     MEM_CONTEXT_END();
 
@@ -861,6 +864,23 @@ manifestBackupLabelSet(Manifest *const this, const String *const backupLabel)
         strLstAdd(this->pub.referenceList, backupLabel);
     }
     MEM_CONTEXT_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+manifestBundleIdLastSet(Manifest *const this, const uint64_t bundleIdLast)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(MANIFEST, this);
+        FUNCTION_TEST_PARAM(UINT64, bundleIdLast);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(bundleIdLast >= this->pub.data.bundleIdLast);
+
+    this->pub.data.bundleIdLast = bundleIdLast;
 
     FUNCTION_TEST_RETURN_VOID();
 }

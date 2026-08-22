@@ -61,6 +61,7 @@ typedef struct ManifestData
     bool bundle;                                                    // Does the backup bundle files?
     bool bundleRaw;                                                 // Use raw compress/encrypt for bundling?
     bool blockIncr;                                                 // Does the backup perform block incremental?
+    uint64_t bundleIdLast;                                          // Last bundle id used by the backup set
 
     // ??? Note that these fields are redundant and verbose since storing the start/stop lsn as a uint64 would be sufficient.
     // However, we currently lack the functions to transform these values back and forth so this will do for now.
@@ -272,6 +273,9 @@ manifestReferenceList(const Manifest *const this)
 
 // Set backup label
 FN_EXTERN void manifestBackupLabelSet(Manifest *this, const String *backupLabel);
+
+// Set last bundle id used by the backup set
+FN_EXTERN void manifestBundleIdLastSet(Manifest *this, uint64_t bundleIdLast);
 
 /***********************************************************************************************************************************
 Build functions

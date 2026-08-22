@@ -1426,6 +1426,7 @@ testRun(void)
             STRDEF(
                 "[backup]\n"
                 "backup-bundle=true\n"
+                "backup-bundle-id-last=7\n"
                 "backup-bundle-raw=true\n"
                 "backup-label=\"20190808-163540F\"\n"
                 "backup-reference=\"20190808-163540F\"\n"
@@ -1514,6 +1515,7 @@ testRun(void)
             "backup-archive-stop=\"000000030000028500000089\"\n"                                                                   \
             "backup-block-incr=true\n"                                                                                             \
             "backup-bundle=true\n"                                                                                                 \
+            "backup-bundle-id-last=3\n"                                                                                            \
             "backup-bundle-raw=true\n"                                                                                             \
             "backup-label=\"20190818-084502F_20190820-084502D\"\n"                                                                 \
             "backup-lsn-start=\"285/89000028\"\n"                                                                                  \
@@ -1784,6 +1786,10 @@ testRun(void)
             manifestCipherSpecSet(manifest, cipherSpecNew(cipherTypeAes256Cbc, BUFSTRDEF("supersecret"))),
             "cipher subpass set");
         TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(manifestCipherSpec(manifest))), "supersecret", "check cipher subpass");
+
+        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 0, "check last bundle id");
+        TEST_RESULT_VOID(manifestBundleIdLastSet(manifest, 3), "set last bundle id");
+        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 3, "check last bundle id");
 
         // Absolute target paths
         TEST_RESULT_STR_Z(manifestTargetPath(manifest, manifestTargetBase(manifest)), "/pg/base", "base target path");

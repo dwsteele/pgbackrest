@@ -280,7 +280,7 @@ testRun(void)
                 "  - pg_data/base/1/2\n"
                 "      size: 96KB, repo 64.1KB\n"
                 "      checksum: d4976e362696a43fb09e7d4e780d7d9352a2ec2e\n"
-                "      bundle: 1\n"
+                "      bundle: 2\n"
                 "      block: size 8KB, map size 95B, checksum size 6B\n"
                 "\n"
                 "  - pg_data/base/PG_VERSION\n"
@@ -292,7 +292,7 @@ testRun(void)
                 "  - pg_data/global/pg_control\n"
                 "      size: 8KB, repo 8KB\n"
                 "      checksum: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
-                "      bundle: 1\n",
+                "      bundle: 2\n",
                 "repo 1 text");
 
             // ---------------------------------------------------------------------------------------------------------------------
@@ -389,13 +389,13 @@ testRun(void)
                 "  - pg_data/base/1/2\n"
                 "      size: 96KB, repo 64.1KB\n"
                 "      checksum: d4976e362696a43fb09e7d4e780d7d9352a2ec2e\n"
-                "      bundle: 1\n"
+                "      bundle: 2\n"
                 "      block: size 8KB, map size 95B, checksum size 6B\n"
                 "\n"
                 "  - pg_data/global/pg_control\n"
                 "      size: 8KB, repo 8KB\n"
                 "      checksum: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
-                "      bundle: 1\n",
+                "      bundle: 2\n",
                 "repo 1 text");
             hrnCfgArgRawZ(argList, cfgOptOutput, "json");
             HRN_CFG_LOAD(cfgCmdManifest, argList);
@@ -438,7 +438,7 @@ testRun(void)
                                 "\"size\":65631"
                             "},"
                             "\"bundle\":{"
-                                "\"id\":1,"
+                                "\"id\":2,"
                                 "\"offset\":0"
                             "},"
                             "\"block\":{"
@@ -459,7 +459,7 @@ testRun(void)
                                 "\"size\":8192"
                             "},"
                             "\"bundle\":{"
-                                "\"id\":1,"
+                                "\"id\":2,"
                                 "\"offset\":65631"
                             "}"
                         "}"
@@ -490,11 +490,11 @@ testRun(void)
                 "  - pg_data/base/1/2\n"
                 "      size: 96KB, repo 64.1KB\n"
                 "      checksum: d4976e362696a43fb09e7d4e780d7d9352a2ec2e\n"
-                "      bundle: 1\n"
+                "      bundle: 2\n"
                 "      block: size 8KB, map size 95B, checksum size 6B\n"
                 "      block delta:\n"
                 "        reference: 20191002-070640F/bundle/1, read: 1/64KB, superBlock: 2/64KB, block: 4/32KB\n"
-                "        reference: 20191002-070640F_20191003-105320D/bundle/1, read: 1/64KB, superBlock: 1/64KB, block: 8/64KB\n"
+                "        reference: 20191002-070640F_20191003-105320D/bundle/2, read: 1/64KB, superBlock: 1/64KB, block: 8/64KB\n"
                 "        total read: 2/128KB, superBlock: 3/128KB, block: 12/96KB\n",
                 "repo 1 text");
 
@@ -520,7 +520,7 @@ testRun(void)
                 "  - pg_data/base/1/2\n"
                 "      size: 96KB, repo 64.1KB\n"
                 "      checksum: d4976e362696a43fb09e7d4e780d7d9352a2ec2e\n"
-                "      bundle: 1\n"
+                "      bundle: 2\n"
                 "      block: size 8KB, map size 104B, checksum size 6B\n"
                 "      block delta: file is up-to-date\n",
                 "repo 2 test");
@@ -559,7 +559,7 @@ testRun(void)
                                 "\"size\":65664"
                             "},"
                             "\"bundle\":{"
-                                "\"id\":1,"
+                                "\"id\":2,"
                                 "\"offset\":0"
                             "},"
                             "\"block\":{"

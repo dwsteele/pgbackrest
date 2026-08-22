@@ -340,7 +340,7 @@ typedef struct BackupJobData
     const bool bundle;                                              // Bundle files?
     uint64_t bundleSize;                                            // Target bundle size
     uint64_t bundleLimit;                                           // Limit on files to bundle
-    uint64_t bundleId;                                              // Bundle id
+    uint64_t bundleId;                                              // Next bundle id
     const bool blockIncr;                                           // Block incremental?
     size_t blockIncrSizeSuper;                                      // Super block size
 
@@ -800,7 +800,10 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             .pageSize = backupData->pageSize,
             .delta = cfgOptionBool(cfgOptDelta),
             .bundle = cfgOptionBool(cfgOptRepoBundle),
-            .bundleId = 1,
+
+            // Continue bundle ids after the last id used by the backup set so an id is never reused. This includes ids used by a
+            // backup that was aborted and is being resumed.
+            .bundleId = manifestData(manifest)->bundleIdLast + 1,
             .blockIncr = cfgOptionBool(cfgOptRepoBlock),
 
             // Build expression to identify files that can be copied from the standby when standby backup is supported
@@ -935,6 +938,9 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             while (!protocolParallelDone(parallelExec));
         }
         MEM_CONTEXT_TEMP_END();
+
+        // Store the last bundle id used so it is not reused by a later backup in the backup set
+        manifestBundleIdLastSet(manifest, jobData.bundleId - 1);
 
 #ifdef DEBUG
         // Ensure that all processing queues are empty

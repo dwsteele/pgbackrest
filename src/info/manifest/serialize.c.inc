@@ -22,6 +22,7 @@
 #define MANIFEST_KEY_BACKUP_ARCHIVE_STOP                            "backup-archive-stop"
 #define MANIFEST_KEY_BACKUP_BLOCK_INCR                              "backup-block-incr"
 #define MANIFEST_KEY_BACKUP_BUNDLE                                  "backup-bundle"
+#define MANIFEST_KEY_BACKUP_BUNDLE_ID_LAST                          "backup-bundle-id-last"
 #define MANIFEST_KEY_BACKUP_BUNDLE_RAW                              "backup-bundle-raw"
 #define MANIFEST_KEY_BACKUP_LABEL                                   "backup-label"
 #define MANIFEST_KEY_BACKUP_LSN_START                               "backup-lsn-start"
@@ -448,6 +449,8 @@ manifestLoadCallback(void *const callbackData, const String *const section, cons
             manifest->pub.data.blockIncr = jsonReadBool(json);
         else if (strEqZ(key, MANIFEST_KEY_BACKUP_BUNDLE))
             manifest->pub.data.bundle = jsonReadBool(json);
+        else if (strEqZ(key, MANIFEST_KEY_BACKUP_BUNDLE_ID_LAST))
+            manifest->pub.data.bundleIdLast = jsonReadUInt64(json);
         else if (strEqZ(key, MANIFEST_KEY_BACKUP_BUNDLE_RAW))
             manifest->pub.data.bundleRaw = jsonReadBool(json);
         else if (strEqZ(key, MANIFEST_KEY_BACKUP_TIMESTAMP_COPY_START))
@@ -617,6 +620,13 @@ manifestSaveCallback(void *const callbackData, const String *const sectionNext, 
         {
             infoSaveValue(
                 infoSaveData, MANIFEST_SECTION_BACKUP, MANIFEST_KEY_BACKUP_BUNDLE, jsonFromVar(VARBOOL(manifest->pub.data.bundle)));
+        }
+
+        if (manifest->pub.data.bundleIdLast != 0)
+        {
+            infoSaveValue(
+                infoSaveData, MANIFEST_SECTION_BACKUP, MANIFEST_KEY_BACKUP_BUNDLE_ID_LAST,
+                jsonFromVar(VARUINT64(manifest->pub.data.bundleIdLast)));
         }
 
         if (manifest->pub.data.bundleRaw)
