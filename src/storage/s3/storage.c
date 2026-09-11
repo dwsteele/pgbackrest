@@ -858,11 +858,11 @@ storageS3ListInternal(
 
                         // The version id marker may be missing or empty when the next result is a common prefix. In that case the
                         // next page starts at the key after the key marker, which is what is needed.
-                        const XmlNode *const nextVersionIdMarker = xmlNodeChild(
-                            xmlRoot, S3_XML_TAG_NEXT_VERSION_ID_MARKER_STR, false);
+                        const String *const nextVersionIdMarker = xmlNodeContent(
+                            xmlNodeChild(xmlRoot, S3_XML_TAG_NEXT_VERSION_ID_MARKER_STR, false));
 
-                        if (nextVersionIdMarker != NULL && !strEmpty(xmlNodeContent(nextVersionIdMarker)))
-                            httpQueryAdd(queryNext, S3_QUERY_VERSION_ID_MARKER_STR, xmlNodeContent(nextVersionIdMarker));
+                        if (nextVersionIdMarker != NULL && !strEmpty(nextVersionIdMarker))
+                            httpQueryAdd(queryNext, S3_QUERY_VERSION_ID_MARKER_STR, nextVersionIdMarker);
                     }
                     // Else object listing is paginated with a continuation token
                     else
