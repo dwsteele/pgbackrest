@@ -38,7 +38,7 @@ testRun(void)
 
         TEST_ASSIGN(infoPg, infoPgNew(infoPgBackup, REPOSITORY_FORMAT_DEFAULT, NULL), "infoPgNew(cipherTypeNone, NULL)");
         TEST_RESULT_INT(infoPgDataTotal(infoPg), 0, "  0 history");
-        TEST_RESULT_UINT(cipherSpecType(infoCipherSpec(infoPgInfo(infoPg))), cipherTypeNone, "  cipher spec none");
+        TEST_RESULT_UINT(cipherSpecType(infoPgCipherSpec(infoPg)), cipherTypeNone, "  cipher spec none");
         TEST_RESULT_INT(infoPgDataCurrentId(infoPg), 0, "  0 historyCurrent");
 
         TEST_ASSIGN(
@@ -46,7 +46,7 @@ testRun(void)
             infoPgNew(infoPgArchive, REPOSITORY_FORMAT_DEFAULT, cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("123xyz"))),
             "infoPgNew(cipherTypeAes256Cbc, 123xyz)");
         TEST_RESULT_INT(infoPgDataTotal(infoPg), 0, "  0 history");
-        TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(infoCipherSpec(infoPgInfo(infoPg)))), "123xyz", "  cipherPass set");
+        TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(infoPgCipherSpec(infoPg))), "123xyz", "  cipherPass set");
         TEST_RESULT_INT(infoPgDataCurrentId(infoPg), 0, "  0 historyCurrent");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ testRun(void)
         TEST_RESULT_UINT(pgData.systemId, 6569239123849665999, "  system-id updated");
         TEST_RESULT_UINT(pgData.version, PG_VERSION_18, "  version updated");
         TEST_RESULT_UINT(pgData.catalogVersion, 0, "  catalog version not set for archive");
-        TEST_RESULT_UINT(cipherSpecType(infoCipherSpec(infoPgInfo(infoPg))), cipherTypeNone, "  cipher spec none");
+        TEST_RESULT_UINT(cipherSpecType(infoPgCipherSpec(infoPg)), cipherTypeNone, "  cipher spec none");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_ASSIGN(
@@ -90,7 +90,7 @@ testRun(void)
         TEST_RESULT_UINT(pgData.systemId, 6569239123849665679, "  system-id set");
         TEST_RESULT_UINT(pgData.version, PG_VERSION_18, "  version set");
         TEST_RESULT_UINT(pgData.catalogVersion, 202506291, "  catalog version updated");
-        TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(infoCipherSpec(infoPgInfo(infoPg)))), "123xyz", "  cipherPass set");
+        TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(infoPgCipherSpec(infoPg))), "123xyz", "  cipherPass set");
     }
 
     // *****************************************************************************************************************************
