@@ -313,7 +313,7 @@ testRun(void)
         contentSave = bufNew(0);
 
         IoWrite *const writeNone = ioBufferWriteNew(contentSave);
-        cipherBlockFormatFilterGroupWriteAdd(contentSave, ioWriteFilterGroup(writeNone), cipherSpecNewNone(), REPOSITORY_FORMAT_6);
+        cipherBlockFormatFilterGroupWriteAddP(contentSave, ioWriteFilterGroup(writeNone), cipherSpecNewNone(), REPOSITORY_FORMAT_6);
 
         TEST_RESULT_VOID(infoSave(info, writeNone, testInfoSaveCallback, strNewZ("1")), "info save");
         TEST_RESULT_BOOL(strBeginsWithZ(strNewBuf(contentSave), "PGBR"), false, "    check no header");
@@ -356,8 +356,7 @@ testRun(void)
         // The content on its own, which is how a caller that wants the file rather than the values in it reads an info file
         IoRead *const infoRead = ioBufferReadNew(harnessInfoEncryptP(contentLoad, cipherSpec, .format = REPOSITORY_FORMAT_6));
 
-        ioFilterGroupAdd(
-            ioReadFilterGroup(infoRead), cipherBlockFormatNewP(cipherSpec));
+        cipherBlockFormatFilterGroupReadAdd(ioReadFilterGroup(infoRead), cipherSpec);
         ioReadOpen(infoRead);
 
         TEST_RESULT_STR(strNewBuf(ioReadBuf(infoRead)), strNewBuf(contentLoad), "info content read");

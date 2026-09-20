@@ -97,7 +97,7 @@ testRun(void)
         contentSave = bufNew(0);
 
         IoWrite *write = ioBufferWriteNew(contentSave);
-        cipherBlockFormatFilterGroupWriteAdd(contentSave, ioWriteFilterGroup(write), cipherSpec, REPOSITORY_FORMAT_DEFAULT);
+        cipherBlockFormatFilterGroupWriteAddP(contentSave, ioWriteFilterGroup(write), cipherSpec, REPOSITORY_FORMAT_DEFAULT);
 
         TEST_RESULT_VOID(infoArchiveSave(info, write), "save new with cipher");
         TEST_RESULT_BOOL(
