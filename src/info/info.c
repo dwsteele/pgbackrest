@@ -126,6 +126,7 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
 #define INFO_KEY_CHECKSUM                                           "backrest-checksum"
 #define INFO_SECTION_CIPHER                                         "cipher"
 #define INFO_KEY_CIPHER_PASS                                        "cipher-pass"
+#define INFO_KEY_CIPHER_PASS_CURRENT                                "cipher-pass-current"
 #define INFO_KEY_CIPHER_DIGEST                                      "digest"
 #define INFO_KEY_CIPHER_KEY                                         "key"
 
@@ -258,6 +259,16 @@ infoNewLoad(
                                     }
 
                                     infoCipherSpecMapSet(this, cipherSpecMap);
+                                }
+                                MEM_CONTEXT_TEMP_END();
+                            }
+                            // Current key id
+                            else if (strEqZ(value->key, INFO_KEY_CIPHER_PASS_CURRENT))
+                            {
+                                MEM_CONTEXT_TEMP_BEGIN()
+                                {
+                                    cipherSpecMapIdCurrentSet(
+                                        this->pub.cipherSpecMap, jsonReadStr(jsonReadNew(value->value)));
                                 }
                                 MEM_CONTEXT_TEMP_END();
                             }
@@ -478,6 +489,14 @@ infoSave(Info *const this, IoWrite *const write, InfoSaveCallback *const callbac
                 }
 
                 infoSaveValue(&data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS, jsonWriteResult(json));
+
+                // Record the current key id, which only exists at format >= 6
+                if (cipherSpecMapIdCurrent(cipherSpecMap) != NULL)
+                {
+                    infoSaveValue(
+                        &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS_CURRENT,
+                        jsonFromVar(VARSTR(cipherSpecMapIdCurrent(cipherSpecMap))));
+                }
             }
             MEM_CONTEXT_TEMP_END();
         }
@@ -563,6 +582,36 @@ infoCipherSpecMapSet(Info *const this, const CipherSpecMap *const cipherSpecMap)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
+infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *const cipherSpec)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(INFO, this);
+        FUNCTION_TEST_PARAM(STRING, id);
+        FUNCTION_TEST_PARAM(CIPHER_SPEC, cipherSpec);
+    FUNCTION_TEST_END();
+
+    FUNCTION_AUDIT_IF(memContextCurrent() != objMemContext(this));  // Do not audit calls from within the object
+
+    ASSERT(this != NULL);
+    ASSERT(id != NULL);
+    ASSERT(cipherSpec != NULL && cipherSpecType(cipherSpec) != cipherTypeNone);
+    ASSERT(cipherSpecDigest(cipherSpec) != 0);
+
+    MEM_CONTEXT_OBJ_BEGIN(this)
+    {
+        CipherSpecMap *const cipherSpecMap = cipherSpecMapDup(this->pub.cipherSpecMap);
+        cipherSpecMapAdd(cipherSpecMap, id, cipherSpec);
+
+        this->pub.cipherSpecMap = cipherSpecMap;
+        this->cipherSpecNone = NULL;
+    }
+    MEM_CONTEXT_OBJ_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
 infoCipherSpecSet(Info *const this, const CipherSpec *const cipherSpec)
 {
     FUNCTION_TEST_BEGIN();
@@ -582,6 +631,8 @@ infoCipherSpecSet(Info *const this, const CipherSpec *const cipherSpec)
     // Else the one key, stored under the default id
     else
     {
+        ASSERT(cipherSpecDigest(cipherSpec) != 0);
+
         MEM_CONTEXT_TEMP_BEGIN()
         {
             CipherSpecMap *const cipherSpecMap = cipherSpecMapNew();

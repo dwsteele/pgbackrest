@@ -63,8 +63,13 @@ cipherSpecMapNewPack(PackRead *const packRead)
         }
 
         lstSort(this->pub.list, sortOrderAsc);
+
+        this->pub.idCurrent = pckReadStrP(packRead);
     }
     MEM_CONTEXT_OBJ_END();
+
+    // The key with no id is never current
+    ASSERT(this->pub.idCurrent == NULL || !strEqZ(this->pub.idCurrent, CIPHER_SPEC_MAP_ID_DEFAULT));
 
     FUNCTION_TEST_RETURN(CIPHER_SPEC_MAP, this);
 }
@@ -112,8 +117,37 @@ cipherSpecMapAdd(CipherSpecMap *const this, const String *const id, const Cipher
 
         lstAdd(this->pub.list, &item);
         lstSort(this->pub.list, sortOrderAsc);
+
+        // The default key id is for files that contain no id so it is never current
+        if (!strEqZ(id, CIPHER_SPEC_MAP_ID_DEFAULT))
+            this->pub.idCurrent = item.id;
     }
     MEM_CONTEXT_OBJ_END();
+
+    // The key with no id is never current and every other key is current once added
+    ASSERT(strEqZ(id, CIPHER_SPEC_MAP_ID_DEFAULT) || strEq(cipherSpecMapIdCurrent(this), id));
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+cipherSpecMapIdCurrentSet(CipherSpecMap *const this, const String *const id)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(CIPHER_SPEC_MAP, this);
+        FUNCTION_TEST_PARAM(STRING, id);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(id != NULL);
+    ASSERT(!strEqZ(id, CIPHER_SPEC_MAP_ID_DEFAULT));
+
+    const CipherSpecMapItem *const item = lstFind(this->pub.list, &id);
+    ASSERT(item != NULL);
+
+    // Point at the id stored with the key rather than duplicating it
+    this->pub.idCurrent = item->id;
 
     FUNCTION_TEST_RETURN_VOID();
 }
@@ -136,6 +170,9 @@ cipherSpecMapDup(const CipherSpecMap *const this)
 
         cipherSpecMapAdd(result, item->id, item->cipherSpec);
     }
+
+    if (cipherSpecMapIdCurrent(this) != NULL)
+        cipherSpecMapIdCurrentSet(result, cipherSpecMapIdCurrent(this));
 
     FUNCTION_TEST_RETURN(CIPHER_SPEC_MAP, result);
 }
@@ -161,6 +198,8 @@ cipherSpecMapPack(PackWrite *const packWrite, const CipherSpecMap *const this)
         pckWriteStrP(packWrite, item->id);
         cipherSpecPack(packWrite, item->cipherSpec);
     }
+
+    pckWriteStrP(packWrite, cipherSpecMapIdCurrent(this));
 
     FUNCTION_TEST_RETURN_VOID();
 }

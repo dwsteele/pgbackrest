@@ -55,7 +55,7 @@ typedef struct InfoPub
 {
     unsigned int format;                                            // Repository format the file was written with
     const String *backrestVersion;                                  // pgBackRest version
-    const CipherSpecMap *cipherSpecMap;                             // Cipher keys for dependent files
+    CipherSpecMap *cipherSpecMap;                                   // Cipher keys for dependent files
 } InfoPub;
 
 // Repository format
@@ -82,6 +82,9 @@ FN_EXTERN void infoCipherSpecMapSet(Info *this, const CipherSpecMap *cipherSpecM
 
 // Set a single cipher spec for dependent files under the default id. NULL means they are not encrypted.
 FN_EXTERN void infoCipherSpecSet(Info *this, const CipherSpec *cipherSpec);
+
+// Add a cipher key for dependent files under an id and make it current
+FN_EXTERN void infoCipherSpecAdd(Info *this, const String *id, const CipherSpec *cipherSpec);
 
 // pgBackRest version
 FN_INLINE_ALWAYS const String *

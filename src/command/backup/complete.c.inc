@@ -101,8 +101,8 @@ backupArchiveCheckCopy(const BackupData *const backupData, Manifest *const manif
                         IoFilterGroup *const filterGroup = ioReadFilterGroup(storageReadIo(read));
 
                         // Decrypt with archive key if encrypted
-                        cipherBlockFilterGroupAdd(
-                            filterGroup, cipherModeDecrypt, infoArchiveCipherSpec(backupData->archiveInfo));
+                        cipherBlockFormatFilterGroupReadAddMap(
+                            filterGroup, infoArchiveCipherSpecMap(backupData->archiveInfo));
 
                         // Compress/decompress if archive and backup do not have the same compression settings
                         if (archiveCompressType != backupCompressType)

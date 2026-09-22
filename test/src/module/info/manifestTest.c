@@ -1477,7 +1477,7 @@ testRun(void)
 
         MEM_CONTEXT_TEMP_BEGIN()
         {
-            const CipherSpec *const cipherSpec = cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("x"));
+            const CipherSpec *const cipherSpec = cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("x"), .digest = hashTypeSha1);
             IoRead *const read = ioBufferReadNew(harnessInfoEncryptP(contentLoad, cipherSpec));
             cipherBlockFilterGroupAdd(ioReadFilterGroup(read), cipherModeDecrypt, cipherSpec);
 

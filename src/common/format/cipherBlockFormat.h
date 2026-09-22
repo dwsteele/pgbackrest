@@ -52,15 +52,15 @@ Helper functions
 typedef struct CipherBlockFormatFilterGroupWriteAddParam
 {
     VAR_PARAM_HEADER;
-    const String *keyId;                                            // Key id to store in the header, none to store no id
+    const String *keyId;                                            // Key id to store in the header, NULL to store no id
 } CipherBlockFormatFilterGroupWriteAddParam;
 
-#define cipherBlockFormatFilterGroupWriteAddP(buffer, filterGroup, cipherSpec, format, ...)                                        \
+#define cipherBlockFormatFilterGroupWriteAddP(filterGroup, cipherSpec, format, ...)                                                \
     cipherBlockFormatFilterGroupWriteAdd(                                                                                          \
-        buffer, filterGroup, cipherSpec, format, (CipherBlockFormatFilterGroupWriteAddParam){VAR_PARAM_INIT, __VA_ARGS__})
+        filterGroup, cipherSpec, format, (CipherBlockFormatFilterGroupWriteAddParam){VAR_PARAM_INIT, __VA_ARGS__})
 
 FN_EXTERN void cipherBlockFormatFilterGroupWriteAdd(
-    Buffer *buffer, IoFilterGroup *filterGroup, const CipherSpec *cipherSpec, unsigned int format,
+    IoFilterGroup *filterGroup, const CipherSpec *cipherSpec, unsigned int format,
     CipherBlockFormatFilterGroupWriteAddParam param);
 
 // Add decryption to the filter group for a file at a format that has yet to be read. The key is stored under

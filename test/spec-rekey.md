@@ -35,6 +35,7 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 - The value is an object rather than the key on its own because the digest has to travel with each key. A flat `{"1":"afg..."}` would mean inferring the digest from the id, which is the inference the stored digest exists to avoid.
 - In `archive.info` the id is the sequential key id that the file header names. In `backup.info` it is the full backup label of the set the key belongs to.
 - A key inherited from a format 5 migration goes in id `0`: the stanza-wide manifest key in `backup.info`, the stanza-wide archive key in `archive.info`. Format 6 never writes id 0 itself and a backup label cannot collide with it.
+- `stanza-create` at format 6 writes a single archive key at id 1. `stanza-upgrade` from format 5 keeps the key it already has at id 0 and adds a new key at id 1, which becomes current, so WAL written before the migration stays readable under the key that wrote it.
 - There is no scalar `cipher-pass` at format 6. A stanza created at format 6 has no id 0 entry at all.
 - The digest belongs to the entry rather than to the file. An id 0 key derives with SHA-1 and every format 6 key derives with SHA-256, so the scalar `cipher-digest` written by the format 6 infrastructure commit moves into the entries. This also survives a future format that changes the digest again, which a scalar would not.
 - Keys are held in memory as a new `CipherSpecMap` in `common/format`, keyed by the id, which is what `CipherBlockFormat` selects from and what the read path packs for the protocol. It lives beside the format rather than in `common/crypto` so the block cipher stays free of repository concepts.
@@ -55,7 +56,7 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 ## Archive Key
 
 - `archive.info` holds a map of keys. One is current and encrypts new WAL; the rest are retained only so WAL already written can still be read.
-- Key ids are sequential from 1 and are never reused. Which one is current is recorded rather than inferred, since the map is keyed by an opaque id and sorts as text, so the highest id is not the last entry once there are ten of them.
+- Key ids are sequential from 1 and are never reused. Which one is current is recorded in `cipher-pass-current` beside the map rather than inferred, since the map is keyed by an opaque id and sorts as text, so the highest id is not the last entry once there are ten of them.
 - Only the most recent rotation is dated, in a `cipher-pass-rotate` key beside the map. Rotation compares the current key's age and nothing looks at when a retired key was made, so dating every entry would store what nothing reads.
 - Rotation appends a key and makes it current. No existing file is rewritten and nothing else in the repository moves.
 

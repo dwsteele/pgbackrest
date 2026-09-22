@@ -83,13 +83,16 @@ testRun(void)
         TEST_TITLE("create with cipher");
 
         // Recreate from scratch with cipher
+        CipherSpecMap *const cipherSpecMapSub = cipherSpecMapNew();
+        cipherSpecMapAdd(
+            cipherSpecMapSub, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
+            cipherSpecNewP(
+                cipherTypeAes256Cbc, BUFSTRDEF("zWa/6Xtp-IVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO"),
+                .digest = hashTypeSha1));
+
         TEST_ASSIGN(
             info,
-            infoArchiveNew(
-                PG_VERSION_10, 6569239123849665999, REPOSITORY_FORMAT_DEFAULT,
-                cipherSpecNewP(
-                    cipherTypeAes256Cbc, BUFSTRDEF("zWa/6Xtp-IVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO"),
-                    .digest = hashTypeSha1)),
+            infoArchiveNew(PG_VERSION_10, 6569239123849665999, REPOSITORY_FORMAT_DEFAULT, cipherSpecMapSub),
             "infoArchiveNew() - cipher sub");
 
         const CipherSpec *const cipherSpec = cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("x"));
@@ -97,7 +100,7 @@ testRun(void)
         contentSave = bufNew(0);
 
         IoWrite *write = ioBufferWriteNew(contentSave);
-        cipherBlockFormatFilterGroupWriteAddP(contentSave, ioWriteFilterGroup(write), cipherSpec, REPOSITORY_FORMAT_DEFAULT);
+        cipherBlockFormatFilterGroupWriteAddP(ioWriteFilterGroup(write), cipherSpec, REPOSITORY_FORMAT_DEFAULT);
 
         TEST_RESULT_VOID(infoArchiveSave(info, write), "save new with cipher");
         TEST_RESULT_BOOL(

@@ -34,7 +34,7 @@ cipherSpecNew(const CipherType type, const Buffer *const pass, const CipherSpecN
 
         if (this->pub.type != cipherTypeNone)
         {
-            this->pub.digest = param.digest == 0 ? hashTypeSha256 : param.digest;
+            this->pub.digest = param.digest;
             this->pub.pass = bufDup(pass);
         }
     }
@@ -101,14 +101,16 @@ cipherSpecToLog(const CipherSpec *const this, StringStatic *const debugLog)
     char typeZ[STRID_MAX + 1];
     strIdToZ(cipherSpecType(this), typeZ);
 
-    // There is no digest when there is no cipher. The pass is never logged.
-    if (cipherSpecType(this) == cipherTypeNone)
-        strStcFmt(debugLog, "{type: %s}", typeZ);
-    else
+    strStcFmt(debugLog, "{type: %s", typeZ);
+
+    // There is no digest when there is no cipher or when the format decides it. The pass is never logged.
+    if (cipherSpecDigest(this) != 0)
     {
         char digestZ[STRID_MAX + 1];
         strIdToZ(cipherSpecDigest(this), digestZ);
 
-        strStcFmt(debugLog, "{type: %s, digest: %s}", typeZ, digestZ);
+        strStcFmt(debugLog, ", digest: %s", digestZ);
     }
+
+    strStcCatChr(debugLog, '}');
 }

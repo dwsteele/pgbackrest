@@ -27,10 +27,16 @@ STRING_DECLARE(INFO_ARCHIVE_PATH_FILE_STR);
 STRING_DECLARE(INFO_ARCHIVE_PATH_FILE_COPY_STR);
 
 /***********************************************************************************************************************************
+Archive key ids are sequential from one and are never reused. Id zero is reserved for a key migrated from format 5.
+***********************************************************************************************************************************/
+#define INFO_ARCHIVE_CIPHER_ID_FIRST                                "1"
+STRING_DECLARE(INFO_ARCHIVE_CIPHER_ID_FIRST_STR);
+
+/***********************************************************************************************************************************
 Constructors
 ***********************************************************************************************************************************/
 FN_EXTERN InfoArchive *infoArchiveNew(
-    const unsigned int pgVersion, const uint64_t pgSystemId, unsigned int format, const CipherSpec *cipherSpecSub);
+    const unsigned int pgVersion, const uint64_t pgSystemId, unsigned int format, const CipherSpecMap *cipherSpecMapSub);
 
 // Create new object and load contents from IoRead
 FN_EXTERN InfoArchive *infoArchiveNewLoad(IoRead *read, const CipherSpec *cipherSpec);
@@ -66,6 +72,21 @@ infoArchiveCipherSpec(const InfoArchive *const this)
 {
     return infoPgCipherSpec(infoArchivePg(this));
 }
+
+// Cipher keys for dependent files
+FN_INLINE_ALWAYS const CipherSpecMap *
+infoArchiveCipherSpecMap(const InfoArchive *const this)
+{
+    return infoCipherSpecMap(infoPgInfo(infoArchivePg(this)));
+}
+
+// Add a cipher key for WAL under an id and make it current
+FN_INLINE_ALWAYS void
+infoArchiveCipherSpecAdd(InfoArchive *const this, const String *const id, const CipherSpec *const cipherSpec)
+{
+    infoCipherSpecAdd(infoPgInfo(infoArchivePg(this)), id, cipherSpec);
+}
+
 
 // Repository format
 FN_INLINE_ALWAYS unsigned int

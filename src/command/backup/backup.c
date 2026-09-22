@@ -18,6 +18,7 @@ Backup Command
 #include "command/stanza/common.h"
 #include "common/compress/helper.h"
 #include "common/crypto/cipherBlock.h"
+#include "common/format/cipherBlockFormat.h"
 #include "common/debug.h"
 #include "common/io/filter/size.h"
 #include "common/log.h"
