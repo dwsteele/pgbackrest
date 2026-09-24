@@ -384,8 +384,8 @@ testRun(void)
         TEST_RESULT_BOOL(
             strstr(
                 strZ(strNewBuf(contentSave)),
-                "cipher-pass={\"0\":{\"digest\":\"sha1\",\"key\":\"oldpass\"},"
-                    "\"9\":{\"digest\":\"sha256\",\"key\":\"newpass\"}}\n"
+                "cipher-pass={\"0\":{\"digest\":\"sha1\",\"key\":\"oldpass\"}"
+                ",\"9\":{\"digest\":\"sha256\",\"key\":\"newpass\"}}\n"
                 "cipher-pass-current=\"9\"") != NULL,
             true, "    check both keys stored by id");
 

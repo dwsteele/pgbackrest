@@ -5,9 +5,9 @@ Verify File
 
 #include "command/verify/file.h"
 #include "common/crypto/cipherBlock.h"
-#include "common/format/cipherBlockFormat.h"
 #include "common/crypto/hash.h"
 #include "common/debug.h"
+#include "common/format/cipherBlockFormat.h"
 #include "common/io/filter/group.h"
 #include "common/io/filter/sink.h"
 #include "common/io/filter/size.h"

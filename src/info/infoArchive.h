@@ -87,7 +87,6 @@ infoArchiveCipherSpecAdd(InfoArchive *const this, const String *const id, const 
     infoCipherSpecAdd(infoPgInfo(infoArchivePg(this)), id, cipherSpec);
 }
 
-
 // Repository format
 FN_INLINE_ALWAYS unsigned int
 infoArchiveFormat(const InfoArchive *const this)

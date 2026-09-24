@@ -340,8 +340,10 @@ testRun(void)
         ioWrite(keyRead, BUF(bufPtrConst(keyBuffer) + CIPHER_BLOCK_FORMAT_HEADER_SIZE, 1));
         ioWrite(keyRead, BUF(bufPtrConst(keyBuffer) + CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1, 1));
         ioWrite(
-            keyRead, BUF(bufPtrConst(keyBuffer) + CIPHER_BLOCK_FORMAT_HEADER_SIZE + 2,
-            bufUsed(keyBuffer) - CIPHER_BLOCK_FORMAT_HEADER_SIZE - 2));
+            keyRead,
+            BUF(
+                bufPtrConst(keyBuffer) + CIPHER_BLOCK_FORMAT_HEADER_SIZE + 2,
+                bufUsed(keyBuffer) - CIPHER_BLOCK_FORMAT_HEADER_SIZE - 2));
         ioWriteClose(keyRead);
         ioBufferSizeSet(TEST_BUFFER_SIZE);
 
