@@ -18,9 +18,12 @@ A file whose key cannot be determined from where the file is located stores the 
 #include "common/io/filter/group.h"
 
 /***********************************************************************************************************************************
-Filter type constant
+Filter type constants
 ***********************************************************************************************************************************/
 #define CIPHER_BLOCK_FORMAT_FILTER_TYPE                             STRID5("cipher-fmt", 0x28d36e45441230)
+
+// Filter that writes the format header
+#define CIPHER_BLOCK_FORMAT_HEADER_FILTER_TYPE                      STRID5("cipher-hdr", 0x24446e45441230)
 
 /***********************************************************************************************************************************
 Constructors
@@ -37,6 +40,9 @@ typedef struct CipherBlockFormatNewParam
 
 FN_EXTERN IoFilter *cipherBlockFormatNew(const CipherSpecMap *cipherSpecMap, CipherBlockFormatNewParam param);
 FN_EXTERN IoFilter *cipherBlockFormatNewPack(const Pack *paramList);
+
+// Create the filter that writes the format header from its param list
+FN_EXTERN IoFilter *cipherBlockFormatHeaderNewPack(const Pack *paramList);
 
 /***********************************************************************************************************************************
 Getters/Setters

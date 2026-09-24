@@ -37,9 +37,6 @@ only checked once the format turns out to be readable, and it must be valid for 
 
 If a key id is indicated by the marker, there is first a byte to indicate the length of the key id and then the key id as a string.
 ***********************************************************************************************************************************/
-// Filter that writes the format header
-#define CIPHER_BLOCK_FORMAT_HEADER_FILTER_TYPE                      STRID5("cipher-hdr", 0x24446e45441230)
-
 #define CIPHER_BLOCK_FORMAT_MAGIC                                   "PGBR"
 #define CIPHER_BLOCK_FORMAT_MAGIC_SIZE                              (sizeof(CIPHER_BLOCK_FORMAT_MAGIC) - 1)
 #define CIPHER_BLOCK_FORMAT_MARKER_NONE                             '_'
@@ -508,11 +505,39 @@ cipherBlockFormatHeaderNew(const Buffer *const header)
     }
     OBJ_NEW_END();
 
+    // Create param list
+    Pack *paramList;
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        PackWrite *const packWrite = pckWriteNewP();
+
+        pckWriteBinP(packWrite, header);
+        pckWriteEndP(packWrite);
+
+        paramList = pckMove(pckWriteResult(packWrite), memContextPrior());
+    }
+    MEM_CONTEXT_TEMP_END();
+
     FUNCTION_TEST_RETURN(
         IO_FILTER,
         ioFilterNewP(
-            CIPHER_BLOCK_FORMAT_HEADER_FILTER_TYPE, this, NULL, .inOut = cipherBlockFormatHeaderProcess,
+            CIPHER_BLOCK_FORMAT_HEADER_FILTER_TYPE, this, paramList, .inOut = cipherBlockFormatHeaderProcess,
             .inputSame = cipherBlockFormatHeaderInputSame));
+}
+
+FN_EXTERN IoFilter *
+cipherBlockFormatHeaderNewPack(const Pack *const paramList)
+{
+    IoFilter *result = NULL;
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        result = ioFilterMove(cipherBlockFormatHeaderNew(pckReadBinP(pckReadNew(paramList))), memContextPrior());
+    }
+    MEM_CONTEXT_TEMP_END();
+
+    return result;
 }
 
 /**********************************************************************************************************************************/

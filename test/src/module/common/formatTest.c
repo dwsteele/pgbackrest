@@ -284,7 +284,16 @@ testRun(void)
         IoRead *const keyWrite = ioBufferReadNew(testPlainText);
         Buffer *const keyPiece = bufNew(4);
 
-        cipherBlockFormatFilterGroupWriteAddP(ioReadFilterGroup(keyWrite), keySpecNew, REPOSITORY_FORMAT_6, .keyId = STRDEF("7"));
+        // Build the write filters from their param lists, as the remote protocol does
+        IoFilterGroup *const keyWriteGroup = ioFilterGroupNew();
+        cipherBlockFormatFilterGroupWriteAddP(keyWriteGroup, keySpecNew, REPOSITORY_FORMAT_6, .keyId = STRDEF("7"));
+
+        PackRead *const keyWriteParam = pckReadNew(ioFilterGroupParamAll(keyWriteGroup));
+
+        TEST_RESULT_UINT(pckReadStrIdP(keyWriteParam), CIPHER_BLOCK_FILTER_TYPE, "block cipher filter");
+        ioFilterGroupAdd(ioReadFilterGroup(keyWrite), cipherBlockNewPack(pckReadPackP(keyWriteParam)));
+        TEST_RESULT_UINT(pckReadStrIdP(keyWriteParam), CIPHER_BLOCK_FORMAT_HEADER_FILTER_TYPE, "header filter");
+        ioFilterGroupAdd(ioReadFilterGroup(keyWrite), cipherBlockFormatHeaderNewPack(pckReadPackP(keyWriteParam)));
 
         // Take the result in pieces smaller than the header so the header is written in more than one part
         ioBufferSizeSet(4);
