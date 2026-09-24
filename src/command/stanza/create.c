@@ -15,6 +15,7 @@ Stanza Create Command
 #include "common/format/format.h"
 #include "common/log.h"
 #include "common/memContext.h"
+#include "common/time.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
@@ -78,21 +79,19 @@ cmdStanzaCreate(void)
                 // Format for the new stanza
                 const unsigned int format = cfgOptionIdxUInt(cfgOptRepoFormat, repoIdx);
 
-                // If the repo is encrypted, generate a cipher passphrase for encrypting archive files. Format >= 6 stores it at the
-                // first key id and earlier formats store it as the default key with no id.
+                // If the repo is encrypted, generate a cipher passphrase for encrypting archive files. Format >= 6 adds it by
+                // rotation at the first key id and earlier formats store it as the default key with no id.
                 const CipherSpec *const cipherSpecArchive = cipherSpecGen(cfgOptionIdxStrId(cfgOptRepoCipherType, repoIdx), format);
                 CipherSpecMap *const cipherSpecMapArchive = cipherSpecMapNew();
 
-                if (cipherSpecType(cipherSpecArchive) != cipherTypeNone)
-                {
-                    cipherSpecMapAdd(
-                        cipherSpecMapArchive,
-                        format >= REPOSITORY_FORMAT_6 ? INFO_ARCHIVE_CIPHER_ID_FIRST_STR : CIPHER_SPEC_MAP_ID_DEFAULT_STR,
-                        cipherSpecArchive);
-                }
+                if (cipherSpecType(cipherSpecArchive) != cipherTypeNone && format < REPOSITORY_FORMAT_6)
+                    cipherSpecMapAdd(cipherSpecMapArchive, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpecArchive);
 
                 // Create and save archive info
                 infoArchive = infoArchiveNew(pgControl.version, pgControl.systemId, format, cipherSpecMapArchive);
+
+                if (cipherSpecType(cipherSpecArchive) != cipherTypeNone && format >= REPOSITORY_FORMAT_6)
+                    infoArchiveCipherRotate(infoArchive, cipherSpecArchive, (time_t)(timeMSec() / MSEC_PER_SEC));
 
                 infoArchiveSaveFile(infoArchive, storageRepoWriteStanza, INFO_ARCHIVE_PATH_FILE_STR, cfgCipherSpecMainIdx(repoIdx));
 

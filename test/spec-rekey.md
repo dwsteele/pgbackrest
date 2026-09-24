@@ -57,7 +57,7 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 
 - `archive.info` holds a map of keys. One is current and encrypts new WAL; the rest are retained only so WAL already written can still be read.
 - Key ids are sequential from 1 and are never reused. Which one is current is recorded in `cipher-pass-current` beside the map rather than inferred, since the map is keyed by an opaque id and sorts as text, so the highest id is not the last entry once there are ten of them.
-- Only the most recent rotation is dated, in a `cipher-pass-rotate` key beside the map. Rotation compares the current key's age and nothing looks at when a retired key was made, so dating every entry would store what nothing reads.
+- Only the most recent rotation is dated, in a `cipher-pass-rotate` key beside the map, as seconds since the epoch. Rotation compares the current key's age and nothing looks at when a retired key was made, so dating every entry would store what nothing reads.
 - Rotation appends a key and makes it current. No existing file is rewritten and nothing else in the repository moves.
 
 ### Key id in the file
@@ -78,9 +78,10 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 
 ### Rotation schedule
 
-- A new option, tentatively `repo-cipher-rotate`, gives the rotation period in days. Unset means no rotation. It is repo indexed and applies only to the archive key: the backup set key rotates with every full backup, and the user passphrase is user-supplied so it cannot rotate on its own.
-- Expire performs the rotation, since it already writes `archive.info` and runs regularly, typically daily through backup's expire phase. When the current key is older than the period, expire appends a new key and makes it current. Rotation latency is bounded by expire cadence, which is negligible against a period measured in weeks. If expire never runs then neither does rotation.
-- A stanza migrated to format 6 sets `cipher-pass-rotate` at migration, which starts the clock there.
+- A new option, `repo-cipher-rotate`, gives the rotation period as a time and defaults to 90 days, with a minimum of 15 days. Setting it to the max value effectively disables rotation. It is repo indexed and applies only to the archive key: the backup set key rotates with every full backup, and the user passphrase is user-supplied so it cannot rotate on its own.
+- Expire performs the rotation, since it writes `archive.info` on every run and runs regularly, typically daily through backup's expire phase. When the current key is older than the period, expire appends a new key and makes it current. Rotation latency is bounded by expire cadence, which is negligible against a period measured in weeks. If expire never runs then neither does rotation.
+- A dry run logs the rotation but does not save it. At format 5 the option is ignored, with a warning when it is not the default, since there is only the one key.
+- `stanza-create` at format 6 and a migration to format 6 both add their key through rotation, which assigns the next id and sets `cipher-pass-rotate`, so the clock starts there. The next id is the current id plus one, or 1 when there is no current key.
 
 ## Key Pruning at Expire
 
@@ -92,7 +93,7 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 
 - Every info file writer, backup and expire for `backup.info`, expire for `archive.info`, and the stanza commands for both, requires the backup lock and sets `lock-remote-required` (`build/config.yaml`), so the repository host's lock directory is the single serialization point regardless of which host each command runs on.
 - archive-push and archive-get never write `archive.info`, so rotation needs no coordination with them beyond the atomic info save. A reader sees the old file or the new one and both are valid, per the running-archiver rule above.
-- Backup currently resaves `archive.info` at completion only to freshen its timestamp so object-store lifecycle settings do not remove it early (`src/command/backup/complete.c.inc:234`). That resave can move to expire so backup stops writing `archive.info` entirely.
+- Backup used to resave `archive.info` at completion only to freshen its timestamp so object-store lifecycle settings do not remove it early. That resave moved to expire, which saves `archive.info` on every run that is not a dry run, so backup no longer writes `archive.info`. With `expire-auto` disabled the timestamp is freshened only when expire is run separately.
 - With directly-reached storage (object stores, shared NFS) and writers invoked from several hosts there is no common lock point. This predates this work and applies to backup and expire today. The documented practice remains to run backup and expire against a given repo from one place.
 
 ## Later Commits

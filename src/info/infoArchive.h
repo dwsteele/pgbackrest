@@ -27,12 +27,6 @@ STRING_DECLARE(INFO_ARCHIVE_PATH_FILE_STR);
 STRING_DECLARE(INFO_ARCHIVE_PATH_FILE_COPY_STR);
 
 /***********************************************************************************************************************************
-Archive key ids are sequential from one and are never reused. Id zero is reserved for a key migrated from format 5.
-***********************************************************************************************************************************/
-#define INFO_ARCHIVE_CIPHER_ID_FIRST                                "1"
-STRING_DECLARE(INFO_ARCHIVE_CIPHER_ID_FIRST_STR);
-
-/***********************************************************************************************************************************
 Constructors
 ***********************************************************************************************************************************/
 FN_EXTERN InfoArchive *infoArchiveNew(
@@ -80,11 +74,11 @@ infoArchiveCipherSpecMap(const InfoArchive *const this)
     return infoCipherSpecMap(infoPgInfo(infoArchivePg(this)));
 }
 
-// Add a cipher key for WAL under an id and make it current
-FN_INLINE_ALWAYS void
-infoArchiveCipherSpecAdd(InfoArchive *const this, const String *const id, const CipherSpec *const cipherSpec)
+// Time of the last archive key rotation, zero when none
+FN_INLINE_ALWAYS time_t
+infoArchiveCipherRotateTime(const InfoArchive *const this)
 {
-    infoCipherSpecAdd(infoPgInfo(infoArchivePg(this)), id, cipherSpec);
+    return infoCipherRotateTime(infoPgInfo(infoArchivePg(this)));
 }
 
 // Repository format
@@ -99,6 +93,10 @@ FN_EXTERN void infoArchiveFormatSet(InfoArchive *this, unsigned int format);
 /***********************************************************************************************************************************
 Functions
 ***********************************************************************************************************************************/
+// Add a cipher key for WAL at the next key id, make it current, and record the time of the rotation. Key ids are sequential from
+// one and are never reused. Id zero is reserved for a key migrated from format 5.
+FN_EXTERN void infoArchiveCipherRotate(InfoArchive *this, const CipherSpec *cipherSpec, time_t rotateTime);
+
 // Given a backrest history id and postgres systemId and version, return the archiveId of the best match
 FN_EXTERN const String *infoArchiveIdHistoryMatch(
     const InfoArchive *this, const unsigned int historyId, const unsigned int pgVersion, const uint64_t pgSystemId);

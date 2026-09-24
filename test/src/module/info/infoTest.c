@@ -366,7 +366,7 @@ testRun(void)
             "info migrated to the format that stores the digest");
         TEST_RESULT_UINT(cipherSpecDigest(testInfoCipherSpec(info)), hashTypeSha1, "    check cipher sub digest");
 
-        // Two keys, as rotation will store them. The last key added is current.
+        // Two keys, as rotation stores them. The last key added is current.
         CipherSpecMap *const cipherSpecMapMulti = cipherSpecMapNew();
         cipherSpecMapAdd(
             cipherSpecMapMulti, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
@@ -377,6 +377,7 @@ testRun(void)
             infoCipherSpecAdd(
                 info, STRDEF("9"), cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("newpass"), .digest = hashTypeSha256)),
             "add second key");
+        TEST_RESULT_VOID(infoCipherRotateTimeSet(info, 1700000000), "set rotation time");
 
         contentSave = bufNew(0);
 
@@ -386,7 +387,8 @@ testRun(void)
                 strZ(strNewBuf(contentSave)),
                 "cipher-pass={\"0\":{\"digest\":\"sha1\",\"key\":\"oldpass\"}"
                 ",\"9\":{\"digest\":\"sha256\",\"key\":\"newpass\"}}\n"
-                "cipher-pass-current=\"9\"") != NULL,
+                "cipher-pass-current=\"9\"\n"
+                "cipher-pass-rotate=1700000000\n") != NULL,
             true, "    check both keys stored by id");
 
         TEST_ASSIGN(
@@ -400,6 +402,7 @@ testRun(void)
 
         TEST_RESULT_UINT(cipherSpecMapSize(cipherSpecMapLoad), 2, "    check two keys");
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(cipherSpecMapLoad), "9", "    check current key id");
+        TEST_RESULT_INT(infoCipherRotateTime(info), 1700000000, "    check rotation time");
         TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(testInfoCipherSpec(info))), "oldpass", "    check default key");
         TEST_RESULT_UINT(cipherSpecDigest(testInfoCipherSpec(info)), hashTypeSha1, "    check default key digest");
         TEST_RESULT_STR_Z(

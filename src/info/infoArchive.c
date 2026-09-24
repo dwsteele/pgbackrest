@@ -10,10 +10,12 @@ Archive Info Handler
 
 #include "common/debug.h"
 #include "common/format/cipherBlockFormat.h"
+#include "common/format/format.h"
 #include "common/ini.h"
 #include "common/io/bufferWrite.h"
 #include "common/io/io.h"
 #include "common/log.h"
+#include "common/type/convert.h"
 #include "info/infoArchive.h"
 #include "info/infoPg.h"
 #include "postgres/interface.h"
@@ -25,7 +27,6 @@ Constants
 ***********************************************************************************************************************************/
 STRING_EXTERN(INFO_ARCHIVE_PATH_FILE_STR,                           INFO_ARCHIVE_PATH_FILE);
 STRING_EXTERN(INFO_ARCHIVE_PATH_FILE_COPY_STR,                      INFO_ARCHIVE_PATH_FILE_COPY);
-STRING_EXTERN(INFO_ARCHIVE_CIPHER_ID_FIRST_STR,                     INFO_ARCHIVE_CIPHER_ID_FIRST);
 
 /***********************************************************************************************************************************
 Object type
@@ -108,6 +109,35 @@ infoArchiveNewLoad(IoRead *const read, const CipherSpec *const cipherSpec)
     OBJ_NEW_END();
 
     FUNCTION_LOG_RETURN(INFO_ARCHIVE, this);
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+infoArchiveCipherRotate(InfoArchive *const this, const CipherSpec *const cipherSpec, const time_t rotateTime)
+{
+    FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(INFO_ARCHIVE, this);
+        FUNCTION_LOG_PARAM(CIPHER_SPEC, cipherSpec);
+        FUNCTION_LOG_PARAM(TIME, rotateTime);
+    FUNCTION_LOG_END();
+
+    ASSERT(this != NULL);
+    ASSERT(infoArchiveFormat(this) >= REPOSITORY_FORMAT_6);
+
+    MEM_CONTEXT_TEMP_BEGIN()
+    {
+        // The next key id follows the current key id, or is the first key id when there is no current key
+        const String *const idCurrent = cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(this));
+        const String *const id = strNewFmt("%u", idCurrent == NULL ? 1 : cvtZToUInt(strZ(idCurrent)) + 1);
+
+        Info *const info = infoPgInfo(infoArchivePg(this));
+
+        infoCipherSpecAdd(info, id, cipherSpec);
+        infoCipherRotateTimeSet(info, rotateTime);
+    }
+    MEM_CONTEXT_TEMP_END();
+
+    FUNCTION_LOG_RETURN_VOID();
 }
 
 /**********************************************************************************************************************************/

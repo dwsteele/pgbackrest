@@ -15,6 +15,7 @@ Stanza Upgrade Command
 #include "common/format/format.h"
 #include "common/log.h"
 #include "common/memContext.h"
+#include "common/time.h"
 #include "config/config.h"
 #include "info/infoArchive.h"
 #include "info/infoBackup.h"
@@ -118,15 +119,15 @@ cmdStanzaUpgrade(void)
                 infoArchiveFormatSet(infoArchive, format);
                 infoBackupFormatSet(infoBackup, format);
 
-                // A stanza migrated to format 6 keeps the key it already has as id 0 and adds a key for new WAL
+                // A stanza migrated to format 6 keeps the key it already has as id 0 and adds a key for new WAL with rotation
                 if (formatArchive < REPOSITORY_FORMAT_6)
                 {
                     const CipherType cipherType = cfgOptionIdxStrId(cfgOptRepoCipherType, repoIdx);
 
                     if (cipherType != cipherTypeNone)
                     {
-                        infoArchiveCipherSpecAdd(
-                            infoArchive, INFO_ARCHIVE_CIPHER_ID_FIRST_STR, cipherSpecGen(cipherType, format));
+                        infoArchiveCipherRotate(
+                            infoArchive, cipherSpecGen(cipherType, format), (time_t)(timeMSec() / MSEC_PER_SEC));
                     }
                 }
 

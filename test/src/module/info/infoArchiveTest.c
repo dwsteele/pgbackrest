@@ -128,6 +128,26 @@ testRun(void)
         TEST_RESULT_UINT(infoPgData.systemId, 6569239123849665679, "systemId set");
 
         // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("rotate cipher key");
+
+        const CipherSpec *const cipherSpecRotate = cipherSpecNewP(
+            cipherTypeAes256Cbc, BUFSTRDEF("rotate"), .digest = hashTypeSha256);
+
+        TEST_RESULT_VOID(infoArchiveFormatSet(info, REPOSITORY_FORMAT_6), "set format 6");
+        TEST_RESULT_INT(infoArchiveCipherRotateTime(info), 0, "no rotation time");
+
+        TEST_RESULT_VOID(infoArchiveCipherRotate(info, cipherSpecRotate, 1700000000), "rotate after migrated key");
+        TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(info)), "1", "first key id");
+        TEST_RESULT_INT(infoArchiveCipherRotateTime(info), 1700000000, "rotation time");
+
+        // Ids increment as numbers rather than as text
+        TEST_RESULT_VOID(infoCipherSpecAdd(infoPgInfo(infoArchivePg(info)), STRDEF("9"), cipherSpecRotate), "add key 9");
+        TEST_RESULT_VOID(infoArchiveCipherRotate(info, cipherSpecRotate, 1700086400), "rotate after key 9");
+        TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(info)), "10", "key id after 9");
+        TEST_RESULT_UINT(cipherSpecMapSize(infoArchiveCipherSpecMap(info)), 4, "all keys kept");
+        TEST_RESULT_INT(infoArchiveCipherRotateTime(info), 1700086400, "rotation time");
+
+        // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("object free");
 
         TEST_RESULT_VOID(infoArchiveFree(info), "infoArchiveFree() - free archive info");

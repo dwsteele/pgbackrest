@@ -127,6 +127,7 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
 #define INFO_SECTION_CIPHER                                         "cipher"
 #define INFO_KEY_CIPHER_PASS                                        "cipher-pass"
 #define INFO_KEY_CIPHER_PASS_CURRENT                                "cipher-pass-current"
+#define INFO_KEY_CIPHER_PASS_ROTATE                                 "cipher-pass-rotate"
 #define INFO_KEY_CIPHER_DIGEST                                      "digest"
 #define INFO_KEY_CIPHER_KEY                                         "key"
 
@@ -272,6 +273,9 @@ infoNewLoad(
                                 }
                                 MEM_CONTEXT_TEMP_END();
                             }
+                            // Time of the last key rotation
+                            else if (strEqZ(value->key, INFO_KEY_CIPHER_PASS_ROTATE))
+                                this->pub.cipherRotateTime = (time_t)jsonReadInt64(jsonReadNew(value->value));
                         }
                         // Else pass to callback for processing
                         else
@@ -497,6 +501,13 @@ infoSave(Info *const this, IoWrite *const write, InfoSaveCallback *const callbac
                         &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS_CURRENT,
                         jsonFromVar(VARSTR(cipherSpecMapIdCurrent(cipherSpecMap))));
                 }
+
+                // Record the time of the last key rotation
+                if (infoCipherRotateTime(this) != 0)
+                {
+                    infoSaveValue(
+                        &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS_ROTATE, jsonFromVar(VARINT64(infoCipherRotateTime(this))));
+                }
             }
             MEM_CONTEXT_TEMP_END();
         }
@@ -606,6 +617,23 @@ infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *co
         this->cipherSpecNone = NULL;
     }
     MEM_CONTEXT_OBJ_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+infoCipherRotateTimeSet(Info *const this, const time_t cipherRotateTime)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(INFO, this);
+        FUNCTION_TEST_PARAM(TIME, cipherRotateTime);
+    FUNCTION_TEST_END();
+
+    ASSERT(this != NULL);
+    ASSERT(cipherRotateTime > 0);
+
+    this->pub.cipherRotateTime = cipherRotateTime;
 
     FUNCTION_TEST_RETURN_VOID();
 }

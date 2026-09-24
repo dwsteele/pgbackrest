@@ -56,6 +56,7 @@ typedef struct InfoPub
     unsigned int format;                                            // Repository format the file was written with
     const String *backrestVersion;                                  // pgBackRest version
     CipherSpecMap *cipherSpecMap;                                   // Cipher keys for dependent files
+    time_t cipherRotateTime;                                        // Time of the last cipher key rotation
 } InfoPub;
 
 // Repository format
@@ -85,6 +86,15 @@ FN_EXTERN void infoCipherSpecSet(Info *this, const CipherSpec *cipherSpec);
 
 // Add a cipher key for dependent files under an id and make it current
 FN_EXTERN void infoCipherSpecAdd(Info *this, const String *id, const CipherSpec *cipherSpec);
+
+// Time of the last cipher key rotation, zero when none
+FN_INLINE_ALWAYS time_t
+infoCipherRotateTime(const Info *const this)
+{
+    return THIS_PUB(Info)->cipherRotateTime;
+}
+
+FN_EXTERN void infoCipherRotateTimeSet(Info *this, time_t cipherRotateTime);
 
 // pgBackRest version
 FN_INLINE_ALWAYS const String *
