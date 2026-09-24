@@ -488,6 +488,7 @@ infoCipherSpecSet(Info *const this, const CipherSpec *const cipherSpec)
     FUNCTION_AUDIT_IF(memContextCurrent() != objMemContext(this));  // Do not audit calls from within the object
 
     ASSERT(this != NULL);
+    ASSERT(cipherSpec == NULL || cipherSpecType(cipherSpec) == cipherTypeNone || cipherSpecDigest(cipherSpec) != 0);
 
     MEM_CONTEXT_OBJ_BEGIN(this)
     {

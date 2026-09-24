@@ -12,6 +12,7 @@ with MIN/MAX and its default is the format used for new repositories.
 #define COMMON_FORMAT_FORMAT_H
 
 #include "common/crypto/common.h"
+#include "common/crypto/spec.h"
 
 /***********************************************************************************************************************************
 Format numbers
@@ -33,5 +34,8 @@ FN_EXTERN void repoFormatValidate(unsigned int format);
 // kept for those, so a repository that has not been migrated is read and written exactly as it was. A pass is generated with the
 // digest of the file it will be stored in, since that is what a reader will derive it with.
 FN_EXTERN HashType repoFormatDigest(unsigned int format);
+
+// Copy a spec, adding the digest of the format when the spec does not have one
+FN_EXTERN CipherSpec *repoFormatCipherSpec(const CipherSpec *cipherSpec, unsigned int format);
 
 #endif
