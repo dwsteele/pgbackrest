@@ -471,7 +471,7 @@ Rule Times
 ***********************************************************************************************************************************/
 #define PARSE_RULE_VAL_TIME(value)                                  PARSE_RULE_U32_1(parseRuleValTime##value)
 
-static const unsigned int parseRuleValueTime[] =
+static const int64_t parseRuleValueTime[] =
 {
     0,                                                                                                                   // val/time
     100,                                                                                                                 // val/time
