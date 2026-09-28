@@ -810,7 +810,7 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             .bundle = cfgOptionBool(cfgOptRepoBundle),
 
             // Continue bundle ids after the last id used by the backup set so an id is never reused. This includes ids used by a
-            // backup that was aborted and is being resumed. When Format < 6 the last id is zero and ids start at 1.
+            // backup that was interrupted and is being resumed. When Format < 6 the last id is zero and ids start at 1.
             .bundleId = manifestData(manifest)->bundleIdLast + 1,
             .blockIncr = cfgOptionBool(cfgOptRepoBlock),
 
