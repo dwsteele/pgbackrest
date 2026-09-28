@@ -100,7 +100,7 @@ Log the results of a job and throw errors
 static void
 backupJobResult(
     Manifest *const manifest, const String *const host, const Storage *const storagePg, StringList *const fileRemove,
-    ProtocolParallelJob *const job, const PgPageSize pageSize, const uint64_t sizeTotal,
+    ProtocolParallelJob *const job, const PgPageSize pageSize, unsigned int *const warningTotal, const uint64_t sizeTotal,
     uint64_t *const sizeProgress, unsigned int *const currentPercentComplete)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
@@ -110,6 +110,7 @@ backupJobResult(
         FUNCTION_LOG_PARAM(STRING_LIST, fileRemove);
         FUNCTION_LOG_PARAM(PROTOCOL_PARALLEL_JOB, job);
         FUNCTION_LOG_PARAM(ENUM, pageSize);
+        FUNCTION_LOG_PARAM_P(UINT, warningTotal);
         FUNCTION_LOG_PARAM(UINT64, sizeTotal);
         FUNCTION_LOG_PARAM_P(UINT64, sizeProgress);
         FUNCTION_LOG_PARAM_P(UINT, currentPercentComplete);
@@ -225,14 +226,14 @@ backupJobResult(
                         if (!pckReadBoolP(checksumPageResult))
                         {
                             checksumPageError = true;
+                            String *const message = strNew();
 
                             if (!pckReadBoolP(checksumPageResult))
                             {
                                 checksumPageErrorList = NULL;
 
-                                // ??? Update formatting after migration
-                                LOG_WARN_FMT(
-                                    "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
+                                strCatFmt(
+                                    message, "page misalignment in file %s: file size %" PRIu64 " is not divisible by page size %u",
                                     strZ(fileLog), copySize, pageSize);
                             }
                             else
@@ -275,12 +276,17 @@ backupJobResult(
 
                                 // Make message plural when appropriate
                                 const char *const plural = errorTotalMin > 1 ? "s" : "";
-
-                                // ??? Update formatting after migration
-                                LOG_WARN_FMT(
-                                    "invalid page checksum%s found in file %s at page%s %s", plural, strZ(fileLog), plural,
+                                strCatFmt(
+                                    message, "invalid page checksum%s found in file %s at page%s %s", plural, strZ(fileLog), plural,
                                     strZ(error));
                             }
+
+                            if (cfgOptionBool(cfgOptChecksumPageError))
+                                THROW(ChecksumError, strZ(message));
+
+                            LOG_WARN(strZ(message));
+
+                            (*warningTotal)++;
                         }
                     }
 
@@ -389,9 +395,10 @@ backupProcessQueueComparator(const void *const item1, const void *const item2)
     const ManifestFile file1 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item1);
     const ManifestFile file2 = manifestFileUnpack(backupProcessQueueComparatorManifest, *(const ManifestFilePack *const *)item2);
 
-    // A file is bundled when bundling is enabled and it is within the bundle limit; larger files are stored unbundled
-    const bool file1Bundle = backupProcessQueueComparatorBundle && file1.size <= backupProcessQueueComparatorBundleLimit;
-    const bool file2Bundle = backupProcessQueueComparatorBundle && file2.size <= backupProcessQueueComparatorBundleLimit;
+    // A file is bundled when bundling is enabled and it is within the bundle limit; larger files are stored unbundled. Use the
+    // original size since that is how many bytes will be copied -- size may have been set to the prior size during manifest build.
+    const bool file1Bundle = backupProcessQueueComparatorBundle && file1.sizeOriginal <= backupProcessQueueComparatorBundleLimit;
+    const bool file2Bundle = backupProcessQueueComparatorBundle && file2.sizeOriginal <= backupProcessQueueComparatorBundleLimit;
 
     // Order unbundled files (each copied as its own job) before bundled files
     if (file1Bundle != file2Bundle)
@@ -401,9 +408,9 @@ backupProcessQueueComparator(const void *const item1, const void *const item2)
     // backup where one process is still copying a large file after the others are idle. This only matters when process-max > 1.
     if (!file1Bundle)
     {
-        if (file1.size < file2.size)
+        if (file1.sizeOriginal < file2.sizeOriginal)
             FUNCTION_TEST_RETURN(INT, 1);
-        else if (file1.size > file2.size)
+        else if (file1.sizeOriginal > file2.sizeOriginal)
             FUNCTION_TEST_RETURN(INT, -1);
 
         // If size is equal then use name to generate a deterministic ordering (names are unique)
@@ -657,7 +664,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
                 {
                     param = protocolPackNew();
 
-                    if (bundle && file.size <= jobData->bundleLimit)
+                    if (bundle && file.sizeOriginal <= jobData->bundleLimit)
                     {
                         pckWriteStrP(param, backupFileRepoPathP(jobData->backupLabel, .bundleId = jobData->bundleId));
                         pckWriteU64P(param, jobData->bundleId);
@@ -767,7 +774,7 @@ backupJobCallback(void *const data, const unsigned int clientIdx)
 /***********************************************************************************************************************************
 Process the backup manifest
 ***********************************************************************************************************************************/
-static void
+static unsigned int
 backupProcess(const BackupData *const backupData, Manifest *const manifest, const CipherSpec *const cipherSpecManifest)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
@@ -779,6 +786,7 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
     ASSERT(manifest != NULL);
 
     uint64_t sizeTotal = 0;
+    unsigned int warningTotal = 0;
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
@@ -916,7 +924,7 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
                         manifest,
                         backupStandby && protocolParallelJobProcessId(job) > 1 ? backupData->hostStandby : backupData->hostPrimary,
                         protocolParallelJobProcessId(job) > 1 ? storagePgIdx(pgIdx) : backupData->storagePrimary,
-                        fileRemove, job, jobData.pageSize, sizeTotal, &sizeProgress, &currentPercentComplete);
+                        fileRemove, job, jobData.pageSize, &warningTotal, sizeTotal, &sizeProgress, &currentPercentComplete);
                 }
 
                 // A keep-alive is required here for the remote holding open the backup connection
@@ -1000,5 +1008,5 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
     }
     MEM_CONTEXT_TEMP_END();
 
-    FUNCTION_LOG_RETURN_VOID();
+    FUNCTION_LOG_RETURN(UINT, warningTotal);
 }
