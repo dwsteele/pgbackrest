@@ -341,19 +341,22 @@ backupResume(Manifest *const manifest, const CipherSpec *const cipherSpecManifes
             // are removed below, since a bundle can only be reused when every file in it can be, but their ids must not be. The
             // last id in the resumed manifest is only as current as the last time that backup stored it, so scan the bundles that
             // were written to find the highest id.
-            uint64_t bundleIdLast = manifestData(manifestResume)->bundleIdLast;
-            const StringList *const bundleList = storageListP(
-                storageRepo(), strNewFmt("%s/" MANIFEST_PATH_BUNDLE, strZ(backupPath)));
-
-            for (unsigned int bundleIdx = 0; bundleIdx < strLstSize(bundleList); bundleIdx++)
+            if (manifestFormat(manifest) >= REPOSITORY_FORMAT_6)
             {
-                const uint64_t bundleId = cvtZToUInt64(strZ(strLstGet(bundleList, bundleIdx)));
+                uint64_t bundleIdLast = manifestData(manifestResume)->bundleIdLast;
+                const StringList *const bundleList = storageListP(
+                    storageRepo(), strNewFmt("%s/" MANIFEST_PATH_BUNDLE, strZ(backupPath)));
 
-                if (bundleId > bundleIdLast)
-                    bundleIdLast = bundleId;
+                for (unsigned int bundleIdx = 0; bundleIdx < strLstSize(bundleList); bundleIdx++)
+                {
+                    const uint64_t bundleId = cvtZToUInt64(strZ(strLstGet(bundleList, bundleIdx)));
+
+                    if (bundleId > bundleIdLast)
+                        bundleIdLast = bundleId;
+                }
+
+                manifestBundleIdLastSet(manifest, bundleIdLast);
             }
-
-            manifestBundleIdLastSet(manifest, bundleIdLast);
 
             // Clean resumed backup
             backupResumeClean(

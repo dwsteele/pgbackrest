@@ -9,6 +9,7 @@ Backup Manifest Handler
 
 #include "common/crypto/cipherBlock.h"
 #include "common/debug.h"
+#include "common/format/format.h"
 #include "common/log.h"
 #include "common/regExp.h"
 #include "common/type/json.h"
@@ -878,6 +879,7 @@ manifestBundleIdLastSet(Manifest *const this, const uint64_t bundleIdLast)
     FUNCTION_TEST_END();
 
     ASSERT(this != NULL);
+    ASSERT(manifestFormat(this) >= REPOSITORY_FORMAT_6);
     ASSERT(bundleIdLast >= this->pub.data.bundleIdLast);
 
     this->pub.data.bundleIdLast = bundleIdLast;

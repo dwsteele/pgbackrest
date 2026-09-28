@@ -61,7 +61,7 @@ typedef struct ManifestData
     bool bundle;                                                    // Does the backup bundle files?
     bool bundleRaw;                                                 // Use raw compress/encrypt for bundling?
     bool blockIncr;                                                 // Does the backup perform block incremental?
-    uint64_t bundleIdLast;                                          // Last bundle id used by the backup set
+    uint64_t bundleIdLast;                                          // Last bundle id used by the backup set (zero when Format < 6)
 
     // ??? Note that these fields are redundant and verbose since storing the start/stop lsn as a uint64 would be sufficient.
     // However, we currently lack the functions to transform these values back and forth so this will do for now.

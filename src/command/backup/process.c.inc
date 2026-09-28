@@ -810,7 +810,7 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
             .bundle = cfgOptionBool(cfgOptRepoBundle),
 
             // Continue bundle ids after the last id used by the backup set so an id is never reused. This includes ids used by a
-            // backup that was aborted and is being resumed.
+            // backup that was aborted and is being resumed. When Format < 6 the last id is zero and ids start at 1.
             .bundleId = manifestData(manifest)->bundleIdLast + 1,
             .blockIncr = cfgOptionBool(cfgOptRepoBlock),
 
@@ -948,7 +948,8 @@ backupProcess(const BackupData *const backupData, Manifest *const manifest, cons
         MEM_CONTEXT_TEMP_END();
 
         // Store the last bundle id used so it is not reused by a later backup in the backup set
-        manifestBundleIdLastSet(manifest, jobData.bundleId - 1);
+        if (manifestFormat(manifest) >= REPOSITORY_FORMAT_6)
+            manifestBundleIdLastSet(manifest, jobData.bundleId - 1);
 
 #ifdef DEBUG
         // Ensure that all processing queues are empty

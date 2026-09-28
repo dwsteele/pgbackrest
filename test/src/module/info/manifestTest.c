@@ -1509,6 +1509,10 @@ testRun(void)
         TEST_RESULT_VOID(manifestSave(manifest, ioBufferWriteNew(contentSave)), "save manifest");
         TEST_RESULT_STR(strNewBuf(contentSave), strNewBuf(contentLoad), "check save");
 
+        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 7, "check last bundle id");
+        TEST_RESULT_VOID(manifestBundleIdLastSet(manifest, 8), "set last bundle id");
+        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 8, "check last bundle id");
+
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("manifest - all features");
 
@@ -1518,7 +1522,6 @@ testRun(void)
             "backup-archive-stop=\"000000030000028500000089\"\n"                                                                   \
             "backup-block-incr=true\n"                                                                                             \
             "backup-bundle=true\n"                                                                                                 \
-            "backup-bundle-id-last=3\n"                                                                                            \
             "backup-bundle-raw=true\n"                                                                                             \
             "backup-label=\"20190818-084502F_20190820-084502D\"\n"                                                                 \
             "backup-lsn-start=\"285/89000028\"\n"                                                                                  \
@@ -1790,10 +1793,6 @@ testRun(void)
                 manifest, cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("supersecret"), .digest = hashTypeSha1)),
             "cipher subpass set");
         TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(manifestCipherSpec(manifest))), "supersecret", "check cipher subpass");
-
-        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 0, "check last bundle id");
-        TEST_RESULT_VOID(manifestBundleIdLastSet(manifest, 3), "set last bundle id");
-        TEST_RESULT_UINT(manifestData(manifest)->bundleIdLast, 3, "check last bundle id");
 
         // Absolute target paths
         TEST_RESULT_STR_Z(manifestTargetPath(manifest, manifestTargetBase(manifest)), "/pg/base", "base target path");
