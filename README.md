@@ -10,11 +10,11 @@ Please give us a star on [GitHub](https://github.com/pgbackrest/pgbackrest) if y
 
 ## News
 
+**October 4, 2026** - [Weak Encryption Subkeys and Salts](https://pgbackrest.org/news.html#weak-encryption)
+
+**October 4, 2026** - [pgBackRest 2.59.3 Released](https://pgbackrest.org/news.html#release-2-59-3)
+
 **September 27, 2026** - [pgBackRest 2.59.2 Released](https://pgbackrest.org/news.html#release-2-59-2)
-
-**August 17, 2026** - [pgBackRest 2.59.1 Released](https://pgbackrest.org/news.html#release-2-59-1)
-
-**July 20, 2026** - [New Distribution Tarball](https://pgbackrest.org/news.html#distribution-tarball)
 
 ## Sponsors
 
