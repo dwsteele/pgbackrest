@@ -15,7 +15,7 @@ from collections import deque
 
 from common.date import date_render
 from common.error import ToolError
-from common.exec import exec_result
+from common.exec import exec_result, exec_status
 from common.storage import file_read, file_write
 from common.xml import (
     xml_document_new,
@@ -34,6 +34,9 @@ from config.project import PROJECT_NAME
 
 # Where the git history is cached
 _FILE_HISTORY = "resource/git-history.cache"
+
+# Integration branches, local and remote
+_HISTORY_BRANCH_LIST = ("integration", "origin/integration")
 
 # Subject of a commit that closed a release
 _RELEASE_SUBJECT_EXP = re.compile(r"^v[0-9]{1,2}\.[0-9]{1,2}(\.[0-9]+)?: ")
@@ -104,13 +107,34 @@ def release_current_stable(root):
 
 
 ####################################################################################################################################
+def _history_head(path_repo):
+    """The newest commit of the git history the release notes are checked against.
+
+    This is the newest commit of HEAD that is also in an integration branch, or HEAD when there is no integration branch. Commits
+    made after HEAD split off from integration are left out, e.g. the commits of a release branch."""
+
+    branch_list = [
+        branch
+        for branch in _HISTORY_BRANCH_LIST
+        if exec_status("git -C %s rev-parse --verify --quiet '%s^{commit}'" % (path_repo, branch)) == 0
+    ]
+
+    if len(branch_list) == 0:
+        command = "git -C %s rev-parse HEAD" % path_repo
+    else:
+        command = "git -C %s merge-base HEAD %s" % (path_repo, " ".join(branch_list))
+
+    return exec_result(command, suppress_stderr=True)[1].strip()
+
+
+####################################################################################################################################
 def release_history_update(path_repo, path_doc):
-    """Write the git history the release notes are checked against when HEAD is not the newest commit in it.
+    """Write the git history the release notes are checked against when the newest commit in it has changed.
 
     The body of a commit that closed a release is left out."""
 
     path_history = os.path.join(path_doc, _FILE_HISTORY)
-    head = exec_result("git -C %s rev-parse HEAD" % path_repo, suppress_stderr=True)[1].strip()
+    head = _history_head(path_repo)
 
     if os.path.isfile(path_history) and json.loads(file_read(path_history))[0]["commit"] == head:
         return
@@ -239,17 +263,19 @@ class _Release:
         return result
 
     ################################################################################################################################
-    def _commit_find(self, commit_list, subject, regexp=True):
-        """Find a commit by what its subject begins with, which is how a release item is tied to the work that did it."""
+    def _commit_find(self, commit_list, subject, regexp=True, key="subject"):
+        """Find a commit by what its subject begins with, which is how a release item is tied to the work that did it.
+
+        With key="commit" the commit is found by what its hash begins with."""
 
         result = None
 
         for commit in commit_list:
-            found = re.match(subject, commit["subject"]) is not None if regexp else commit["subject"].startswith(subject)
+            found = re.match(subject, commit[key]) is not None if regexp else commit[key].startswith(subject)
 
             if found:
                 if result is not None:
-                    raise ToolError("subject prefix '%s' already found in commit %s" % (subject, commit["commit"]))
+                    raise ToolError("%s prefix '%s' already found in commit %s" % (key, subject, commit["commit"]))
 
                 result = commit
 
@@ -357,17 +383,31 @@ class _Release:
 
         for commit_xml in commit_xml_list:
             subject = xml_node_attribute(commit_xml, "subject", True)
-            commit = self._commit_find(commit_list, subject, False)
+            commit_id = xml_node_attribute(commit_xml, "id")
 
-            if commit is None:
-                if check:
-                    self._commit_error(
-                        "unable to find release %s commit subject '%s' in list" % (version, subject), remaining_list, commit_map
+            # A commit with an id is found by the id and its subject must begin with the subject named
+            if commit_id is not None:
+                name = "id '%s'" % commit_id
+                commit = self._commit_find(commit_list, commit_id, False, "commit")
+
+                if commit is not None and not commit["subject"].startswith(subject):
+                    raise ToolError(
+                        "release %s commit id '%s' subject '%s' does not begin with '%s'"
+                        % (version, commit_id, commit["subject"], subject)
                     )
-            elif commit["commit"] in remaining_list:
-                remaining_list.remove(commit["commit"])
+            else:
+                name = "subject '%s'" % subject
+                commit = self._commit_find(commit_list, subject, False)
+
+            if commit is None and check:
+                self._commit_error("unable to find release %s commit %s in list" % (version, name), remaining_list, commit_map)
 
             result.append((commit_xml, commit))
+
+        # Remove the commits found from the commits no item has claimed
+        for _, commit in result:
+            if commit is not None and commit["commit"] in remaining_list:
+                remaining_list.remove(commit["commit"])
 
         return result
 
@@ -536,13 +576,20 @@ class _Release:
                 continue
 
             for item_type, item_title, item_name in _ITEM_LIST:
-                # Development items are only listed on a development build, since they are of no interest to a reader
-                if not self.dev and item_type == "release-development-list":
-                    continue
-
                 item_node = xml_node_child(type_node, item_type)
 
                 if item_node is None:
+                    continue
+
+                # Development items are only listed on a development build, since they are of no interest to a reader. When
+                # version >= 2.60 their commits are still claimed.
+                if not self.dev and item_type == "release-development-list":
+                    if detail and check:
+                        for item in xml_node_child_list(item_node, "release-item"):
+                            self._item_commit(
+                                item, xml_node_child_list(item, "p")[0], version, commit_list, remaining_list, commit_map, True
+                            )
+
                     continue
 
                 # A note about the release as a whole goes before the first list, whichever list that turns out to be
@@ -562,7 +609,7 @@ class _Release:
 
                 for item in xml_node_child_list(item_node, "release-item"):
                     text = xml_node_child_list(item, "p")[0]
-                    item_check = check and item_type != "release-development-list"
+                    item_check = check and (detail or item_type != "release-development-list")
                     item_commit_list = None
 
                     if item_check or detail:
@@ -588,6 +635,10 @@ class _Release:
 
                     if detail:
                         self._detail_add(list_item, item, item_commit_list)
+
+        # Every commit of the release is claimed by an item when version >= 2.60
+        if detail and check and len(remaining_list) > 0:
+            self._commit_error("release %s has commits that no item claims" % version, remaining_list, commit_map)
 
 
 ####################################################################################################################################

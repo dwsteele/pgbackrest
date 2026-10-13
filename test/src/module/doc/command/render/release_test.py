@@ -138,6 +138,7 @@ RELEASE_LIST = """
 
 # Releases with details and the history they are checked against
 DETAIL_HISTORY = [
+    ("d8", "Rework the internals."),
     ("d0", "Improve speed."),
     ("d1", "Add a feature."),
     ("d2", "Fix a bug."),
@@ -181,6 +182,12 @@ DETAIL_RELEASE_LIST = """
                         <p>Speed things up.</p>
                     </release-item>
                 </release-feature-list>
+
+                <release-development-list>
+                    <release-item>
+                        <p>Rework the internals.</p>
+                    </release-item>
+                </release-development-list>
             </release-core-list>
         </release>
 
@@ -641,6 +648,65 @@ def test_release_render_detail_dev():
 
 
 ####################################################################################################################################
+def test_release_render_commit_id():
+    """A commit can be named by id when more than one commit has the same subject."""
+
+    history = DETAIL_HISTORY[:3] + [("e1", "Fix lines."), ("e2", "Fix lines.")] + DETAIL_HISTORY[3:]
+    release_list = DETAIL_RELEASE_LIST.replace(
+        "</release-feature-list>",
+        """<release-item>
+                        <commit id="e1" subject="Fix lines."/>
+                        <commit id="e2" subject="Fix lines."/>
+
+                        <p>Fix lines.</p>
+                    </release-item>
+                </release-feature-list>""",
+        1,
+    )
+
+    root = _render(_doc(release_list), history=history)
+    release = xml_node_child_list(xml_node_child_list(root, "section")[1], "section")[0]
+
+    assert_equal(
+        _item_html(release)[3],
+        "Fix lines."
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/e1"><span class="id">e1</span></a>'
+        + " Fix lines.</span></div>"
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/e2"><span class="id">e2</span></a>'
+        + " Fix lines.</span></div></details>",
+    )
+
+    # An id that is not in the release
+    with assert_raises(ToolError) as raised:
+        _render(_doc(release_list.replace('<commit id="e2"', '<commit id="e3"')), history=history)
+
+    assert_in("unable to find release 2.60.0 commit id 'e3' in list", str(raised.exception))
+
+    # An id that more than one commit begins with
+    with assert_raises(ToolError) as raised:
+        _render(_doc(release_list.replace('<commit id="e2"', '<commit id="e"')), history=history)
+
+    assert_equal(str(raised.exception), "commit prefix 'e' already found in commit e2")
+
+    # An id needs a subject and the subject of the commit must begin with it
+    with assert_raises(ToolError) as raised:
+        _render(_doc(release_list.replace('<commit id="e2" subject="Fix lines."/>', '<commit id="e2"/>')), history=history)
+
+    assert_equal(str(raised.exception), "unable to find attribute 'subject' in node 'commit'")
+
+    with assert_raises(ToolError) as raised:
+        _render(
+            _doc(release_list.replace('<commit id="e2" subject="Fix lines."/>', '<commit id="e2" subject="Fix more lines."/>')),
+            history=history,
+        )
+
+    assert_equal(str(raised.exception), "release 2.60.0 commit id 'e2' subject 'Fix lines.' does not begin with 'Fix more lines.'")
+
+
+####################################################################################################################################
 def test_release_render_bug_fix():
     """A bug fix release x.y.z with z > 0 is skipped when it is not the most recent and a release x.y.0 is checked."""
 
@@ -649,6 +715,12 @@ def test_release_render_bug_fix():
         _render(_doc(DETAIL_RELEASE_LIST.replace("<p>Add a feature.</p>", "<p>Improve a thing.</p>")), history=DETAIL_HISTORY)
 
     assert_in("unable to find commit or no subject match for release 2.60.0 item 'Improve a thing.'", str(raised.exception))
+
+    # Every commit of 2.60.0 is claimed by an item
+    with assert_raises(ToolError) as raised:
+        _render(_doc(DETAIL_RELEASE_LIST), history=[("d9", "Do something unclaimed.")] + DETAIL_HISTORY)
+
+    assert_in("release 2.60.0 has commits that no item claims:\n2026-07-30 d9: Do something unclaimed.", str(raised.exception))
 
     # 2.59.0 is checked
     with assert_raises(ToolError) as raised:
@@ -697,3 +769,20 @@ def test_release_history_update():
         assert_equal(
             [commit["subject"] for commit in json.loads(file_read(path_history))], ["Fix a bug.", "v2.01: First.", "Add a feature."]
         )
+
+        # Commits made after HEAD split off from integration are left out
+        exec_one("git -C %s branch integration" % path)
+        _commit(path, "RELEASE: Add release notes.")
+
+        release_history_update(path, path_doc)
+
+        assert_equal(
+            [commit["subject"] for commit in json.loads(file_read(path_history))], ["Fix a bug.", "v2.01: First.", "Add a feature."]
+        )
+
+        # The newest commit in either integration branch is where the history ends
+        exec_one("git -C %s update-ref refs/remotes/origin/integration HEAD" % path)
+
+        release_history_update(path, path_doc)
+
+        assert_equal(json.loads(file_read(path_history))[0]["subject"], "RELEASE: Add release notes.")
