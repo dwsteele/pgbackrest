@@ -215,7 +215,9 @@
             </release-item>
 
             <release-item>
-                <github-pull-request id="2836"/>
+                <commit subject="Derive the cipher key with SHA-256 at repository format 6.">
+                    <github-pull-request id="2836"/>
+                </commit>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
@@ -309,64 +311,6 @@
                 </release-item-contributor-list>
 
                 <p>Fix bugs in the <proper>JSON</proper> and pack readers found by fuzzing.</p>
-            </release-item>
-
-            <release-item>
-                <commit subject="Fix hang when the chunk buffer is smaller than the input buffer.">
-                    <github-issue id="2818"/>
-                    <github-pull-request id="2819"/>
-                </commit>
-                <commit subject="Compare a new backup label only against its own full backup set.">
-                    <github-issue id="2792"/>
-                    <github-pull-request id="2824"/>
-                </commit>
-                <commit subject="Move the distribution trimming from .gitattributes to dist.sh.">
-                    <github-issue id="2821"/>
-                </commit>
-                <commit subject="Document exception for dots in S3 bucket names when uri-style=path."/>
-                <commit subject="Stop setting hot_standby in the user guide."/>
-                <commit subject="PostgreSQL 19beta3 support."/>
-                <commit subject="Merge v2.59.1 release."/>
-                <commit subject="Fix annotate and manifest commands on a remote encrypted repository."/>
-                <commit subject="Fix empty block map when file is truncated to zero during backup.">
-                    <github-issue id="2829"/>
-                    <github-pull-request id="2842"/>
-                </commit>
-                <commit subject="Disable read retry when filters are passed to the driver.">
-                    <github-issue id="2845"/>
-                    <github-pull-request id="2846"/>
-                </commit>
-                <commit subject="Set the Azure version header for SAS authentication.">
-                    <github-issue id="2840"/>
-                    <github-pull-request id="2848"/>
-                </commit>
-                <commit subject="Fix pagination of S3 version listing.">
-                    <github-issue id="2854"/>
-                    <github-pull-request id="2855"/>
-                </commit>
-                <commit subject="Fix async archive-push stalling on a zero-size backup history file.">
-                    <github-issue id="2856"/>
-                    <github-pull-request id="2857"/>
-                </commit>
-                <commit subject="PostgreSQL 19beta4 support."/>
-                <commit subject="Merge v2.59.2 release."/>
-                <commit subject="Fix possible checksum error loading encrypted info and manifest files.">
-                    <github-issue id="2866"/>
-                    <github-pull-request id="2868"/>
-                </commit>
-                <commit subject="Fix possible weak encryption subkeys/salts.">
-                    <github-issue id="2866"/>
-                    <github-pull-request id="2867"/>
-                </commit>
-                <commit subject="Merge v2.59.3 release."/>
-
-                <release-item-contributor-list>
-                    <release-item-contributor id="david.steele"/>
-                    <release-item-contributor id="andrew.kroh"/>
-                    <release-item-contributor id="j0uinim"/>
-                </release-item-contributor-list>
-
-                <p>Include the fixes from the 2.59.1, 2.59.2, and 2.59.3 patch releases.</p>
             </release-item>
 
             <release-item>
@@ -760,4 +704,33 @@
             </release-item>
         </release-development-list>
     </release-test-list>
+
+    <release-backpatch-list>
+        <release-backpatch version="2.59.1">
+            <commit subject="Fix hang when the chunk buffer is smaller than the input buffer."/>
+            <commit subject="Compare a new backup label only against its own full backup set."/>
+            <commit subject="Move the distribution trimming from .gitattributes to dist.sh."/>
+            <commit subject="Document exception for dots in S3 bucket names when uri-style=path."/>
+            <commit subject="Stop setting hot_standby in the user guide."/>
+            <commit subject="PostgreSQL 19beta3 support."/>
+            <commit subject="Merge v2.59.1 release."/>
+        </release-backpatch>
+
+        <release-backpatch version="2.59.2">
+            <commit subject="Fix annotate and manifest commands on a remote encrypted repository."/>
+            <commit subject="Fix empty block map when file is truncated to zero during backup."/>
+            <commit subject="Disable read retry when filters are passed to the driver."/>
+            <commit subject="Set the Azure version header for SAS authentication."/>
+            <commit subject="Fix pagination of S3 version listing."/>
+            <commit subject="Fix async archive-push stalling on a zero-size backup history file."/>
+            <commit subject="PostgreSQL 19beta4 support."/>
+            <commit subject="Merge v2.59.2 release."/>
+        </release-backpatch>
+
+        <release-backpatch version="2.59.3">
+            <commit subject="Fix possible checksum error loading encrypted info and manifest files."/>
+            <commit subject="Fix possible weak encryption subkeys/salts."/>
+            <commit subject="Merge v2.59.3 release."/>
+        </release-backpatch>
+    </release-backpatch-list>
 </release>

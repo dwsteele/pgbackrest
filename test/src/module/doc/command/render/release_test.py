@@ -138,6 +138,8 @@ RELEASE_LIST = """
 
 # Releases with details and the history they are checked against
 DETAIL_HISTORY = [
+    ("dB", "Merge v2.59.1 release."),
+    ("dA", "Fix a bug on a branch."),
     ("d8", "Rework the internals."),
     ("d0", "Improve speed."),
     ("d1", "Add a feature."),
@@ -189,6 +191,13 @@ DETAIL_RELEASE_LIST = """
                     </release-item>
                 </release-development-list>
             </release-core-list>
+
+            <release-backpatch-list>
+                <release-backpatch version="2.59.1">
+                    <commit subject="Fix a bug on a branch."/>
+                    <commit subject="Merge v2.59.1 release."/>
+                </release-backpatch>
+            </release-backpatch-list>
         </release>
 
         <release date="2026-09-15" version="2.59.1" title="Patch">
@@ -704,6 +713,60 @@ def test_release_render_commit_id():
         )
 
     assert_equal(str(raised.exception), "release 2.60.0 commit id 'e2' subject 'Fix lines.' does not begin with 'Fix more lines.'")
+
+
+####################################################################################################################################
+def test_release_render_backpatch():
+    """Commits back-patched to a patch release are listed on a development build, grouped by the version of the patch release."""
+
+    root = _render(_doc(DETAIL_RELEASE_LIST), dev=True, history=DETAIL_HISTORY)
+    release = xml_node_child_list(xml_node_child_list(root, "section")[1], "section")[0]
+
+    assert_in("Back-Patched:", "".join(xml_node_content(node) for node in xml_node_child_list(release, "p")))
+    assert_equal(
+        _item_html(release)[-1],
+        'Back-patched to <a href="#2.59.1">v2.59.1</a>.'
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/dA"><span class="id">dA</span></a>'
+        + " Fix a bug on a branch.</span></div>"
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/dB"><span class="id">dB</span></a>'
+        + " Merge v2.59.1 release.</span></div></details>",
+    )
+
+    # The commits are claimed but not listed on a release build
+    root = _render(_doc(DETAIL_RELEASE_LIST), history=DETAIL_HISTORY)
+
+    assert_not_in("Back-Patched:", xml_node_content(xml_node_child_list(xml_node_child_list(root, "section")[1], "section")[0]))
+
+    # The version must be a patch release in the list
+    for backpatch_version in ("2.59.0", "2.58.1"):
+        with assert_raises(ToolError) as raised:
+            _render(
+                _doc(
+                    DETAIL_RELEASE_LIST.replace(
+                        '<release-backpatch version="2.59.1">', '<release-backpatch version="%s">' % backpatch_version
+                    )
+                ),
+                history=DETAIL_HISTORY,
+            )
+
+        assert_equal(str(raised.exception), "release 2.60.0 back-patch version %s is not a patch release" % backpatch_version)
+
+    # A back-patch has commits
+    with assert_raises(ToolError) as raised:
+        _render(
+            _doc(
+                DETAIL_RELEASE_LIST.replace(
+                    '<release-backpatch version="2.59.1">',
+                    '<release-backpatch version="2.59.1"/>\n                <release-backpatch version="2.59.1">',
+                )
+            ),
+            history=DETAIL_HISTORY,
+        )
+
+    assert_equal(str(raised.exception), "release 2.60.0 back-patch version 2.59.1 has no commits")
 
 
 ####################################################################################################################################

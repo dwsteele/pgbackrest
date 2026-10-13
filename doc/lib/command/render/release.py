@@ -184,6 +184,7 @@ class _Release:
     def __init__(self, root, path_doc, dev):
         self.root = root
         self.dev = dev
+        self.version_list = [xml_node_attribute(release, "version", True) for release in release_list(root)]
 
         self.history = deque(json.loads(file_read(os.path.join(path_doc, _FILE_HISTORY))))
 
@@ -436,12 +437,14 @@ class _Release:
                 self._ref_add(ref, label, url % id, "#%s" % id)
 
     ################################################################################################################################
-    def _detail_add(self, list_item, item, item_commit_list):
+    def _detail_add(self, list_item, item, item_commit_list, commit_line=False):
         """Add the paragraphs after the first and the issues, pull requests, and commits of an item as details.
 
         An item with one commit has the commit on the same line as its issues and pull requests, after them. An item with more than
-        one commit has a line for each commit, with the subject of the commit and the issues and pull requests the commit element
-        names."""
+        one commit, or any item when commit_line is true, has a line for each commit, with the subject of the commit and the issues
+        and pull requests the commit element names."""
+
+        commit_line = commit_line or len(item_commit_list) > 1
 
         detail = xml_node_add(list_item, "list-detail")
 
@@ -455,7 +458,7 @@ class _Release:
             url = None if commit is None else _COMMIT_URL % commit["commit"]
             hash = None if commit is None else commit["commit"][:_COMMIT_SIZE]
 
-            if len(item_commit_list) > 1:
+            if commit_line:
                 ref = xml_node_add(detail, "list-detail-ref")
 
                 # Escape the subject for html
@@ -465,7 +468,7 @@ class _Release:
             if commit_xml is not None:
                 self._ref_list_add(ref, commit_xml)
 
-            if len(item_commit_list) == 1 and commit is not None:
+            if not commit_line and commit is not None:
                 self._ref_add(ref, "Commit", url, hash, True)
 
         # Remove lines with no links and details with nothing in them
@@ -636,9 +639,49 @@ class _Release:
                     if detail:
                         self._detail_add(list_item, item, item_commit_list)
 
+        self._backpatch_render(release, release_section, version, commit_list, remaining_list, commit_map, check)
+
         # Every commit of the release is claimed by an item when version >= 2.60
         if detail and check and len(remaining_list) > 0:
             self._commit_error("release %s has commits that no item claims" % version, remaining_list, commit_map)
+
+    ################################################################################################################################
+    def _backpatch_render(self, release, release_section, version, commit_list, remaining_list, commit_map, check):
+        """Render the commits of a release that were back-patched to a patch release, grouped by the version of the patch release.
+
+        The commits are claimed on every build and only listed on a development build."""
+
+        backpatch_list = xml_node_child(release, "release-backpatch-list")
+
+        if backpatch_list is None:
+            return
+
+        list_node = None
+
+        if self.dev:
+            heading = xml_node_add(release_section, "p")
+            xml_node_content_add(xml_node_add(xml_node_text_add(heading), "b"), "Back-Patched:")
+            list_node = xml_node_add(release_section, "list")
+
+        for backpatch in xml_node_child_list(backpatch_list, "release-backpatch"):
+            backpatch_version = xml_node_attribute(backpatch, "version", True)
+
+            if backpatch_version not in self.version_list or _VERSION_BUG_FIX_EXP.match(backpatch_version) is None:
+                raise ToolError("release %s back-patch version %s is not a patch release" % (version, backpatch_version))
+
+            if len(xml_node_child_list(backpatch, "commit")) == 0:
+                raise ToolError("release %s back-patch version %s has no commits" % (version, backpatch_version))
+
+            item_commit_list = self._item_commit(backpatch, None, version, commit_list, remaining_list, commit_map, check)
+
+            if list_node is not None:
+                list_item = xml_node_text_add(xml_node_add(list_node, "list-item"))
+
+                xml_node_content_add(list_item, "Back-patched to ")
+                xml_node_content_add(xml_node_add(list_item, "link", {"url": "#%s" % backpatch_version}), "v%s" % backpatch_version)
+                xml_node_content_add(list_item, ".")
+
+                self._detail_add(list_item, backpatch, item_commit_list, True)
 
 
 ####################################################################################################################################
