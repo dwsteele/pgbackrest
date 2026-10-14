@@ -20,7 +20,7 @@
 
                 <p>Add <br-option>checksum-page-error</br-option> option to error on invalid page checksums.</p>
 
-                <p>The option applies to the <cmd>backup</cmd>, <cmd>restore</cmd>, and <cmd>expire</cmd> commands. The <cmd>backup</cmd> command defaults to a warning for each file as before and now also reports the total number of checksum warnings at the end of the backup. The <cmd>restore</cmd> and <cmd>expire</cmd> commands default to an error. Previously the <cmd>restore</cmd> command did not report invalid page checksums at all.</p>
+                <p>This option applies to the <cmd>backup</cmd>, <cmd>restore</cmd>, and <cmd>expire</cmd> commands. The <cmd>backup</cmd> command defaults to a warning for each file (as before) and now also reports the total number of checksum warnings at the end of the backup. The <cmd>restore</cmd> and <cmd>expire</cmd> commands default to an error. Previously the <cmd>restore</cmd> command did not report invalid page checksums at all.</p>
             </release-item>
 
             <release-item>
@@ -56,7 +56,7 @@
 
                 <p>Prefetch multi-file/range reads from object stores.</p>
 
-                <p>Requests are queued ahead of the current read so request latency overlaps reading, and small gaps between files are read over instead of starting a new request. <cmd>Restore</cmd> uses this to read bundled files and block incremental maps, and <cmd>backup</cmd> uses it to read block incremental maps from the prior backup. <br-option>repo-storage-prefetch</br-option> (default 3) sets how many requests are queued and <br-option>repo-storage-read-over</br-option> (default 64KiB) sets the largest gap that is read over.</p>
+                <p>Requests are queued ahead of the current read so requests proceed while reading, and small gaps between files are read over instead of starting a new request. <cmd>Restore</cmd> uses this to read bundled files and block incremental maps, and <cmd>backup</cmd> uses it to read block incremental maps from the prior backup. <br-option>repo-storage-prefetch</br-option> (default 3) sets how many requests are queued and <br-option>repo-storage-read-over</br-option> (default 64KiB) sets the largest gap that is read over.</p>
             </release-item>
         </release-feature-list>
 
@@ -85,7 +85,7 @@
 
                 <p>Retry <proper>Azure</proper> batch sub-requests missing from the response.</p>
 
-                <p>When <proper>Azure</proper> fails a batch delete it may return a single response for the whole batch. The sub-requests with no response were treated as complete, so only one file per batch was removed while the command reported success. Sub-requests with no response are now retried.</p>
+                <p>When <proper>Azure</proper> fails a batch delete it may return a single response for the entire batch. The sub-requests with no response were treated as complete, so only one file per batch was removed while the command reported success. Sub-requests with no response are now retried.</p>
             </release-item>
 
             <release-item>
@@ -100,7 +100,7 @@
 
                 <p>Reduce the manifest checks made when reconstructing <file>backup.info</file>.</p>
 
-                <p>The <cmd>backup</cmd>, <cmd>expire</cmd>, and <cmd>annotate</cmd> commands no longer check for a <file>backup.manifest</file> when the repository listing shows the backup path does not exist, or when a diff or incr backup belongs to a full backup set that is not in <file>backup.info</file>. Each check is a request, and on an object store a check for a missing manifest is logged as a 404.</p>
+                <p>The <cmd>backup</cmd>, <cmd>expire</cmd>, and <cmd>annotate</cmd> commands no longer check for a <file>backup.manifest</file> when the repository listing shows the backup path does not exist, or when a diff or incr backup belongs to a full backup set that is not in <file>backup.info</file>. Each check is a request so on an object store the check for a missing manifest is logged as a 404.</p>
             </release-item>
 
             <release-item>
@@ -185,7 +185,7 @@
 
                 <p>Fix clang builds.</p>
 
-                <p>On <proper>Linux</proper>, gcc installs <file>libbacktrace.a</file> where clang also finds it but installs <file>backtrace.h</file> where only gcc finds it. A clang build found the library and then failed to compile. The library is now only used when its header is found. Return types that clang reports as narrowing conversions in debug builds are also fixed.</p>
+                <p>On <proper>Linux</proper>, gcc installs <file>libbacktrace.a</file> where clang also looks for it but installs <file>backtrace.h</file> where only gcc can find it. A clang build found the library and then failed to compile. The library is now only used when its header is found. Return types that clang reports as narrowing conversions in debug builds are also fixed.</p>
             </release-item>
 
             <release-item>
@@ -578,7 +578,7 @@
 
                 <p>Migrate the test harness from <proper>C</proper> and <proper>Perl</proper> to <proper>Python</proper>.</p>
 
-                <p>Tests are run with <file>test/test.py</file> instead of <file>test/test.pl</file>. The test containers and CI runners no longer require <proper>Perl</proper>, and the harness is covered by its own tests.</p>
+                <p>Tests are run with <file>test/test.py</file> instead of <file>test/test.pl</file>. The test containers and CI runners no longer require <proper>Perl</proper> and the harness is covered by tests.</p>
             </release-item>
 
             <release-item>
