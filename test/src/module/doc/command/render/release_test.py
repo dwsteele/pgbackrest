@@ -243,7 +243,7 @@ def _doc(release_list=RELEASE_LIST, contributor=CONTRIBUTOR):
 
 
 ####################################################################################################################################
-def _render(content=None, dev=False, history=HISTORY):
+def _render(content=None, dev=False, history=HISTORY, claim=True):
     """Build the release document from a release list."""
 
     with tempfile.TemporaryDirectory() as path:
@@ -254,7 +254,7 @@ def _render(content=None, dev=False, history=HISTORY):
             ),
         )
 
-        return release_render(xml_parse(_doc() if content is None else content, "test.xml"), path, dev)
+        return release_render(xml_parse(_doc() if content is None else content, "test.xml"), path, dev, claim)
 
 
 ####################################################################################################################################
@@ -785,6 +785,9 @@ def test_release_render_bug_fix():
 
     assert_in("release 2.60.0 has commits that no item claims:\n2026-07-30 d9: Do something unclaimed.", str(raised.exception))
 
+    # Commits that no item claims are allowed when claim is false
+    _render(_doc(DETAIL_RELEASE_LIST), history=[("d9", "Do something unclaimed.")] + DETAIL_HISTORY, claim=False)
+
     # 2.59.0 is checked
     with assert_raises(ToolError) as raised:
         _render(_doc(DETAIL_RELEASE_LIST.replace("<p>Improve a thing.</p>", "<p>Improve two things.</p>")), history=DETAIL_HISTORY)
@@ -794,7 +797,7 @@ def test_release_render_bug_fix():
 
 ####################################################################################################################################
 def test_release_history_update():
-    """The history is written from git when HEAD is not the newest commit in it."""
+    """The history is written from git when the newest commit in it has changed."""
 
     with tempfile.TemporaryDirectory() as path:
         path_doc = os.path.join(path, "doc")
@@ -804,7 +807,8 @@ def test_release_history_update():
         _commit(path, "Add a feature.", "What the feature does.")
         _commit(path, "v2.01: First.", "The release notes.")
 
-        release_history_update(path, path_doc)
+        # With no integration branch the history ends at HEAD
+        assert_false(release_history_update(path, path_doc))
 
         history = json.loads(file_read(path_history))
 
@@ -833,19 +837,19 @@ def test_release_history_update():
             [commit["subject"] for commit in json.loads(file_read(path_history))], ["Fix a bug.", "v2.01: First.", "Add a feature."]
         )
 
-        # Commits made after HEAD split off from integration are left out
+        # With an integration branch related to HEAD the history ends at the newest commit of HEAD that is also in integration
         exec_one("git -C %s branch integration" % path)
         _commit(path, "RELEASE: Add release notes.")
 
-        release_history_update(path, path_doc)
+        assert_true(release_history_update(path, path_doc))
+        assert_equal(json.loads(file_read(path_history))[0]["subject"], "Fix a bug.")
 
-        assert_equal(
-            [commit["subject"] for commit in json.loads(file_read(path_history))], ["Fix a bug.", "v2.01: First.", "Add a feature."]
-        )
+        # With an integration branch that is not related to HEAD the history ends at HEAD
+        tree = exec_one("git -C %s hash-object -t tree /dev/null" % path).strip()
+        commit = exec_one(
+            "git -C %s -c user.name=test -c user.email=test@pgbackrest.org commit-tree %s -m 'Unrelated.'" % (path, tree)
+        ).strip()
+        exec_one("git -C %s update-ref refs/heads/integration %s" % (path, commit))
 
-        # The newest commit in either integration branch is where the history ends
-        exec_one("git -C %s update-ref refs/remotes/origin/integration HEAD" % path)
-
-        release_history_update(path, path_doc)
-
+        assert_false(release_history_update(path, path_doc))
         assert_equal(json.loads(file_read(path_history))[0]["subject"], "RELEASE: Add release notes.")

@@ -35,8 +35,8 @@ from config.project import PROJECT_NAME
 # Where the git history is cached
 _FILE_HISTORY = "resource/git-history.cache"
 
-# Integration branches, local and remote
-_HISTORY_BRANCH_LIST = ("integration", "origin/integration")
+# Local branch the git history ends at when it is related to HEAD
+_HISTORY_BRANCH = "refs/heads/integration"
 
 # Subject of a commit that closed a release
 _RELEASE_SUBJECT_EXP = re.compile(r"^v[0-9]{1,2}\.[0-9]{1,2}(\.[0-9]+)?: ")
@@ -107,37 +107,20 @@ def release_current_stable(root):
 
 
 ####################################################################################################################################
-def _history_head(path_repo):
-    """The newest commit of the git history the release notes are checked against.
-
-    This is the newest commit of HEAD that is also in an integration branch, or HEAD when there is no integration branch. Commits
-    made after HEAD split off from integration are left out, e.g. the commits of a release branch."""
-
-    branch_list = [
-        branch
-        for branch in _HISTORY_BRANCH_LIST
-        if exec_status("git -C %s rev-parse --verify --quiet '%s^{commit}'" % (path_repo, branch)) == 0
-    ]
-
-    if len(branch_list) == 0:
-        command = "git -C %s rev-parse HEAD" % path_repo
-    else:
-        command = "git -C %s merge-base HEAD %s" % (path_repo, " ".join(branch_list))
-
-    return exec_result(command, suppress_stderr=True)[1].strip()
-
-
-####################################################################################################################################
 def release_history_update(path_repo, path_doc):
     """Write the git history the release notes are checked against when the newest commit in it has changed.
 
-    The body of a commit that closed a release is left out."""
+    When the local integration branch is related to HEAD the history ends at the newest commit of HEAD that is also in integration
+    and the result is true. The commits of a release branch are left out this way. Otherwise the history ends at HEAD and the result
+    is false. The body of a commit that closed a release is left out."""
 
     path_history = os.path.join(path_doc, _FILE_HISTORY)
-    head = _history_head(path_repo)
+    command = "git -C %s merge-base HEAD %s" % (path_repo, _HISTORY_BRANCH)
+    related = exec_status(command) == 0
+    head = exec_result(command if related else "git -C %s rev-parse HEAD" % path_repo, suppress_stderr=True)[1].strip()
 
     if os.path.isfile(path_history) and json.loads(file_read(path_history))[0]["commit"] == head:
-        return
+        return related
 
     # Records are separated by a byte that cannot appear in a commit message, and so are the fields within a record
     output = exec_result(
@@ -163,6 +146,8 @@ def release_history_update(path_repo, path_doc):
 
     file_write(path_history, json.dumps(history, indent=4, ensure_ascii=False) + "\n")
 
+    return related
+
 
 ####################################################################################################################################
 def _date_render(date, version):
@@ -181,9 +166,10 @@ def _date_render(date, version):
 class _Release:
     """Builds the release document."""
 
-    def __init__(self, root, path_doc, dev):
+    def __init__(self, root, path_doc, dev, claim):
         self.root = root
         self.dev = dev
+        self.claim = claim  # Must every commit of a release be claimed by an item?
         self.version_list = [xml_node_attribute(release, "version", True) for release in release_list(root)]
 
         self.history = deque(json.loads(file_read(os.path.join(path_doc, _FILE_HISTORY))))
@@ -641,8 +627,8 @@ class _Release:
 
         self._backpatch_render(release, release_section, version, commit_list, remaining_list, commit_map, check)
 
-        # Every commit of the release is claimed by an item when version >= 2.60
-        if detail and check and len(remaining_list) > 0:
+        # Every commit of the release is claimed by an item when version >= 2.60 and claim is true
+        if detail and check and self.claim and len(remaining_list) > 0:
             self._commit_error("release %s has commits that no item claims" % version, remaining_list, commit_map)
 
     ################################################################################################################################
@@ -685,7 +671,9 @@ class _Release:
 
 
 ####################################################################################################################################
-def release_render(root, path_doc, dev):
-    """Build the release document from the release list."""
+def release_render(root, path_doc, dev, claim=False):
+    """Build the release document from the release list.
 
-    return _Release(root, path_doc, dev).render_document()
+    When claim is true every commit of a release with version >= 2.60 must be claimed by an item."""
+
+    return _Release(root, path_doc, dev, claim).render_document()
