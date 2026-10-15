@@ -179,6 +179,7 @@
 
         <release-development-list>
             <release-item>
+                <release-note version="2.37" subject="Add TLS server."/>
                 <commit subject="Add TLS Server.">
                     <github-pull-request id="1504"/>
                 </commit>

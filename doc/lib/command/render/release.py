@@ -221,6 +221,9 @@ class _Release:
         self.render = DocRender("text")
         self.render.tag_set("backrest", PROJECT_NAME)
 
+        # The items of each release that are not development items, as [text, list item, item, commits, development items]
+        self.release_item_map = {}
+
     ################################################################################################################################
     def _contributor_text(self, item, item_type):
         """What the release notes say about who did the work on an item."""
@@ -465,22 +468,37 @@ class _Release:
                 self._ref_add(ref, label, url % id, "#%s" % id)
 
     ################################################################################################################################
-    def _detail_add(self, list_item, item, item_commit_list, commit_line=False):
-        """Add the paragraphs after the first and the issues, pull requests, and commits of an item as details.
+    @staticmethod
+    def _version_line_add(detail, version, text, note=None):
+        """Add a line to details that links to a release, after the text of a release note in quotes when note is not None."""
+
+        ref_item = xml_node_add(xml_node_add(detail, "list-detail-ref"), "list-detail-ref-item")
+
+        xml_node_content_add(ref_item, text)
+
+        if note is not None:
+            xml_node_content_add(xml_node_add(ref_item, "quote"), note)
+            xml_node_content_add(ref_item, " in ")
+
+        xml_node_content_add(xml_node_add(ref_item, "link", {"url": "#%s" % version}), "v%s" % version)
+        xml_node_content_add(ref_item, ":")
+
+    ################################################################################################################################
+    def _ref_line_add(self, detail, item, item_commit_list, commit_line):
+        """Add the issues, pull requests, and commits of an item to details.
 
         An item with one commit has the commit on the same line as its issues and pull requests, after them. An item with more than
         one commit, or any item when commit_line is true, has a line for each commit, with the subject of the commit and the issues
-        and pull requests the commit element names."""
+        and pull requests the commit element names. The issues and pull requests of an item with one commit are on the line of the
+        commit when commit_line is true."""
 
+        item_line = commit_line and len(item_commit_list) == 1
         commit_line = commit_line or len(item_commit_list) > 1
 
-        detail = xml_node_add(list_item, "list-detail")
-
-        for paragraph in xml_node_child_list(item, "p")[1:]:
-            xml_node_child_add(xml_node_add(detail, "list-detail-text"), paragraph)
-
         ref = xml_node_add(detail, "list-detail-ref")
-        self._ref_list_add(ref, item)
+
+        if not item_line:
+            self._ref_list_add(ref, item)
 
         for commit_xml, commit in item_commit_list:
             url = None if commit is None else _COMMIT_URL % commit["commit"]
@@ -496,8 +514,38 @@ class _Release:
             if commit_xml is not None:
                 self._ref_list_add(ref, commit_xml)
 
+            if item_line:
+                self._ref_list_add(ref, item)
+
             if not commit_line and commit is not None:
                 self._ref_add(ref, "Commit", url, hash, True)
+
+    ################################################################################################################################
+    def _detail_add(self, list_item, item, item_commit_list, commit_line=False, release_note=None, dev_list=()):
+        """Add the paragraphs after the first and the issues, pull requests, and commits of an item as details.
+
+        release_note is the version and text of the release note a development item names. dev_list is the development items
+        that name an item as their release note, as (version, item, commits), listed under a line for each release that links to
+        it."""
+
+        detail = xml_node_add(list_item, "list-detail")
+
+        for paragraph in xml_node_child_list(item, "p")[1:]:
+            xml_node_child_add(xml_node_add(detail, "list-detail-text"), paragraph)
+
+        if release_note is not None:
+            self._version_line_add(detail, release_note[0], "Development for ", release_note[1])
+
+        self._ref_line_add(detail, item, item_commit_list, commit_line)
+
+        dev_version_last = None
+
+        for dev_version, dev_item, dev_commit_list in dev_list:
+            if dev_version != dev_version_last:
+                self._version_line_add(detail, dev_version, "Development in ")
+                dev_version_last = dev_version
+
+            self._ref_line_add(detail, dev_item, dev_commit_list, True)
 
         # Remove lines with no links and details with nothing in them
         for ref in xml_node_child_list(detail, "list-detail-ref"):
@@ -506,6 +554,45 @@ class _Release:
 
         if len(detail) == 0:
             list_item.remove(detail)
+
+    ################################################################################################################################
+    def _release_note_add(self, item, version, item_commit_list):
+        """Add a development item to the details of the release note it names. A release note is an item that is not a development
+        item in a later release. Returns the version and the text without a period at the end of the release note, or None when the
+        item names no release note."""
+
+        release_note = xml_node_child(item, "release-note")
+
+        if release_note is None:
+            return None
+
+        note_version = xml_node_attribute(release_note, "version", True)
+        note_subject = xml_node_attribute(release_note, "subject", True)
+
+        if note_version not in self.version_list or self.version_list.index(note_version) >= self.version_list.index(version):
+            raise ToolError("release %s release note version %s is not a later release" % (version, note_version))
+
+        note_list = [note for note in self.release_item_map.get(note_version, []) if note[0].startswith(note_subject)]
+
+        if len(note_list) == 0:
+            raise ToolError("release %s release note '%s' not found in release %s" % (version, note_subject, note_version))
+
+        if len(note_list) > 1:
+            raise ToolError(
+                "release %s release note '%s' found more than once in release %s" % (version, note_subject, note_version)
+            )
+
+        note_list[0][4].append((version, item, item_commit_list))
+
+        return note_version, re.sub(r"\.$", "", note_list[0][0])
+
+    ################################################################################################################################
+    def _release_item_render(self):
+        """Add the details of each item that is not a development item, with the development items that name it."""
+
+        for item_list in self.release_item_map.values():
+            for _, list_item, item, item_commit_list, dev_list in item_list:
+                self._detail_add(list_item, item, item_commit_list, dev_list=dev_list)
 
     ################################################################################################################################
     def render_document(self):
@@ -591,6 +678,8 @@ class _Release:
 
             self._release_render(release, release_section, version, commit_list, remaining_list, commit_map, check)
 
+        self._release_item_render()
+
         return root
 
     ################################################################################################################################
@@ -617,9 +706,11 @@ class _Release:
                 if not self.dev and item_type == "release-development-list":
                     if detail and check:
                         for item in xml_node_child_list(item_node, "release-item"):
-                            self._item_commit(
+                            item_commit_list = self._item_commit(
                                 item, xml_node_child_list(item, "p")[0], version, commit_list, remaining_list, commit_map, True
                             )
+
+                            self._release_note_add(item, version, item_commit_list)
 
                     continue
 
@@ -640,6 +731,10 @@ class _Release:
 
                 for item in xml_node_child_list(item_node, "release-item"):
                     text = xml_node_child_list(item, "p")[0]
+
+                    # Plain text of the item before credits are added
+                    text_plain = self.render.process_text(text) if detail else None
+
                     item_check = check and (detail or item_type != "release-development-list")
                     item_commit_list = None
 
@@ -665,7 +760,20 @@ class _Release:
                     xml_node_child_add(list_item, text)
 
                     if detail:
-                        self._detail_add(list_item, item, item_commit_list)
+                        if item_type == "release-development-list":
+                            release_note = self._release_note_add(item, version, item_commit_list)
+                            self._detail_add(list_item, item, item_commit_list, release_note=release_note)
+                        else:
+                            if xml_node_child(item, "release-note") is not None:
+                                raise ToolError(
+                                    "release %s item '%s' is not a development item and cannot name a release note"
+                                    % (version, text_plain)
+                                )
+
+                            # Details are added after every release is read
+                            self.release_item_map.setdefault(version, []).append(
+                                [text_plain, list_item, item, item_commit_list, []]
+                            )
 
         self._backpatch_render(release, release_section, version, commit_list, remaining_list, commit_map, check)
 

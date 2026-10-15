@@ -121,6 +121,7 @@
                 <commit subject="Do not expose valid/validate functions from encode module."/>
                 <commit subject="Add ASSERT_MSG()."/>
                 <commit subject="Add base64url encoding."/>
+                <commit subject="Make remote storage objects writeable."/>
                 <commit subject="GCS support for repository storage.">
                     <github-issue id="631"/>
                     <github-issue id="743"/>
@@ -264,7 +265,6 @@
             <release-item>
                 <commit subject="Remove unused header files in S3 and Azure storage modules."/>
                 <commit subject="Make S3/Azure file missing error messages match Posix."/>
-                <commit subject="Make remote storage objects writeable."/>
                 <commit subject="Add storageInfoLevelType."/>
 
                 <release-item-contributor-list>

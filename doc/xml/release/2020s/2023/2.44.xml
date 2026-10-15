@@ -49,6 +49,7 @@
 
         <release-development-list>
             <release-item>
+                <release-note version="2.45" subject="Block incremental backup (BETA)."/>
                 <github-issue id="959"/>
                 <github-issue id="1806"/>
                 <github-issue id="1913"/>

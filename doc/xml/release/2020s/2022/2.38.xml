@@ -208,6 +208,7 @@
             </release-item>
 
             <release-item>
+                <release-note version="2.39" subject="Backup file bundling for improved small file support."/>
                 <commit subject="Add read range to all storage drivers.">
                     <github-pull-request id="1619"/>
                 </commit>
@@ -251,6 +252,7 @@
             </release-item>
 
             <release-item>
+                <release-note version="2.39" subject="Show backup percent complete in info output."/>
                 <commit subject="Add ioBufferReadNewOpen() and ioBufferWriteNewOpen()."/>
                 <commit subject="Refactor lock code.">
                     <github-pull-request id="1643"/>
@@ -260,7 +262,7 @@
                     <release-item-contributor id="david.steele"/>
                 </release-item-contributor-list>
 
-                <p>Add percent complete to lock file.</p>
+                <p>Refactor lock code.</p>
             </release-item>
 
             <release-item>

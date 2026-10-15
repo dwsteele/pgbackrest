@@ -779,6 +779,216 @@ def test_release_render_backpatch():
     assert_equal(str(raised.exception), "release 2.60.0 back-patch version 2.10.1 has no commits")
 
 
+# Development items that name the release note of a later release
+NOTE_RELEASE_LIST = """
+        <release date="2026-12-01" version="2.62.0" title="Final">
+            <release-core-list>
+                <release-feature-list>
+                    <release-item>
+                        <p>Finish the thing.</p>
+                    </release-item>
+                </release-feature-list>
+            </release-core-list>
+        </release>
+
+        <release date="2026-11-01" version="2.61.0" title="Beta">
+            <release-core-list>
+                <release-feature-list>
+                    <release-item>
+                        <p>Add the thing.</p>
+                    </release-item>
+                </release-feature-list>
+
+                <release-improvement-list>
+                    <release-item>
+                        <p>Add the thing to the docs.</p>
+                    </release-item>
+                </release-improvement-list>
+
+                <release-development-list>
+                    <release-item>
+                        <release-note version="2.62.0" subject="Finish the thing."/>
+
+                        <p>Polish the thing.</p>
+                    </release-item>
+                </release-development-list>
+            </release-core-list>
+        </release>
+
+        <release date="2026-10-01" version="2.60.0" title="Start">
+            <release-core-list>
+                <release-improvement-list>
+                    <release-item>
+                        <p>Improve a thing.</p>
+                    </release-item>
+                </release-improvement-list>
+
+                <release-development-list>
+                    <release-item>
+                        <release-note version="2.61.0" subject="Add the thing."/>
+                        <commit subject="Prepare the thing."/>
+                        <commit subject="Refactor for the thing."/>
+
+                        <p>Prepare for the thing.</p>
+                    </release-item>
+
+                    <release-item>
+                        <release-note version="2.61.0" subject="Add the thing."/>
+                        <github-pull-request id="8"/>
+
+                        <p>Start the thing.</p>
+                    </release-item>
+
+                    <release-item>
+                        <release-note version="2.61.0" subject="Add the thing."/>
+
+                        <p>Tidy the thing.</p>
+                    </release-item>
+                </release-development-list>
+            </release-core-list>
+        </release>
+
+        <release date="2025-01-01" version="1.00" title="Initial"/>
+"""
+
+NOTE_HISTORY = [
+    ("p3", "v2.62.0: Final."),
+    ("p1", "Finish the thing."),
+    ("n4", "v2.61.0: Beta."),
+    ("n3", "Add the thing to the docs."),
+    ("n2", "Polish the thing."),
+    ("n1", "Add the thing."),
+    ("m5", "v2.60.0: Start."),
+    ("m6", "Tidy the thing."),
+    ("m4", "Refactor for the thing."),
+    ("m3", "Prepare the thing."),
+    ("m2", "Start the thing."),
+    ("m1", "Improve a thing."),
+    ("m0", "v1.00: Initial."),
+]
+
+
+####################################################################################################################################
+def test_release_render_release_note():
+    """A development item may name the release note of a later release, which lists the development item in its details."""
+
+    root = _render(_doc(NOTE_RELEASE_LIST), history=NOTE_HISTORY)
+    current = xml_node_child_list(xml_node_child_list(root, "section")[1], "section")[0]
+    supported = xml_node_child_list(xml_node_child_list(root, "section")[2], "section")
+
+    assert_equal(
+        _item_html(current),
+        [
+            "Finish the thing."
+            + DETAIL_HTML
+            + '\n<div class="list-detail-ref"><span class="list-detail-ref-item">Commit '
+            + '<a href="{[github-url-base]}/commit/p1"><span class="id">p1</span></a></span></div>'
+            + '\n<div class="list-detail-ref">'
+            + '<span class="list-detail-ref-item">Development in <a href="#2.61.0">v2.61.0</a>:</span></div>'
+            + '\n<div class="list-detail-ref">'
+            + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/n2"><span class="id">n2</span></a>'
+            + " Polish the thing.</span></div></details>"
+        ],
+    )
+
+    # Development items of the same release are listed under one line and the links of a development item with one commit are on the
+    # line of the commit
+    assert_equal(
+        _item_html(supported[0])[0],
+        "Add the thing."
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref"><span class="list-detail-ref-item">Commit '
+        + '<a href="{[github-url-base]}/commit/n1"><span class="id">n1</span></a></span></div>'
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item">Development in <a href="#2.60.0">v2.60.0</a>:</span></div>'
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m3"><span class="id">m3</span></a>'
+        + " Prepare the thing.</span></div>"
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m4"><span class="id">m4</span></a>'
+        + " Refactor for the thing.</span></div>"
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m2"><span class="id">m2</span></a>'
+        + " Start the thing.</span>"
+        + '<span class="list-detail-ref-item">Pull request <a href="{[github-url-base]}/pull/8">#8</a></span></div>'
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m6"><span class="id">m6</span></a>'
+        + " Tidy the thing.</span></div></details>",
+    )
+
+    # A development build links a development item to the release of its release note
+    root = _render(_doc(NOTE_RELEASE_LIST), dev=True, history=NOTE_HISTORY)
+    supported = xml_node_child_list(xml_node_child_list(root, "section")[2], "section")
+
+    assert_equal(
+        _item_html(supported[1])[1],
+        "Prepare for the thing."
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item">Development for <q>Add the thing</q> in <a href="#2.61.0">v2.61.0</a>:</span></div>'
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m3"><span class="id">m3</span></a>'
+        + " Prepare the thing.</span></div>"
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item"><a href="{[github-url-base]}/commit/m4"><span class="id">m4</span></a>'
+        + " Refactor for the thing.</span></div></details>",
+    )
+
+    assert_equal(
+        _item_html(supported[1])[2],
+        "Start the thing."
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item">Development for <q>Add the thing</q> in <a href="#2.61.0">v2.61.0</a>:</span></div>'
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item">Pull request <a href="{[github-url-base]}/pull/8">#8</a></span>'
+        + '<span class="list-detail-ref-item">Commit '
+        + '<a href="{[github-url-base]}/commit/m2"><span class="id">m2</span></a></span></div></details>',
+    )
+
+    # The release note must be in a later release
+    for version in ("2.60.0", "2.70.0"):
+        with assert_raises(ToolError) as raised:
+            _render(
+                _doc(
+                    NOTE_RELEASE_LIST.replace(
+                        'version="2.61.0" subject="Add the thing."', 'version="%s" subject="Add"' % version, 1
+                    )
+                ),
+                history=NOTE_HISTORY,
+            )
+
+        assert_equal(str(raised.exception), "release 2.60.0 release note version %s is not a later release" % version)
+
+    # The release note must be found once
+    with assert_raises(ToolError) as raised:
+        _render(
+            _doc(NOTE_RELEASE_LIST.replace('subject="Add the thing."', 'subject="Add another thing."', 1)), history=NOTE_HISTORY
+        )
+
+    assert_equal(str(raised.exception), "release 2.60.0 release note 'Add another thing.' not found in release 2.61.0")
+
+    with assert_raises(ToolError) as raised:
+        _render(_doc(NOTE_RELEASE_LIST.replace('subject="Add the thing."', 'subject="Add the thing"', 1)), history=NOTE_HISTORY)
+
+    assert_equal(str(raised.exception), "release 2.60.0 release note 'Add the thing' found more than once in release 2.61.0")
+
+    # Only a development item may name a release note
+    with assert_raises(ToolError) as raised:
+        _render(
+            _doc(
+                NOTE_RELEASE_LIST.replace(
+                    "<p>Finish the thing.</p>", '<release-note version="2.62.0" subject="Finish"/>\n<p>Finish the thing.</p>'
+                )
+            ),
+            history=NOTE_HISTORY,
+        )
+
+    assert_equal(
+        str(raised.exception), "release 2.62.0 item 'Finish the thing.' is not a development item and cannot name a release note"
+    )
+
+
 # A patch release built on a branch of its own
 PATCH_RELEASE_LIST = """
         <release date="2026-12-01" version="2.61.0" title="Next">

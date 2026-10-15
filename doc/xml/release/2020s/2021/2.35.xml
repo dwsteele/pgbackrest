@@ -216,15 +216,23 @@
             </release-item>
 
             <release-item>
+                <release-note version="2.37" subject="Add TLS server."/>
                 <commit subject="Refactor cmdLocal()/cmdRemote() to accept a ProtocolServer object."/>
                 <commit subject="Move noop from protocolClientNew() to local/remote initialization."/>
-                <commit subject="Fix infinite loop in protocolServerProcess() on error."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
                 </release-item-contributor-list>
 
-                <p>Improve protocol server error handling and local/remote startup.</p>
+                <p>Refactor local/remote startup.</p>
+            </release-item>
+
+            <release-item>
+                <release-item-contributor-list>
+                    <release-item-contributor id="david.steele"/>
+                </release-item-contributor-list>
+
+                <p>Fix infinite loop in <code>protocolServerProcess()</code> on error.</p>
             </release-item>
 
             <release-item>

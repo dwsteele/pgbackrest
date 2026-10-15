@@ -200,9 +200,12 @@
 
         <release-improvement-list>
             <release-item>
-                <github-issue id="2739"/>
-                <github-issue id="2772"/>
-                <github-pull-request id="2793"/>
+                <commit subject="Fetch the libssh2 session from storage in SFTP read/write objects."/>
+                <commit subject="Reconnect SFTP storage after the server drops an idle connection.">
+                    <github-issue id="2739"/>
+                    <github-issue id="2772"/>
+                    <github-pull-request id="2793"/>
+                </commit>
 
                 <release-item-contributor-list>
                     <release-item-ideator id="mustafa0x"/>
@@ -509,7 +512,6 @@
             <release-item>
                 <commit subject="Bring SFTP storageRemove() in line with the other repository storage drivers."/>
                 <commit subject="Error on SFTP remove failures other than missing file."/>
-                <commit subject="Fetch the libssh2 session from storage in SFTP read/write objects."/>
                 <commit subject="Remove the unused sftpHandle field from the SFTP storage driver."/>
                 <commit subject="Simplify error handling in SFTP storageWriteSftpOpen()."/>
                 <commit subject="Throw real SFTP read-open errors instead of masking them as missing."/>

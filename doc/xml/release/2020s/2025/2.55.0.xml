@@ -155,7 +155,10 @@
 
         <release-improvement-list>
             <release-item>
-                <github-pull-request id="2512"/>
+                <commit subject="Refactor protocol helper."/>
+                <commit subject="Allow backup command to operate on remote repositories.">
+                    <github-pull-request id="2512"/>
+                </commit>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
@@ -351,7 +354,6 @@
                 <commit subject="Remove conditional compilation for lz4."/>
                 <commit subject="Move compression driver param list management to a common module."/>
                 <commit subject="Move linkCreate interface function to alphabetical order."/>
-                <commit subject="Refactor protocol helper."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>

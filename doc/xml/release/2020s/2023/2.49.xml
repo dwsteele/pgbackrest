@@ -186,7 +186,6 @@
                 </commit>
                 <commit subject="Adjust timeouts in the common/io/tls test to fix flapping coverage."/>
                 <commit subject="Refactor of pq shim to allow more flexible scripting."/>
-                <commit subject="Add test to show behavior of bundled files truncated during backup."/>
                 <commit subject="Migrate backupFile() tests in command/backup module."/>
 
                 <release-item-contributor-list>
@@ -195,6 +194,16 @@
                 </release-item-contributor-list>
 
                 <p>Improve unit tests.</p>
+            </release-item>
+
+            <release-item>
+                <release-note version="2.50" subject="Skip files truncated during backup when bundling."/>
+
+                <release-item-contributor-list>
+                    <release-item-contributor id="david.steele"/>
+                </release-item-contributor-list>
+
+                <p>Add test to show behavior of bundled files truncated during backup.</p>
             </release-item>
         </release-development-list>
     </release-test-list>
