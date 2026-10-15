@@ -74,7 +74,7 @@ _COMMIT_URL = "{[github-url-base]}/commit/%s"
 _COMMIT_SIZE = 7
 
 # Releases with version >= this have the paragraphs after the first and the links of an item in details
-_DETAIL_VERSION_MIN = "2.60"
+_DETAIL_VERSION_MIN = "2.56"
 
 # A bug fix release is x.y.z with z > 0
 _VERSION_BUG_FIX_EXP = re.compile(r"^[0-9]+\.[0-9]+\.[1-9][0-9]*$")
@@ -119,15 +119,46 @@ def release_history_update(path_repo, path_doc):
     related = exec_status(command) == 0
     head = exec_result(command if related else "git -C %s rev-parse HEAD" % path_repo, suppress_stderr=True)[1].strip()
 
-    if os.path.isfile(path_history) and json.loads(file_read(path_history))[0]["commit"] == head:
-        return related
+    # The tag of each patch release with version >= _DETAIL_VERSION_MIN
+    tag_map = {}
+
+    for tag in exec_result("git -C %s tag --list 'release/*'" % path_repo, suppress_stderr=True)[1].split():
+        version = tag[len("release/") :]
+
+        if _VERSION_BUG_FIX_EXP.match(version) is not None and version >= _DETAIL_VERSION_MIN:
+            tag_map[version] = exec_result("git -C %s rev-parse '%s^{commit}'" % (path_repo, tag), suppress_stderr=True)[1].strip()
+
+    if os.path.isfile(path_history):
+        history = json.loads(file_read(path_history))
+
+        if (
+            isinstance(history, dict)
+            and history["head"][0]["commit"] == head
+            and {version: tag_list[0]["commit"] for version, tag_list in history["tag"].items()} == tag_map
+        ):
+            return related
+
+    # The history of a patch release is the commits of its tag that are not in the history of HEAD
+    history = {
+        "head": _history_read(path_repo, head),
+        "tag": {version: _history_read(path_repo, "%s --not %s" % (commit, head)) for version, commit in tag_map.items()},
+    }
+
+    file_write(path_history, json.dumps(history, indent=4, ensure_ascii=False) + "\n")
+
+    return related
+
+
+####################################################################################################################################
+def _history_read(path_repo, revision):
+    """Read the commits git log lists for a revision, newest first."""
 
     # Records are separated by a byte that cannot appear in a commit message, and so are the fields within a record
     output = exec_result(
-        "git -C %s log --pretty=format:%%H%%x00%%ci%%x00%%s%%x00%%b%%x1e %s" % (path_repo, head), suppress_stderr=True
+        "git -C %s log --pretty=format:%%H%%x00%%ci%%x00%%s%%x00%%b%%x1e %s" % (path_repo, revision), suppress_stderr=True
     )[1]
 
-    history = []
+    result = []
 
     for record in output.split("\x1e"):
         record = record.strip("\n")
@@ -142,11 +173,9 @@ def release_history_update(path_repo, path_doc):
         if body != "" and _RELEASE_SUBJECT_EXP.match(subject) is None:
             entry["body"] = body
 
-        history.append(entry)
+        result.append(entry)
 
-    file_write(path_history, json.dumps(history, indent=4, ensure_ascii=False) + "\n")
-
-    return related
+    return result
 
 
 ####################################################################################################################################
@@ -172,7 +201,9 @@ class _Release:
         self.claim = claim  # Must every commit of a release be claimed by an item?
         self.version_list = [xml_node_attribute(release, "version", True) for release in release_list(root)]
 
-        self.history = deque(json.loads(file_read(os.path.join(path_doc, _FILE_HISTORY))))
+        history = json.loads(file_read(os.path.join(path_doc, _FILE_HISTORY)))
+        self.history = deque(history["head"])
+        self.history_tag = history["tag"]
 
         # The first contributor is the default for every item, which is what keeps the common case out of the xml
         self.contributor_map = {}
@@ -287,24 +318,30 @@ class _Release:
     def _commit_list(self, version, release_idx, release_all):
         """Every commit that belongs to a release, and whether the items of the release are checked against them.
 
-        A bug fix release that is not the most recent is skipped since it was built on a branch of its own, so the commits are not
-        in the history between this release and the one before it."""
+        A bug fix release that is not the most recent was built on a branch of its own, so its commits are read from the history of
+        its tag. It is skipped when there is no history for its tag."""
 
-        if version < "2.01" or (_VERSION_BUG_FIX_EXP.match(version) is not None and release_idx != 0):
+        bug_fix = _VERSION_BUG_FIX_EXP.match(version) is not None and release_idx != 0
+
+        if version < "2.01" or (bug_fix and version not in self.history_tag):
             return [], [], {}, False
 
+        history = deque(self.history_tag[version]) if bug_fix else self.history
         dev = version.endswith("dev")
 
         # The commit that opened development on this release and the commit that closed the release before it, which are the ends of
         # what belongs to this release
-        commit_begin = self._commit_find(self.history, "Begin v%s development\\." % version)
+        commit_begin = self._commit_find(history, "Begin v%s development\\." % version)
         commit_begin = None if commit_begin is None else commit_begin["commit"]
 
-        # Skip back over bug fix releases, which were built on branches of their own
+        # Skip back over bug fix releases, which were built on branches of their own. The tag history of a bug fix release ends
+        # at the release before it.
         last_idx = release_idx + 1
 
-        while last_idx < len(release_all) and _VERSION_BUG_FIX_EXP.match(
-            xml_node_attribute(release_all[last_idx], "version", True)
+        while (
+            not bug_fix
+            and last_idx < len(release_all)
+            and _VERSION_BUG_FIX_EXP.match(xml_node_attribute(release_all[last_idx], "version", True))
         ):
             last_idx += 1
 
@@ -313,21 +350,21 @@ class _Release:
 
         version_last = xml_node_attribute(release_all[last_idx], "version", True)
 
-        commit_last_end = self._commit_find(self.history, "v%s\\: .+" % version_last)
+        commit_last_end = self._commit_find(history, "v%s\\: .+" % version_last)
 
-        if commit_last_end is None:
+        if commit_last_end is None and not bug_fix:
             raise ToolError("release %s must have an end commit" % version_last)
 
         # A release that is out has a commit that closed it, which the release after it has already checked for
-        commit_end = self._commit_find(self.history, "v%s\\: .+" % version)
+        commit_end = self._commit_find(history, "v%s\\: .+" % version)
         commit_end = None if commit_end is None else commit_end["commit"]
 
         commit_list = []
         remaining_list = []
         commit_map = {}
 
-        while len(self.history) > 0 and self.history[0]["commit"] != commit_last_end["commit"]:
-            commit = self.history.popleft()
+        while len(history) > 0 and (commit_last_end is None or history[0]["commit"] != commit_last_end["commit"]):
+            commit = history.popleft()
 
             # The commits that open and close a release are the release rather than part of it
             if commit["commit"] in (commit_begin, commit_end):
@@ -570,8 +607,8 @@ class _Release:
                 if item_node is None:
                     continue
 
-                # Development items are only listed on a development build, since they are of no interest to a reader. When
-                # version >= 2.60 their commits are still claimed.
+                # Development items are only listed on a development build, since they are of no interest to a reader. Their
+                # commits are still claimed when detail is true.
                 if not self.dev and item_type == "release-development-list":
                     if detail and check:
                         for item in xml_node_child_list(item_node, "release-item"):
@@ -606,7 +643,7 @@ class _Release:
                             item, text, version, commit_list, remaining_list, commit_map, item_check
                         )
 
-                    # An item written as more than one paragraph reads as one line in the release notes when version < 2.60
+                    # An item written as more than one paragraph reads as one line in the release notes when detail is false
                     if not detail:
                         for extra in xml_node_child_list(item, "p")[1:]:
                             xml_node_content_add(text, " ")
@@ -627,7 +664,7 @@ class _Release:
 
         self._backpatch_render(release, release_section, version, commit_list, remaining_list, commit_map, check)
 
-        # Every commit of the release is claimed by an item when version >= 2.60 and claim is true
+        # Every commit of the release is claimed by an item when detail and claim are true
         if detail and check and self.claim and len(remaining_list) > 0:
             self._commit_error("release %s has commits that no item claims" % version, remaining_list, commit_map)
 
@@ -674,6 +711,6 @@ class _Release:
 def release_render(root, path_doc, dev, claim=False):
     """Build the release document from the release list.
 
-    When claim is true every commit of a release with version >= 2.60 must be claimed by an item."""
+    When claim is true every commit of a release with version >= _DETAIL_VERSION_MIN must be claimed by an item."""
 
     return _Release(root, path_doc, dev, claim).render_document()
