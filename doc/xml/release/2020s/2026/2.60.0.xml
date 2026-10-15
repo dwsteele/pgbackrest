@@ -224,7 +224,7 @@
                     <release-item-reviewer id="douglas.j.hunley"/>
                 </release-item-contributor-list>
 
-                <p>Derive the cipher key with <id>SHA-256</id> for repository format 6</p>
+                <p>Derive the cipher key with <id>SHA-256</id> for repository format 6.</p>
             </release-item>
 
             <release-item>
