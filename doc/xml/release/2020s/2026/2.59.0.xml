@@ -459,8 +459,6 @@
                 </release-item-contributor-list>
 
                 <p><proper>C11</proper> is now the minimum C standard.</p>
-
-                <p>Building requires a compiler that supports <proper>C11</proper>.</p>
             </release-item>
         </release-improvement-list>
 
@@ -594,7 +592,9 @@
                 <commit subject="Move static build defines to build.h."/>
                 <commit subject="Add meson check for __builtin_types_compatible_p()."/>
                 <commit subject="Update always_inline to __always_inline__."/>
-                <commit subject="Remove unused backtrace-supported.h include."/>
+                <commit subject="Remove unused backtrace-supported.h include.">
+                    <github-pull-request id="2755"/>
+                </commit>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>

@@ -88,8 +88,6 @@
                 </release-item-contributor-list>
 
                 <p>Tag <id>pgbackrest</id> build target in meson as installable.</p>
-
-                <p>The <file>pgbackrest</file> binary is now installed by <id>meson install</id>.</p>
             </release-item>
         </release-improvement-list>
 
@@ -160,8 +158,6 @@
                 </release-item-contributor-list>
 
                 <p>Update <cmd>start</cmd>/<cmd>stop</cmd> documentation to reflect actual functionality.</p>
-
-                <p>The documentation for <cmd>start</cmd> and <cmd>stop</cmd> did not match their behavior, which has changed over time.</p>
             </release-item>
         </release-improvement-list>
 

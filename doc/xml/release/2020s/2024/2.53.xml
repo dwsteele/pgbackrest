@@ -123,8 +123,6 @@
                 </release-item-contributor-list>
 
                 <p>Require <proper>OpenSSL</proper> &gt;= 1.1.1.</p>
-
-                <p><proper>OpenSSL</proper> versions before 1.1.1 are no longer supported.</p>
             </release-item>
         </release-improvement-list>
 

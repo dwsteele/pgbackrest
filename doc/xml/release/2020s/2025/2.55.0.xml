@@ -76,6 +76,7 @@
             </release-item>
 
             <release-item>
+                <github-issue id="2419"/>
                 <github-pull-request id="2544"/>
 
                 <release-item-contributor-list>
@@ -405,6 +406,8 @@
             </release-item>
 
             <release-item>
+                <github-pull-request id="2493"/>
+
                 <release-item-contributor-list>
                     <release-item-contributor id="kian-meng.ang"/>
                 </release-item-contributor-list>
@@ -459,6 +462,7 @@
             </release-item>
 
             <release-item>
+                <github-issue id="2540"/>
                 <github-pull-request id="2541"/>
 
                 <release-item-contributor-list>
@@ -467,8 +471,6 @@
                 </release-item-contributor-list>
 
                 <p>Clarify requirement for local/remote <backrest/> versions to match.</p>
-
-                <p>The version of <backrest/> must be the same on the local and remote hosts.</p>
             </release-item>
 
             <release-item>
@@ -510,8 +512,6 @@
                 </release-item-contributor-list>
 
                 <p>Clarify behavior of <setting>--repo-retention-full-type</setting>.</p>
-
-                <p>The behavior of <br-option>repo-retention-full-type=count</br-option> is now documented explicitly.</p>
             </release-item>
 
             <release-item>
@@ -541,7 +541,7 @@
             </release-item>
 
             <release-item>
-                <github-issue id="2600"/>
+                <github-pull-request id="2600"/>
 
                 <release-item-contributor-list>
                     <release-item-ideator id="martin.marques"/>

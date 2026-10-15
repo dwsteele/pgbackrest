@@ -43,8 +43,6 @@
                 </release-item-contributor-list>
 
                 <p>Fix progress logging when file size changes during backup.</p>
-
-                <p>When a file changed size during a backup the progress percentage in the log was not accurate.</p>
             </release-item>
         </release-bug-list>
 

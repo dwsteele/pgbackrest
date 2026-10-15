@@ -118,6 +118,8 @@
 
             <release-item>
                 <commit subject="Add context to block map read errors during backup.">
+                    <github-issue id="2489"/>
+                    <github-issue id="2829"/>
                     <github-pull-request id="2830"/>
                 </commit>
                 <commit subject="Fix option name in block incremental map errors."/>
