@@ -21,8 +21,7 @@
                     <release-item-ideator id="anderson.a.mallmann"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="cynthia.shang"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="marco.montagna"/>
+                    <release-item-tester id="marco.montagna"/>
                 </release-item-contributor-list>
 
                 <p>Detect errors in <proper>S3</proper> multi-part upload finalize.</p>

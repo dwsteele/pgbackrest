@@ -19,8 +19,7 @@
                     <release-item-contributor id="thibault.vincent"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="david.christensen"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="antoine.millet"/>
+                    <release-item-tester id="antoine.millet"/>
                 </release-item-contributor-list>
 
                 <p>Fix <postgres/> query performance for large datasets.</p>

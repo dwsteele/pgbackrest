@@ -27,8 +27,7 @@
                     <release-item-ideator id="geir.raness"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="reid.thompson"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="geir.raness"/>
+                    <release-item-tester id="geir.raness"/>
                 </release-item-contributor-list>
 
                 <p>Error on all lock failures except another process holding the lock.</p>

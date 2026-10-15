@@ -10,8 +10,7 @@
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="cynthia.shang"/>
                     <release-item-reviewer id="stefan.fercot"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="floris.van.nee"/>
+                    <release-item-tester id="floris.van.nee"/>
                 </release-item-contributor-list>
 
                 <p>Fix issues with leftover spool files from a prior <cmd>restore</cmd>.</p>
@@ -27,8 +26,7 @@
                     <release-item-ideator id="avinash.vallarapu"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="cynthia.shang"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="avinash.vallarapu"/>
+                    <release-item-tester id="avinash.vallarapu"/>
                 </release-item-contributor-list>
 
                 <p>Fix issue when checking links for large numbers of tablespaces.</p>
@@ -90,8 +88,7 @@
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="jan.wieck"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="daniel.farina"/>
+                    <release-item-tester id="daniel.farina"/>
                 </release-item-contributor-list>
 
                 <p>Add automatic <proper>GCS</proper> authentication for <proper>GCE</proper> instances.</p>

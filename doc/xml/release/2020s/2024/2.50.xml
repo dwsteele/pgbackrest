@@ -11,8 +11,7 @@
                     <release-item-ideator id="brent.graveland"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="stephen.frost"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="brent.graveland"/>
+                    <release-item-tester id="brent.graveland"/>
                 </release-item-contributor-list>
 
                 <p>Fix short read in block incremental restore.</p>

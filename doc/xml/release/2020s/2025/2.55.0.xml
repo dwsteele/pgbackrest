@@ -9,8 +9,7 @@
                     <release-item-ideator id="aleksander.lukasz"/>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="david.christensen"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="aleksander.lukasz"/>
+                    <release-item-tester id="aleksander.lukasz"/>
                 </release-item-contributor-list>
 
                 <p>Fix block incremental restore issue on non-default repository.</p>
@@ -129,8 +128,7 @@
                 <release-item-contributor-list>
                     <release-item-ideator id="chris.bandy"/>
                     <release-item-contributor id="david.steele"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="chris.bandy"/>
+                    <release-item-tester id="chris.bandy"/>
                 </release-item-contributor-list>
 
                 <p>Allow connections to <postgres/> on abstract domain sockets.</p>

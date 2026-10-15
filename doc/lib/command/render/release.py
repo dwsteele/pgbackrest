@@ -60,6 +60,7 @@ _ITEM_LIST = (
 _CONTRIBUTOR_LIST = (
     ("release-item-contributor", "Fixed", "Contributed"),
     ("release-item-reviewer", "Reviewed", "Reviewed"),
+    ("release-item-tester", "Tested", "Tested"),
     ("release-item-ideator", "Reported", "Suggested"),
 )
 

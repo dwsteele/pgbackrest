@@ -50,8 +50,7 @@
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="stephen.frost"/>
                     <release-item-reviewer id="reid.thompson"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="andrew.lecuyer"/>
+                    <release-item-tester id="andrew.lecuyer"/>
                 </release-item-contributor-list>
 
                 <p>Add <proper>TLS</proper> server.</p>

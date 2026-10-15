@@ -81,9 +81,8 @@
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="james.callahan"/>
                     <release-item-reviewer id="reid.thompson"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="benjamin.blattberg"/>
                     <release-item-reviewer id="andrew.lecuyer"/>
+                    <release-item-tester id="benjamin.blattberg"/>
                 </release-item-contributor-list>
 
                 <p>Add <id>WebIdentity</id> authentication for <proper>AWS S3</proper>.</p>
@@ -188,8 +187,7 @@
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
                     <release-item-reviewer id="stephen.frost"/>
-                    <!-- Actually tester, but we don't have a tag for that yet -->
-                    <release-item-reviewer id="andrew.lecuyer"/>
+                    <release-item-tester id="andrew.lecuyer"/>
                 </release-item-contributor-list>
 
                 <p>Add <proper>TLS</proper> server.</p>

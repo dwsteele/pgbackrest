@@ -67,6 +67,7 @@ RELEASE_LIST = """
                     <release-item>
                         <release-item-contributor-list>
                             <release-item-ideator id="other.person"/>
+                            <release-item-tester id="third.person"/>
                         </release-item-contributor-list>
 
                         <p>Fix a bug.</p>
@@ -368,7 +369,7 @@ def test_release_render_item():
     item = xml_node_child(xml_node_child(release, "list"), "list-item")
 
     # The default contributor is dropped where they are the only one, so their name is not on every line of the page
-    assert_equal(xml_node_content(item), "Fix a bug. (Reported by Other Person.)")
+    assert_equal(xml_node_content(item), "Fix a bug. (Tested by Third Person. Reported by Other Person.)")
 
     # A release of the documentation says so, and an item written as more than one paragraph reads as one line
     supported = xml_node_child_list(root, "section")[3]
@@ -486,7 +487,7 @@ def test_release_render_contributor():
         _render(
             _doc(
                 RELEASE_LIST.replace(
-                    'id="other.person"/>\n                        </release-item-contributor-list>\n\n'
+                    'id="third.person"/>\n                        </release-item-contributor-list>\n\n'
                     "                        <p>Fix a bug.",
                     'id="nobody"/>\n                        </release-item-contributor-list>\n\n'
                     "                        <p>Fix a bug.",
