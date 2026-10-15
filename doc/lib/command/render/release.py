@@ -74,7 +74,7 @@ _COMMIT_URL = "{[github-url-base]}/commit/%s"
 _COMMIT_SIZE = 7
 
 # Releases with version >= this have the paragraphs after the first and the links of an item in details
-_DETAIL_VERSION_MIN = "2.54"
+_DETAIL_VERSION_MIN = "2.53"
 
 # A bug fix release is x.y.z with z > 0
 _VERSION_BUG_FIX_EXP = re.compile(r"^[0-9]+\.[0-9]+\.[1-9][0-9]*$")

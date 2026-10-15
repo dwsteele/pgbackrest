@@ -791,15 +791,6 @@
                 <commit subject="Run integration tests on Alpine 3.21 (musl libc)."/>
                 <commit subject="Update FreeBSD CI versions."/>
                 <commit subject="Add RHEL 9 and 10 tests and switch RHEL 8 to native PostgreSQL."/>
-
-                <release-item-contributor-list>
-                    <release-item-contributor id="david.steele"/>
-                </release-item-contributor-list>
-
-                <p>Update the CI platforms and versions.</p>
-            </release-item>
-
-            <release-item>
                 <commit subject="Remove package build testing."/>
                 <commit subject="Allow FreeBSD tests to continue running even if one fails."/>
                 <commit subject="Migrate Cirrus CI tests to Github Actions."/>
@@ -821,7 +812,7 @@
                     <release-item-contributor id="david.steele"/>
                 </release-item-contributor-list>
 
-                <p>Improve the CI workflows.</p>
+                <p>CI updates.</p>
             </release-item>
 
             <release-item>
