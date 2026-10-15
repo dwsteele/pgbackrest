@@ -456,6 +456,7 @@
                 <commit subject="Put the bar of a section2 header under the title rather than beside it."/>
                 <commit subject="Center the page title beside the logo and left align it when wrapped."/>
                 <commit subject="Add expandable details to the release notes."/>
+                <commit subject="Check that the release notes claim every release commit."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
