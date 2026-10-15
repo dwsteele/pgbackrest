@@ -936,6 +936,12 @@ def test_release_render_bug_fix():
 
     assert_in("unable to find commit or no subject match for release 2.60.0 item 'Improve a thing.'", str(raised.exception))
 
+    # Development on 2.60.0 may have been opened as 2.60
+    _render(
+        _doc(DETAIL_RELEASE_LIST),
+        history=[("d4", "Begin v2.60 development.") if commit == "d4" else (commit, subject) for commit, subject in DETAIL_HISTORY],
+    )
+
     # Every commit of 2.60.0 is claimed by an item
     with assert_raises(ToolError) as raised:
         _render(_doc(DETAIL_RELEASE_LIST), history=[("d9", "Do something unclaimed.")] + DETAIL_HISTORY)

@@ -74,7 +74,7 @@ _COMMIT_URL = "{[github-url-base]}/commit/%s"
 _COMMIT_SIZE = 7
 
 # Releases with version >= this have the paragraphs after the first and the links of an item in details
-_DETAIL_VERSION_MIN = "2.55"
+_DETAIL_VERSION_MIN = "2.54"
 
 # A bug fix release is x.y.z with z > 0
 _VERSION_BUG_FIX_EXP = re.compile(r"^[0-9]+\.[0-9]+\.[1-9][0-9]*$")
@@ -332,6 +332,11 @@ class _Release:
         # The commit that opened development on this release and the commit that closed the release before it, which are the ends of
         # what belongs to this release
         commit_begin = self._commit_find(history, "Begin v%s development\\." % version)
+
+        # Development on an x.y.0 release may have been opened as x.y
+        if commit_begin is None and version.endswith(".0"):
+            commit_begin = self._commit_find(history, "Begin v%s development\\." % version[:-2])
+
         commit_begin = None if commit_begin is None else commit_begin["commit"]
 
         # Skip back over bug fix releases, which were built on branches of their own. The tag history of a bug fix release ends
