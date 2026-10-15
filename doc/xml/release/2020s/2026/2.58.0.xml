@@ -356,7 +356,7 @@
                     <release-item-contributor id="david.steele"/>
                 </release-item-contributor-list>
 
-                <p>Update the CI.</p>
+                <p>CI updates.</p>
             </release-item>
         </release-development-list>
     </release-test-list>
