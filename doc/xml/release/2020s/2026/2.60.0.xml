@@ -469,6 +469,7 @@
                 <commit subject="Center the page title beside the logo and left align it when wrapped."/>
                 <commit subject="Add expandable details to the release notes."/>
                 <commit subject="Add release note details for v2.33 through v2.60."/>
+                <commit subject="Adjust keyword styling in light mode."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
