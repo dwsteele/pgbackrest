@@ -93,6 +93,8 @@
 
         <release-feature-list>
             <release-item>
+                <commit subject="PostgreSQL 19beta4 support."/>
+
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
                 </release-item-contributor-list>

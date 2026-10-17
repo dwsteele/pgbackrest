@@ -429,6 +429,16 @@
 
                 <p>Add a line length linter and fix formatting issues.</p>
             </release-item>
+
+            <release-item>
+                <commit subject="Fix incorrect file reference in comment."/>
+
+                <release-item-contributor-list>
+                    <release-item-contributor id="david.steele"/>
+                </release-item-contributor-list>
+
+                <p>Fix typos.</p>
+            </release-item>
         </release-development-list>
     </release-core-list>
 
@@ -458,6 +468,7 @@
                 <commit subject="Put the bar of a section2 header under the title rather than beside it."/>
                 <commit subject="Center the page title beside the logo and left align it when wrapped."/>
                 <commit subject="Add expandable details to the release notes."/>
+                <commit subject="Add release note details for v2.33 through v2.60."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
@@ -667,6 +678,7 @@
                 <commit subject="Run the code format check on Ubuntu 24.04."/>
                 <commit subject="Reduce RHEL container and dist test exposure to slow package mirrors."/>
                 <commit subject="Work around a slow apt mirror on the runner."/>
+                <commit subject="Bump CI container for PostgreSQL 19rc1."/>
 
                 <release-item-contributor-list>
                     <release-item-contributor id="david.steele"/>
