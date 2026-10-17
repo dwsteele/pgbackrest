@@ -947,6 +947,25 @@ def test_release_render_release_note():
         + '<a href="{[github-url-base]}/commit/m2"><span class="id">m2</span></a></span></div></details>',
     )
 
+    # A release in development is named by the version it will have when it is released
+    root = _render(
+        _doc(NOTE_RELEASE_LIST.replace('date="2026-12-01" version="2.62.0"', 'date="XXXX-XX-XX" version="2.62.0dev"')),
+        dev=True,
+        history=NOTE_HISTORY[1:],
+    )
+    current = xml_node_child_list(xml_node_child_list(root, "section")[2], "section")[0]
+
+    assert_equal(
+        _item_html(current)[2],
+        "Polish the thing."
+        + DETAIL_HTML
+        + '\n<div class="list-detail-ref">'
+        + '<span class="list-detail-ref-item">Development for <q>Finish the thing</q> in '
+        + '<a href="#2.62.0dev">v2.62.0dev</a>:</span></div>'
+        + '\n<div class="list-detail-ref"><span class="list-detail-ref-item">Commit '
+        + '<a href="{[github-url-base]}/commit/n2"><span class="id">n2</span></a></span></div></details>',
+    )
+
     # The release note must be in a later release
     for version in ("2.60.0", "2.70.0"):
         with assert_raises(ToolError) as raised:

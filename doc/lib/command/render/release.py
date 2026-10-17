@@ -570,6 +570,10 @@ class _Release:
         note_version = xml_node_attribute(release_note, "version", True)
         note_subject = xml_node_attribute(release_note, "subject", True)
 
+        # A release in development is named by the version it will have when it is released
+        if note_version not in self.version_list and note_version + "dev" in self.version_list:
+            note_version += "dev"
+
         if note_version not in self.version_list or self.version_list.index(note_version) >= self.version_list.index(version):
             raise ToolError("release %s release note version %s is not a later release" % (version, note_version))
 
