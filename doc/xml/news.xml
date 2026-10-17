@@ -36,6 +36,7 @@
             <list>
                 <list-item>The restore command will now error and stop if any restored file contains an invalid page checksum, which leaves the cluster incomplete and unable to start, so the restore must be rerun. The expire command will now refuse to expire if the oldest retained backup would contain checksum errors, which also prevents archive from being expired in that repository. Set checksum-page-error=n to warn instead of erroring.</list-item>
                 <list-item>Building from a git checkout requires PyYAML instead of libyaml. The distribution tarball includes the generated code and requires neither.</list-item>
+                <list-item><postgres/> 19rc1 is supported by this release. No code changes were required so v2.59.3 supports it as well.</list-item>
             </list>
         </section>
 
