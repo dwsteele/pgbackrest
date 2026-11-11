@@ -89,9 +89,11 @@
             <title>Install development tools</title>
 
             <execute user="root" pre="y" show="n">
-                <exe-cmd>
-                    apt-get update
-                </exe-cmd>
+                <exe-cmd>sh /root/apt-update.sh</exe-cmd>
+            </execute>
+
+            <execute user="root" skip="y">
+                <exe-cmd>apt-get update</exe-cmd>
             </execute>
 
             <execute user="root" pre="y">
