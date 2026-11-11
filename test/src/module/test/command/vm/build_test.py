@@ -8,6 +8,7 @@ Docker is not run here. What matters is the script that goes into an image and t
 captured and checked instead."""
 
 ####################################################################################################################################
+import base64
 import os
 import re
 import tempfile
@@ -15,6 +16,7 @@ from unittest.mock import patch
 
 from harness.test import *
 
+import command.vm.build as build_module
 from command.vm.build import *
 from common.error import *
 from common.log import *
@@ -35,7 +37,8 @@ SCRIPT_BASE_U24 = """ && \\
 
 # Install packages
     export DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive && \\
-    apt-get update && \\
+    echo '[APT-UPDATE]' | base64 -d > /root/apt-update.sh && \\
+    sh /root/apt-update.sh && \\
     apt-get install -y --no-install-recommends openssh-server sudo gcc make git \\
         ca-certificates libssl-dev tzdata zlib1g-dev libxml2-dev pkg-config \\
         libbz2-dev bzip2 liblz4-dev liblz4-tool gnupg lsb-release ccache meson \\
@@ -217,7 +220,12 @@ def test_container_script():
     with tempfile.TemporaryDirectory() as path:
         _repo_write(path)
 
-        assert_equal(script_base("u24", VM_ARCH_X86_64), SCRIPT_BASE_U24)
+        # The apt update script is written from base64
+        script = script_base("u24", VM_ARCH_X86_64)
+        apt_update = re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d", script).group(1)
+
+        assert_equal(base64.b64decode(apt_update).decode(), file_read(build_module._PATH_APT_UPDATE))
+        assert_equal(script.replace(apt_update, "[APT-UPDATE]"), SCRIPT_BASE_U24)
         assert_equal(_collapse(script_test("u24", path)), _expect(SCRIPT_TEST_U24))
 
         # The script is wrapped in a Dockerfile that runs it as a single layer

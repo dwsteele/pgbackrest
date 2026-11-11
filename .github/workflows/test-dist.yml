@@ -146,29 +146,25 @@ jobs:
           name: dist-tarball
           path: dist
 
+      # The apt update script is the only file used from the repository
+      - name: Checkout Apt Update Script
+        uses: actions/checkout@v6
+        with:
+          path: pgbackrest
+          sparse-checkout: doc/resource/script
+
       # Install the packages a packager would install, extract the tarball, build it, and run the smoke test, which finds the
       # native PostgreSQL and drives a full backup/restore/verify cycle against it. The package set is chosen by the package manager
       # present so a new version of a distribution needs only a new image in the matrix above. meson compile is used rather than
       # ninja because the ninja backend is invoked differently across distributions (e.g. ninja-build on RHEL); meson selects it.
       - name: Build and Smoke Test
         run: |
-          docker run --rm -i -v ${GITHUB_WORKSPACE?}/dist:/dist:ro ${{ matrix.image }} /bin/sh -eux <<'SCRIPT'
+          docker run --rm -i -v ${GITHUB_WORKSPACE?}/dist:/dist:ro \
+            -v ${GITHUB_WORKSPACE?}/pgbackrest/doc/resource/script:/script:ro ${{ matrix.image }} /bin/sh -eux <<'SCRIPT'
           # Install the build environment and the native PostgreSQL, choosing the package set for the package manager present
           if command -v apt-get >/dev/null; then
               export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
-
-              # When the update fails, replace archive.ubuntu.com and security.ubuntu.com with mirrors.edge.kernel.org, a full
-              # mirror of the Ubuntu archive, and update again. apt-get update exits with 0 when an index fails to download unless
-              # --error-on=any is set. The image has no CA certificates for https.
-              if ! apt-get update --error-on=any; then
-                  for file in $(grep -lE 'https?://(archive|security)\.ubuntu\.com/ubuntu' /etc/apt/sources.list \
-                      /etc/apt/sources.list.d/* 2>/dev/null || true); do
-                      sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://mirrors.edge.kernel.org/ubuntu#g' ${file}
-                  done
-
-                  apt-get update --error-on=any
-              fi
-
+              sh /script/apt-update.sh
               apt-get install -y --no-install-recommends meson gcc pkg-config libpq-dev libssl-dev libxml2-dev \
                   liblz4-dev libzstd-dev libbz2-dev zlib1g-dev postgresql
           elif command -v dnf >/dev/null; then

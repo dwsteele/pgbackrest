@@ -321,9 +321,12 @@
         # Non-interactive install
         ENV DEBIAN_FRONTEND=noninteractive
 
+        # Copy the apt update script
+        COPY resource/script/apt-update.sh /root/apt-update.sh
+
         # Install base packages (suppress dpkg interactive output)
         RUN rm /etc/apt/apt.conf.d/70debconf &amp;&amp; \
-            apt-get update &amp;&amp; \
+            sh /root/apt-update.sh &amp;&amp; \
             apt-get install -y --no-install-recommends sudo ssh curl vim gnupg lsb-release iputils-ping ca-certificates \
                     tzdata locales libssh2-1-dev unzip git python3-yaml 2>&amp;1
 

@@ -14,6 +14,7 @@ The containers are defined here so the registry they are tagged in and removing 
 run needs to know about them."""
 
 ####################################################################################################################################
+import base64
 import hashlib
 import os
 import re
@@ -28,6 +29,12 @@ from common.yaml import yaml_load, yaml_map_dict
 
 # Separator between sections of the generated script. Every section is a continuation of a single RUN so the image has one layer.
 _SECTION = " && \\\n\n"
+
+# Apt update script with a mirror fallback, read from the repository this module is part of
+_PATH_APT_UPDATE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
+    "doc/resource/script/apt-update.sh",
+)
 
 # The pgbackrest namespace is the canonical cache that every environment pulls from and only pgbackrest CI can push to. A fork
 # pushes to and pulls from its own namespace instead.
@@ -239,9 +246,13 @@ def _script_package(vm):
         else:
             result += " %s %s-pyyaml && \\\n" % (vm.python, vm.python) + "    alternatives --set python3 /usr/bin/%s" % vm.python
     elif vm.os_base == VM_OS_BASE_DEBIAN:
+        # Write the apt update script from base64. The script contains quotes and backslashes.
+        apt_update = base64.b64encode(file_read(_PATH_APT_UPDATE).encode()).decode()
+
         result += (
             "    export DEBCONF_NONINTERACTIVE_SEEN=true DEBIAN_FRONTEND=noninteractive && \\\n"
-            + "    apt-get update && \\\n"
+            + "    echo '%s' | base64 -d > /root/apt-update.sh && \\\n" % apt_update
+            + "    sh /root/apt-update.sh && \\\n"
             + "    apt-get install -y --no-install-recommends openssh-server sudo gcc make git \\\n"
             + "        ca-certificates libssl-dev tzdata zlib1g-dev libxml2-dev pkg-config \\\n"
             + "        libbz2-dev bzip2 liblz4-dev liblz4-tool gnupg lsb-release ccache meson \\\n"

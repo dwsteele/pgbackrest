@@ -32,8 +32,11 @@
         # Suppress dpkg interactive output
             rm /etc/apt/apt.conf.d/70debconf
 
+        # Copy the apt update script
+        COPY resource/script/apt-update.sh /root/apt-update.sh
+
         # Install base packages
-        RUN apt-get update &amp;&amp; \
+        RUN sh /root/apt-update.sh &amp;&amp; \
             apt-get install -y sudo ssh curl vim 2>&amp;1
 
         # Add test user with sudo privileges. Remove any user and group the image ships at that id first, e.g. Ubuntu 24.04 ships
