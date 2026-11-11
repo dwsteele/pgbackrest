@@ -43,10 +43,25 @@ jobs:
           pgOldest=$(echo "${pgAvail}" | head -1)
           pgNewest=$(echo "${pgAvail}" | tail -1)
 
-          # pkg exits with 4 when everything is already installed
-          sudo pkg install developer/build-essential developer/pkg-config developer/versioning/git library/python-3/meson-313 \
-            library/python-3/pyyaml-313 ooce/developer/ninja library/libxml2 library/zlib library/security/openssl-3 \
-            compress/bzip2 compress/lz4 compress/zstd ${pgOldest} ${pgNewest} || test $? -eq 4
+          # pkg does not retry E_SSL_CONNECT_ERROR. Retry the install up to five times. pkg exits with 4 when everything is already
+          # installed.
+          for attempt in 1 2 3 4 5; do
+              result=0
+
+              sudo pkg install developer/build-essential developer/pkg-config developer/versioning/git library/python-3/meson-313 \
+                library/python-3/pyyaml-313 ooce/developer/ninja library/libxml2 library/zlib library/security/openssl-3 \
+                compress/bzip2 compress/lz4 compress/zstd ${pgOldest} ${pgNewest} || result=$?
+
+              if [ ${result} -eq 0 ] || [ ${result} -eq 4 ]; then
+                  break
+              fi
+
+              if [ ${attempt} -eq 5 ]; then
+                  exit ${result}
+              fi
+
+              echo "pkg install attempt ${attempt} of 5 failed with ${result}"
+          done
 
           # meson and ninja are not in the default path. /usr/bin/pkg-config is 32-bit and searches the 32-bit libraries, so the
           # 64-bit pkgconfig directories are set explicitly, including the one for the libpq of the newest PostgreSQL.
