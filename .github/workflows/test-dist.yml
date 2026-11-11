@@ -156,7 +156,19 @@ jobs:
           # Install the build environment and the native PostgreSQL, choosing the package set for the package manager present
           if command -v apt-get >/dev/null; then
               export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
-              apt-get update
+
+              # When the update fails, replace archive.ubuntu.com and security.ubuntu.com with mirrors.edge.kernel.org, a full
+              # mirror of the Ubuntu archive, and update again. apt-get update exits with 0 when an index fails to download unless
+              # --error-on=any is set. The image has no CA certificates for https.
+              if ! apt-get update --error-on=any; then
+                  for file in $(grep -lE 'https?://(archive|security)\.ubuntu\.com/ubuntu' /etc/apt/sources.list \
+                      /etc/apt/sources.list.d/* 2>/dev/null || true); do
+                      sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#http://mirrors.edge.kernel.org/ubuntu#g' ${file}
+                  done
+
+                  apt-get update --error-on=any
+              fi
+
               apt-get install -y --no-install-recommends meson gcc pkg-config libpq-dev libssl-dev libxml2-dev \
                   liblz4-dev libzstd-dev libbz2-dev zlib1g-dev postgresql
           elif command -v dnf >/dev/null; then

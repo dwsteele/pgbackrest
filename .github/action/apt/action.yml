@@ -2,7 +2,8 @@ name: apt
 description: >-
   Steer apt away from a runner mirror that has gone slow and bound how long it is allowed to wait, then refresh the package
   index. The settings are written to /etc/apt/apt.conf.d so they also apply to the apt-get install the caller runs afterward,
-  which downloads from the same mirrors. Remove this action once the runner image bounds acquisition on its own.
+  which downloads from the same mirrors. Remove this action once the runner image bounds acquisition on its own. When
+  archive.ubuntu.com fails, use mirrors.edge.kernel.org in its place.
 
 runs:
   using: composite
@@ -33,15 +34,35 @@ runs:
         printf 'Acquire::Retries "1";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\nAcquire::Languages "none";\n' |
             sudo tee /etc/apt/apt.conf.d/99-pgbackrest > /dev/null
 
+        # Replace archive.ubuntu.com and security.ubuntu.com in the apt sources with mirrors.edge.kernel.org, a full mirror of the
+        # Ubuntu archive
+        mirrorUse() {
+            for file in $(grep -lE 'https?://(archive|security)\.ubuntu\.com/ubuntu' /etc/apt/apt-mirrors.txt \
+                /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null || true); do
+                sudo sed -i -E 's#https?://(archive|security)\.ubuntu\.com/ubuntu#https://mirrors.edge.kernel.org/ubuntu#g' ${file}
+                echo "${file} now uses mirrors.edge.kernel.org"
+            done
+        }
+
+        # Use the mirror when archive.ubuntu.com does not serve the release file for this release
+        codename=$(. /etc/os-release && echo ${VERSION_CODENAME?})
+
+        if ! curl -sfI --max-time 20 -o /dev/null https://archive.ubuntu.com/ubuntu/dists/${codename?}/InRelease; then
+            echo "archive.ubuntu.com did not respond"
+            mirrorUse
+        fi
+
         # Refresh the index under a total bound, which is the part apt has no setting for. A mirror delivering a few bytes per
         # second resets apt's inactivity timeout indefinitely, so without this the job hangs until the workflow timeout rather
-        # than failing. A fresh attempt may be served by a different backend, so retry before giving up.
+        # than failing. A fresh attempt may be served by a different backend, so retry before giving up. apt-get update exits
+        # with 0 when an index fails to download unless --error-on=any is set. Use the mirror after a failed attempt.
         for attempt in 1 2 3; do
-            if sudo timeout 120 apt-get update; then
+            if sudo timeout 120 apt-get update --error-on=any; then
                 exit 0
             fi
 
             echo "apt-get update attempt ${attempt} of 3 timed out or failed"
+            mirrorUse
         done
 
         exit 1
