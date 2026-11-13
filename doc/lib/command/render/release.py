@@ -30,7 +30,7 @@ from common.xml import (
     xml_node_text_add,
 )
 from command.render.render import SECTION_ANCHOR, SECTION_ANCHOR_NO_INHERIT, DocRender
-from config.project import PROJECT_NAME
+from config.project import PROJECT_NAME, project_version_part
 
 # Where the git history is cached
 _FILE_HISTORY = "resource/git-history.cache"
@@ -114,8 +114,9 @@ def release_history_update(path_repo, path_doc):
     """Write the git history the release notes are checked against when the newest commit in it has changed.
 
     When the local or the upstream integration branch is related to HEAD the history ends at the newest commit of HEAD that is also
-    in that branch. The commits of a release branch are left out this way. Otherwise the history ends at HEAD. The result is true
-    when the local integration branch is related to HEAD. The body of a commit that closed a release is left out."""
+    in that branch. The commits of a release branch are left out this way. Otherwise the history ends at HEAD. The history also ends
+    at HEAD when PROJECT_VERSION_PATCH != 0, which is a patch release built on a release branch. The result is true when the local
+    integration branch is related to HEAD. The body of a commit that closed a release is left out."""
 
     path_history = os.path.join(path_doc, _FILE_HISTORY)
     head = None
@@ -129,7 +130,7 @@ def release_history_update(path_repo, path_doc):
             related = branch == _HISTORY_BRANCH_LOCAL
             break
 
-    if head is None:
+    if head is None or project_version_part(path_repo)["PATCH"] != "0":
         head = exec_result("git -C %s rev-parse HEAD" % path_repo, suppress_stderr=True)[1].strip()
 
     # The tag of each patch release with version >= _DETAIL_VERSION_MIN
