@@ -1302,14 +1302,16 @@ def test_release_history_update():
         assert_false(release_history_update(path, path_doc))
         assert_equal(json.loads(file_read(path_history))["head"][0]["subject"], "Fix a bug.")
 
-        # With PROJECT_VERSION_PATCH != 0 the history ends at HEAD
+        # With PROJECT_VERSION_PATCH != 0 the integration branches are not tried and the history ends at HEAD
         file_write(os.path.join(path, "src/version.h"), VERSION_H % 1)
+        exec_one("git -C %s update-ref refs/heads/integration HEAD~1" % path)
 
         assert_false(release_history_update(path, path_doc))
         assert_equal(json.loads(file_read(path_history))["head"][0]["subject"], "RELEASE: Add release notes.")
 
-        # The result is true when the local integration branch is related to HEAD
-        exec_one("git -C %s update-ref refs/heads/integration HEAD~1" % path)
+        # With PROJECT_VERSION_PATCH != 0 and an integration-x.y.z-ci branch related to HEAD the history ends at the newest commit
+        # of HEAD that is also in that branch, and the result is true
+        exec_one("git -C %s branch integration-2.60.1-ci HEAD~1" % path)
 
         assert_true(release_history_update(path, path_doc))
-        assert_equal(json.loads(file_read(path_history))["head"][0]["subject"], "RELEASE: Add release notes.")
+        assert_equal(json.loads(file_read(path_history))["head"][0]["subject"], "Fix a bug.")
