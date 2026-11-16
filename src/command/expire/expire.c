@@ -876,8 +876,8 @@ removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFul
                             {
                                 const String *const historyFile = strLstGet(historyFilesList, historyFileIdx);
 
-                                // Expire history files older than the oldest retained timeline
-                                if (strCmp(strSubN(historyFile, 0, 8), backupArchiveStartTimeline) < 0)
+                                // Expire history files at or before the timeline of the archive retention backup
+                                if (strCmp(strSubN(historyFile, 0, 8), backupArchiveStartTimeline) <= 0)
                                 {
                                     // Execute the real expiration and deletion only if the dry-run mode is disabled
                                     if (!cfgOptionValid(cfgOptDryRun) || !cfgOptionBool(cfgOptDryRun))
