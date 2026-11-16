@@ -478,7 +478,7 @@ infoBackupCipherSpecAdd(InfoBackup *const this, const String *const backupLabel,
     ASSERT(strSize(backupLabel) == DATE_TIME_LEN + 1);
     ASSERT(cipherSpec != NULL);
 
-    infoCipherSpecAdd(infoPgInfo(infoBackupPg(this)), backupLabel, cipherSpec);
+    infoCipherSpecAdd(infoPgInfo(infoBackupPg(this)), backupLabel, cipherSpec, 0);
     this->pub.updated = true;
 
     FUNCTION_LOG_RETURN_VOID();

@@ -59,8 +59,9 @@ static_assert(REPOSITORY_FORMAT_MAX < 1000, "repository format must fit in the h
 static_assert(CIPHER_BLOCK_FORMAT_SIZE == 3, "format digits must match the digits the header is written with");
 
 // Max possible size of the header, the fixed part plus a length byte and the longest key id it can contain
-#define CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX                                                                                        \
-    (CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1 + CIPHER_BLOCK_FORMAT_KEY_SIZE_MAX)
+static_assert(
+    CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX == CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1 + CIPHER_BLOCK_FORMAT_KEY_SIZE_MAX,
+    "max header size must be the fixed part plus a length byte and the longest key id");
 
 /***********************************************************************************************************************************
 Object type
@@ -415,6 +416,43 @@ cipherBlockFormatResult(PackRead *const packRead)
     FUNCTION_TEST_RETURN(UINT, pckReadU32P(packRead));
 }
 
+/**********************************************************************************************************************************/
+FN_EXTERN String *
+cipherBlockFormatKeyId(const Buffer *const buffer)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(BUFFER, buffer);
+    FUNCTION_TEST_END();
+
+    ASSERT(buffer != NULL);
+
+    // A file too short to hold a header cannot have one
+    if (bufUsed(buffer) < CIPHER_BLOCK_FORMAT_HEADER_SIZE)
+        THROW(CryptoError, "cipher header missing");
+
+    const uint8_t *const header = bufPtrConst(buffer);
+    String *result = NULL;
+
+    // The key id follows the marker and its length byte
+    if (cipherBlockFormatHeaderRead(header) >= REPOSITORY_FORMAT_6 &&
+        header[CIPHER_BLOCK_FORMAT_HEADER_SIZE - 1] == CIPHER_BLOCK_FORMAT_MARKER_KEY)
+    {
+        if (bufUsed(buffer) < CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1 ||
+            header[CIPHER_BLOCK_FORMAT_HEADER_SIZE] == 0 ||
+            bufUsed(buffer) < CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1 + header[CIPHER_BLOCK_FORMAT_HEADER_SIZE])
+        {
+            THROW(FormatError, "invalid cipher header");
+        }
+
+        result = strNewZN((const char *)header + CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1, header[CIPHER_BLOCK_FORMAT_HEADER_SIZE]);
+    }
+    // Else the file was encrypted with the default key
+    else
+        result = strDup(CIPHER_SPEC_MAP_ID_DEFAULT_STR);
+
+    FUNCTION_TEST_RETURN(STRING, result);
+}
+
 /***********************************************************************************************************************************
 Filter to write the header before the content. The header must be plaintext so this filter runs after the block cipher.
 ***********************************************************************************************************************************/
@@ -628,7 +666,7 @@ cipherBlockFormatFilterGroupReadAdd(IoFilterGroup *const filterGroup, const Ciph
         MEM_CONTEXT_TEMP_BEGIN()
         {
             CipherSpecMap *const cipherSpecMap = cipherSpecMapNew();
-            cipherSpecMapAdd(cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
+            cipherSpecMapAddP(cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
 
             ioFilterGroupAdd(filterGroup, cipherBlockFormatNewP(cipherSpecMap));
         }

@@ -107,6 +107,9 @@ Functions
 // one and are never reused. Id zero is reserved for a key migrated from format 5.
 FN_EXTERN void infoArchiveCipherRotate(InfoArchive *this, const CipherSpec *cipherSpec, time_t rotateTime);
 
+// Remove a cipher key for WAL. The current key cannot be removed.
+FN_EXTERN void infoArchiveCipherRemove(InfoArchive *this, const String *id);
+
 // Given a backrest history id and postgres systemId and version, return the archiveId of the best match
 FN_EXTERN const String *infoArchiveIdHistoryMatch(
     const InfoArchive *this, const unsigned int historyId, const unsigned int pgVersion, const uint64_t pgSystemId);

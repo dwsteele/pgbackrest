@@ -59,7 +59,6 @@ typedef struct InfoPub
     unsigned int format;                                            // Repository format the file was written with
     const String *backrestVersion;                                  // pgBackRest version
     CipherSpecMap *cipherSpecMap;                                   // Cipher keys for dependent files
-    time_t cipherRotateTime;                                        // Time of the last cipher key rotation
     bool cipherPrior;                                               // Was the file decrypted with the prior cipher spec?
 } InfoPub;
 
@@ -88,17 +87,14 @@ FN_EXTERN void infoCipherSpecMapSet(Info *this, const CipherSpecMap *cipherSpecM
 // Set a single cipher spec for dependent files under the default id. NULL means they are not encrypted.
 FN_EXTERN void infoCipherSpecSet(Info *this, const CipherSpec *cipherSpec);
 
-// Add a cipher key for dependent files under an id and make it current
-FN_EXTERN void infoCipherSpecAdd(Info *this, const String *id, const CipherSpec *cipherSpec);
+// Add a cipher key for dependent files under an id and make it current. The time the key was added is zero when not recorded.
+FN_EXTERN void infoCipherSpecAdd(Info *this, const String *id, const CipherSpec *cipherSpec, time_t time);
 
-// Time of the last cipher key rotation, zero when none
-FN_INLINE_ALWAYS time_t
-infoCipherRotateTime(const Info *const this)
-{
-    return THIS_PUB(Info)->cipherRotateTime;
-}
+// Remove a cipher key for dependent files. The current key cannot be removed.
+FN_EXTERN void infoCipherSpecRemove(Info *this, const String *id);
 
-FN_EXTERN void infoCipherRotateTimeSet(Info *this, time_t cipherRotateTime);
+// Time of the last cipher key rotation, which is the time the current key was added, zero when none
+FN_EXTERN time_t infoCipherRotateTime(const Info *this);
 
 // Was the file decrypted with the prior cipher spec?
 FN_INLINE_ALWAYS bool

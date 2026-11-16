@@ -2336,7 +2336,7 @@ testRun(void)
 
         // Write archive.info to the encrypted repo
         CipherSpecMap *const cipherSpecMapArchive = cipherSpecMapNew();
-        cipherSpecMapAdd(
+        cipherSpecMapAddP(
             cipherSpecMapArchive, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
             cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF(TEST_CIPHER_PASS_ARCHIVE), .digest = hashTypeSha1));
 

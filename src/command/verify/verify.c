@@ -1159,7 +1159,7 @@ verifyBackup(VerifyJobData *const jobData)
                                 pckWriteU64P(param, fileData.size);
                                 // Backup files contain no key id so their key goes under the default id
                                 CipherSpecMap *const cipherSpecMap = cipherSpecMapNew();
-                                cipherSpecMapAdd(
+                                cipherSpecMapAddP(
                                     cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR, manifestCipherSpec(jobData->manifest));
 
                                 cipherSpecMapPack(param, cipherSpecMap);

@@ -52,7 +52,7 @@ testRun(void)
         const CipherSpec *const cipherSpec = cipherSpecNewP(cipherTypeAes256Cbc, testPass);
 
         CipherSpecMap *const keyMapDefault = cipherSpecMapNew();
-        cipherSpecMapAdd(keyMapDefault, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
+        cipherSpecMapAddP(keyMapDefault, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("nothing is added when the repository is not encrypted");
@@ -88,6 +88,7 @@ testRun(void)
         TEST_RESULT_BOOL(
             memcmp(bufPtrConst(headerBuffer), CIPHER_BLOCK_FORMAT_MAGIC "006_", CIPHER_BLOCK_FORMAT_HEADER_SIZE) == 0, true,
             "header contains the format");
+        TEST_RESULT_STR_Z(cipherBlockFormatKeyId(headerBuffer), CIPHER_SPEC_MAP_ID_DEFAULT, "no key id");
 
         // The format is not given on decrypt, so it comes from the header and is what the pass derives with
         Buffer *headerResult = bufNew(0);
@@ -176,6 +177,7 @@ testRun(void)
         TEST_RESULT_BOOL(
             memcmp(bufPtrConst(magicBuffer), CIPHER_BLOCK_MAGIC, CIPHER_BLOCK_MAGIC_SIZE) == 0, true,
             "a format before the header writes the magic");
+        TEST_RESULT_STR_Z(cipherBlockFormatKeyId(magicBuffer), CIPHER_SPEC_MAP_ID_DEFAULT, "no key id before the header");
 
         headerResult = bufNew(0);
         headerRead = ioBufferWriteNew(headerResult);
@@ -228,6 +230,7 @@ testRun(void)
         ioWrite(headerShort, BUFSTRDEF("PGBR"));
 
         TEST_ERROR(ioWriteClose(headerShort), CryptoError, "cipher header missing");
+        TEST_ERROR(cipherBlockFormatKeyId(BUFSTRDEF("PGBR")), CryptoError, "cipher header missing");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("damaged headers");
@@ -277,8 +280,8 @@ testRun(void)
         const CipherSpec *const keySpecNew = cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("newkey"));
 
         CipherSpecMap *const keyMap = cipherSpecMapNew();
-        cipherSpecMapAdd(keyMap, STRDEF(CIPHER_SPEC_MAP_ID_DEFAULT), keySpecOld);
-        cipherSpecMapAdd(keyMap, STRDEF("7"), keySpecNew);
+        cipherSpecMapAddP(keyMap, STRDEF(CIPHER_SPEC_MAP_ID_DEFAULT), keySpecOld);
+        cipherSpecMapAddP(keyMap, STRDEF("7"), keySpecNew);
 
         Buffer *const keyBuffer = bufNew(0);
         IoRead *const keyWrite = ioBufferReadNew(testPlainText);
@@ -399,7 +402,7 @@ testRun(void)
         TEST_TITLE("key id not in the map");
 
         CipherSpecMap *const keyMapShort = cipherSpecMapNew();
-        cipherSpecMapAdd(keyMapShort, STRDEF(CIPHER_SPEC_MAP_ID_DEFAULT), keySpecOld);
+        cipherSpecMapAddP(keyMapShort, STRDEF(CIPHER_SPEC_MAP_ID_DEFAULT), keySpecOld);
 
         IoWrite *const keyMissing = ioBufferWriteNew(bufNew(0));
         cipherBlockFormatFilterGroupReadAddMap(ioWriteFilterGroup(keyMissing), keyMapShort);
@@ -427,6 +430,18 @@ testRun(void)
         ioWriteOpen(keyEmptyRead);
 
         TEST_ERROR(ioWrite(keyEmptyRead, keyEmpty), FormatError, "invalid cipher header");
+        TEST_ERROR(cipherBlockFormatKeyId(keyEmpty), FormatError, "invalid cipher header");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("key id read from the header");
+
+        TEST_RESULT_STR_Z(cipherBlockFormatKeyId(keyBuffer), "7", "key id");
+        TEST_ERROR(
+            cipherBlockFormatKeyId(BUF(bufPtrConst(keyBuffer), CIPHER_BLOCK_FORMAT_HEADER_SIZE)), FormatError,
+            "invalid cipher header");
+        TEST_ERROR(
+            cipherBlockFormatKeyId(BUF(bufPtrConst(keyBuffer), CIPHER_BLOCK_FORMAT_HEADER_SIZE + 1)), FormatError,
+            "invalid cipher header");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("no filter added when the map is empty");
@@ -452,8 +467,8 @@ testRun(void)
         TEST_RESULT_BOOL(cipherSpecMapEmpty(map), true, "no keys");
 
         // Add out of order to check that the map sorts
-        TEST_RESULT_VOID(cipherSpecMapAdd(map, STRDEF("2"), cipherSpec2), "add 2");
-        TEST_RESULT_VOID(cipherSpecMapAdd(map, STRDEF("0"), cipherSpec1), "add 0");
+        TEST_RESULT_VOID(cipherSpecMapAddP(map, STRDEF("2"), cipherSpec2, .time = 1700000000), "add 2");
+        TEST_RESULT_VOID(cipherSpecMapAddP(map, STRDEF("0"), cipherSpec1), "add 0");
 
         TEST_RESULT_UINT(cipherSpecMapSize(map), 2, "two keys");
         TEST_RESULT_STR_Z(cipherSpecMapGetIdx(map, 0)->id, "0", "first id");
@@ -466,9 +481,13 @@ testRun(void)
 
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(map), "2", "adding the key with no id did not make it current");
 
+        // The time a key was added is zero when not recorded
+        TEST_RESULT_INT(cipherSpecMapTime(map, STRDEF("0")), 0, "no time");
+        TEST_RESULT_INT(cipherSpecMapTime(map, STRDEF("2")), 1700000000, "time");
+
         // A map with only the key that has no id has no current key
         CipherSpecMap *const mapDefault = cipherSpecMapNew();
-        TEST_RESULT_VOID(cipherSpecMapAdd(mapDefault, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec1), "add key with no id");
+        TEST_RESULT_VOID(cipherSpecMapAddP(mapDefault, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec1), "add key with no id");
         TEST_RESULT_PTR(cipherSpecMapIdCurrent(mapDefault), NULL, "no current key");
 
         // -------------------------------------------------------------------------------------------------------------------------
@@ -480,6 +499,14 @@ testRun(void)
         TEST_ASSIGN(mapDup, cipherSpecMapDup(map), "dup map");
         TEST_RESULT_UINT(cipherSpecMapSize(mapDup), 2, "two keys");
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(mapDup), "2", "current key id");
+        TEST_RESULT_INT(cipherSpecMapTime(mapDup, STRDEF("2")), 1700000000, "time");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("remove a key");
+
+        TEST_RESULT_VOID(cipherSpecMapRemove(mapDup, STRDEF("0")), "remove key 0");
+        TEST_RESULT_UINT(cipherSpecMapSize(mapDup), 1, "one key");
+        TEST_RESULT_PTR(cipherSpecMapFind(mapDup, STRDEF("0")), NULL, "key 0 removed");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("key id not found");
@@ -500,6 +527,7 @@ testRun(void)
         TEST_RESULT_STR_Z(strNewBuf(cipherSpecPass(cipherSpecMapGet(mapPack, STRDEF("0")))), "key1", "key 0 pass");
         TEST_RESULT_UINT(cipherSpecDigest(cipherSpecMapGet(mapPack, STRDEF("2"))), hashTypeSha1, "key 2 digest");
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(mapPack), "2", "current key id");
+        TEST_RESULT_INT(cipherSpecMapTime(mapPack, STRDEF("2")), 0, "time not packed");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("log ids but not keys");

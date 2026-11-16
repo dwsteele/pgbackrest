@@ -29,7 +29,7 @@
 - At format 6 the `cipher-pass` value in both info files holds every key the file is responsible for rather than the single key it holds today, as an object keyed by the key id.
 
 ```
-cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
+cipher-pass={"1":{"digest":"sha256","key":"afg...","time":1700000000}, ...}
 ```
 
 - The value is an object rather than the key on its own because the digest has to travel with each key. A flat `{"1":"afg..."}` would mean inferring the digest from the id, which is the inference the stored digest exists to avoid.
@@ -57,7 +57,7 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 
 - `archive.info` holds a map of keys. One is current and encrypts new WAL; the rest are retained only so WAL already written can still be read.
 - Key ids are sequential from 1 and are never reused. Which one is current is recorded in `cipher-pass-current` beside the map rather than inferred, since the map is keyed by an opaque id and sorts as text, so the highest id is not the last entry once there are ten of them.
-- Only the most recent rotation is dated, in a `cipher-pass-rotate` key beside the map, as seconds since the epoch. Rotation compares the current key's age and nothing looks at when a retired key was made, so dating every entry would store what nothing reads.
+- Each archive key stores the time it was added, as seconds since the epoch, in a `time` value in its entry. Rotation compares the time of the current key and pruning compares the times of newer keys. The id 0 key kept by migration has no time. Backup set keys have no time since nothing reads it.
 - Rotation appends a key and makes it current. No existing file is rewritten and nothing else in the repository moves.
 
 ### Key id in the file
@@ -85,9 +85,14 @@ cipher-pass={"1":{"key":"afg...","digest":"sha256"}, ...}
 
 ## Key Pruning at Expire
 
-- Archive: a key is dropped once no WAL that references it remains. Expire already removes WAL, so it knows when the last file for a key is gone. The current key is never dropped.
-- Backup set: an entry serves exactly one set, so it is dropped when the last manifest of that set is removed, current or under `backup.history`. Expire performs both removals. The entry for the newest set is never dropped.
-- Both happen in expire's existing info file rewrites under the backup lock, so no additional locking is required.
+- Archive: a key is removed when a newer key was added at least a week before the oldest retained backup started and no retained history file is encrypted with it. The current key is never removed.
+- The key id is only in the header of each WAL file, so finding the keys still in use by reading every retained file would be too expensive. Expire keeps WAL from the archive start of each retained backup onward, so all retained WAL was pushed after the oldest retained backup started. A push uses the key that was current when it loaded `archive.info` at the start of the push or async batch, so WAL pushed more than a push's duration after a newer key was added does not use an older key.
+- The week covers a push that stalls, e.g. a process that is stopped or on a suspended host and resumes later, and clock differences between hosts. It is fixed rather than an option. A longer grace only keeps a key longer than needed, which costs bytes in `archive.info`, while a shorter one can lose WAL.
+- Expire keeps the history files of the timelines at and after the timeline of the oldest retained backup, so a history file can be retained long after the key it is encrypted with stopped being current. Expire reads the header of each retained history file and keeps its key. There is one history file per timeline, so these reads are few and small.
+- Keys are only removed when expire has removed all WAL older than the oldest retained backup. They are not removed when archive retention is not set or not yet met, when `--archive-expire-before` is set, or when the retention backup of an archive id has no archive start.
+- Rotation frequency does not affect the rule. Scheduled rotation is limited to once per `repo-cipher-rotate`, which is at least 15 days. `stanza-rekey` and `stanza-upgrade` rotate on demand and are not limited.
+- Backup set: an entry serves exactly one set, so it can be removed when the last manifest of that set is removed, current or under `backup.history`. This is deferred. The entry for the newest set is never removed.
+- Removal happens in expire's existing `archive.info` rewrite under the backup lock, so no additional locking is required.
 
 ## Info File Write Coordination
 

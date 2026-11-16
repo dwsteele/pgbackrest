@@ -87,7 +87,7 @@ cmdStanzaCreate(void)
                 CipherSpecMap *const cipherSpecMapArchive = cipherSpecMapNew();
 
                 if (cipherSpecType(cipherSpecArchive) != cipherTypeNone && format < REPOSITORY_FORMAT_6)
-                    cipherSpecMapAdd(cipherSpecMapArchive, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpecArchive);
+                    cipherSpecMapAddP(cipherSpecMapArchive, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpecArchive);
 
                 // Create and save archive info
                 infoArchive = infoArchiveNew(pgControl.version, pgControl.systemId, format, cipherSpecMapArchive);

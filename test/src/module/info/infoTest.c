@@ -379,19 +379,20 @@ testRun(void)
                 cipherSpec, harnessInfoLoadNewCallback, callbackContent),
             "info migrated to the format that stores the digest");
         TEST_RESULT_UINT(cipherSpecDigest(testInfoCipherSpec(info)), hashTypeSha1, "    check cipher sub digest");
+        TEST_RESULT_INT(infoCipherRotateTime(info), 0, "    check no rotation time");
 
         // Two keys, as rotation stores them. The last key added is current.
         CipherSpecMap *const cipherSpecMapMulti = cipherSpecMapNew();
-        cipherSpecMapAdd(
+        cipherSpecMapAddP(
             cipherSpecMapMulti, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
             cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("oldpass"), .digest = hashTypeSha1));
 
         TEST_RESULT_VOID(infoCipherSpecMapSet(info, cipherSpecMapMulti), "set migrated key");
         TEST_RESULT_VOID(
             infoCipherSpecAdd(
-                info, STRDEF("9"), cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("newpass"), .digest = hashTypeSha256)),
+                info, STRDEF("9"), cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("newpass"), .digest = hashTypeSha256),
+                1700000000),
             "add second key");
-        TEST_RESULT_VOID(infoCipherRotateTimeSet(info, 1700000000), "set rotation time");
 
         contentSave = bufNew(0);
 
@@ -400,9 +401,8 @@ testRun(void)
             strstr(
                 strZ(strNewBuf(contentSave)),
                 "cipher-pass={\"0\":{\"digest\":\"sha1\",\"key\":\"oldpass\"}"
-                ",\"9\":{\"digest\":\"sha256\",\"key\":\"bmV3cGFzcw==\"}}\n"
-                "cipher-pass-current=\"9\"\n"
-                "cipher-pass-rotate=1700000000\n") != NULL,
+                ",\"9\":{\"digest\":\"sha256\",\"key\":\"bmV3cGFzcw==\",\"time\":1700000000}}\n"
+                "cipher-pass-current=\"9\"\n") != NULL,
             true, "    check both keys stored by id");
 
         TEST_ASSIGN(
@@ -423,6 +423,9 @@ testRun(void)
             strNewBuf(cipherSpecPass(cipherSpecMapGet(cipherSpecMapLoad, STRDEF("9")))), "newpass", "    check key 9");
         TEST_RESULT_UINT(
             cipherSpecDigest(cipherSpecMapGet(cipherSpecMapLoad, STRDEF("9"))), hashTypeSha256, "    check key 9 digest");
+
+        TEST_RESULT_VOID(infoCipherSpecRemove(info, CIPHER_SPEC_MAP_ID_DEFAULT_STR), "remove key 0");
+        TEST_RESULT_UINT(cipherSpecMapSize(infoCipherSpecMap(info)), 1, "    check one key");
 
         // The content on its own, which is how a caller that wants the file rather than the values in it reads an info file
         IoRead *const infoRead = ioBufferReadNew(harnessInfoEncryptP(contentLoad, cipherSpec, .format = REPOSITORY_FORMAT_6));

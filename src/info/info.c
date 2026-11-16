@@ -127,9 +127,9 @@ infoNew(const unsigned int format, const CipherSpec *const cipherSpecSub)
 #define INFO_SECTION_CIPHER                                         "cipher"
 #define INFO_KEY_CIPHER_PASS                                        "cipher-pass"
 #define INFO_KEY_CIPHER_PASS_CURRENT                                "cipher-pass-current"
-#define INFO_KEY_CIPHER_PASS_ROTATE                                 "cipher-pass-rotate"
 #define INFO_KEY_CIPHER_DIGEST                                      "digest"
 #define INFO_KEY_CIPHER_KEY                                         "key"
+#define INFO_KEY_CIPHER_TIME                                        "time"
 
 FN_EXTERN Info *
 infoNewLoad(
@@ -247,18 +247,21 @@ infoNewLoad(
                                             const HashType digest = strIdFromZ(
                                                 strZ(varStr(kvGet(keyData, VARSTRDEF(INFO_KEY_CIPHER_DIGEST)))));
 
-                                            cipherSpecMapAdd(
+                                            const Variant *const time = kvGet(keyData, VARSTRDEF(INFO_KEY_CIPHER_TIME));
+
+                                            cipherSpecMapAddP(
                                                 cipherSpecMap, varStr(id),
                                                 cipherSpecNewP(
                                                     cipherType,
                                                     digest == hashTypeSha1 ? BUFSTR(key) : bufNewDecode(encodingBase64, key),
-                                                    .digest = digest));
+                                                    .digest = digest),
+                                                .time = time == NULL ? 0 : (time_t)varInt64Force(time));
                                         }
                                     }
                                     // Else there is one key with no id and no digest, which every repository derives with SHA-1
                                     else
                                     {
-                                        cipherSpecMapAdd(
+                                        cipherSpecMapAddP(
                                             cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
                                             cipherSpecNewP(cipherType, BUFSTR(varStr(cipherPass)), .digest = hashTypeSha1));
                                     }
@@ -277,9 +280,6 @@ infoNewLoad(
                                 }
                                 MEM_CONTEXT_TEMP_END();
                             }
-                            // Time of the last key rotation
-                            else if (strEqZ(value->key, INFO_KEY_CIPHER_PASS_ROTATE))
-                                this->pub.cipherRotateTime = (time_t)jsonReadInt64(jsonReadNew(value->value));
                         }
                         // Else pass to callback for processing
                         else
@@ -486,6 +486,11 @@ infoSave(Info *const this, IoWrite *const write, InfoSaveCallback *const callbac
                             cipherSpecDigest(item->cipherSpec) == hashTypeSha1 ?
                                 strNewBuf(cipherSpecPass(item->cipherSpec)) :
                                 strNewEncode(encodingBase64, cipherSpecPass(item->cipherSpec)));
+
+                        // Time the key was added, when recorded
+                        if (item->time != 0)
+                            jsonWriteInt64(jsonWriteKeyZ(json, INFO_KEY_CIPHER_TIME), item->time);
+
                         jsonWriteObjectEnd(json);
                     }
 
@@ -512,13 +517,6 @@ infoSave(Info *const this, IoWrite *const write, InfoSaveCallback *const callbac
                     infoSaveValue(
                         &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS_CURRENT,
                         jsonFromVar(VARSTR(cipherSpecMapIdCurrent(cipherSpecMap))));
-                }
-
-                // Record the time of the last key rotation
-                if (infoCipherRotateTime(this) != 0)
-                {
-                    infoSaveValue(
-                        &data, INFO_SECTION_CIPHER, INFO_KEY_CIPHER_PASS_ROTATE, jsonFromVar(VARINT64(infoCipherRotateTime(this))));
                 }
             }
             MEM_CONTEXT_TEMP_END();
@@ -605,12 +603,13 @@ infoCipherSpecMapSet(Info *const this, const CipherSpecMap *const cipherSpecMap)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *const cipherSpec)
+infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *const cipherSpec, const time_t time)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(INFO, this);
         FUNCTION_TEST_PARAM(STRING, id);
         FUNCTION_TEST_PARAM(CIPHER_SPEC, cipherSpec);
+        FUNCTION_TEST_PARAM(TIME, time);
     FUNCTION_TEST_END();
 
     FUNCTION_AUDIT_IF(memContextCurrent() != objMemContext(this));  // Do not audit calls from within the object
@@ -623,7 +622,7 @@ infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *co
     MEM_CONTEXT_OBJ_BEGIN(this)
     {
         CipherSpecMap *const cipherSpecMap = cipherSpecMapDup(this->pub.cipherSpecMap);
-        cipherSpecMapAdd(cipherSpecMap, id, cipherSpec);
+        cipherSpecMapAddP(cipherSpecMap, id, cipherSpec, .time = time);
 
         this->pub.cipherSpecMap = cipherSpecMap;
         this->cipherSpecNone = NULL;
@@ -635,19 +634,43 @@ infoCipherSpecAdd(Info *const this, const String *const id, const CipherSpec *co
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-infoCipherRotateTimeSet(Info *const this, const time_t cipherRotateTime)
+infoCipherSpecRemove(Info *const this, const String *const id)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(INFO, this);
-        FUNCTION_TEST_PARAM(TIME, cipherRotateTime);
+        FUNCTION_TEST_PARAM(STRING, id);
+    FUNCTION_TEST_END();
+
+    FUNCTION_AUDIT_IF(memContextCurrent() != objMemContext(this));  // Do not audit calls from within the object
+
+    ASSERT(this != NULL);
+    ASSERT(id != NULL);
+
+    MEM_CONTEXT_OBJ_BEGIN(this)
+    {
+        CipherSpecMap *const cipherSpecMap = cipherSpecMapDup(this->pub.cipherSpecMap);
+        cipherSpecMapRemove(cipherSpecMap, id);
+
+        this->pub.cipherSpecMap = cipherSpecMap;
+    }
+    MEM_CONTEXT_OBJ_END();
+
+    FUNCTION_TEST_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN time_t
+infoCipherRotateTime(const Info *const this)
+{
+    FUNCTION_TEST_BEGIN();
+        FUNCTION_TEST_PARAM(INFO, this);
     FUNCTION_TEST_END();
 
     ASSERT(this != NULL);
-    ASSERT(cipherRotateTime > 0);
 
-    this->pub.cipherRotateTime = cipherRotateTime;
+    const String *const idCurrent = cipherSpecMapIdCurrent(this->pub.cipherSpecMap);
 
-    FUNCTION_TEST_RETURN_VOID();
+    FUNCTION_TEST_RETURN(TIME, idCurrent == NULL ? 0 : cipherSpecMapTime(this->pub.cipherSpecMap, idCurrent));
 }
 
 /**********************************************************************************************************************************/
@@ -692,7 +715,7 @@ infoCipherSpecSet(Info *const this, const CipherSpec *const cipherSpec)
         MEM_CONTEXT_TEMP_BEGIN()
         {
             CipherSpecMap *const cipherSpecMap = cipherSpecMapNew();
-            cipherSpecMapAdd(cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
+            cipherSpecMapAddP(cipherSpecMap, CIPHER_SPEC_MAP_ID_DEFAULT_STR, cipherSpec);
 
             infoCipherSpecMapSet(this, cipherSpecMap);
         }

@@ -2741,9 +2741,9 @@ testRun(void)
         #define TEST_ARCHIVE_INFO_FORMAT_6(rotateTime)                                                                             \
             zNewFmt(                                                                                                               \
                 "[cipher]\n"                                                                                                       \
-                "cipher-pass={\"1\":{\"digest\":\"sha256\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE_BASE64 "\"}}\n"                    \
+                "cipher-pass={\"1\":{\"digest\":\"sha256\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE_BASE64 "\","                       \
+                "\"time\":%" PRId64 "}}\n"                                                                                         \
                 "cipher-pass-current=\"1\"\n"                                                                                      \
-                "cipher-pass-rotate=%" PRId64 "\n"                                                                                 \
                 "\n"                                                                                                               \
                 "[db]\n"                                                                                                           \
                 "db-id=2\n"                                                                                                        \
@@ -2838,6 +2838,61 @@ testRun(void)
         TEST_ASSIGN(
             infoArchive, infoArchiveLoadFile(storageRepoIdx(1), INFO_ARCHIVE_PATH_FILE_STR, TEST_CIPHER_SPEC), "load archive info");
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(infoArchive)), "2", "new key is current");
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        TEST_TITLE("archive keys removed");
+
+        // Keys 0 and 1 are older than the next key, which was added more than a week before the oldest backup started. Key 2 was
+        // added less than a week before and key 3 is current.
+        HRN_INFO_PUT(
+            storageRepoIdxWrite(1), INFO_ARCHIVE_PATH_FILE,
+            zNewFmt(
+                "[cipher]\n"
+                "cipher-pass={\"0\":{\"digest\":\"sha1\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE "\"}"
+                ",\"1\":{\"digest\":\"sha256\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE_BASE64 "\",\"time\":1541000000}"
+                ",\"2\":{\"digest\":\"sha256\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE_BASE64 "\",\"time\":1541500000}"
+                ",\"3\":{\"digest\":\"sha256\",\"key\":\"" TEST_CIPHER_PASS_ARCHIVE_BASE64 "\",\"time\":%" PRId64 "}}\n"
+                "cipher-pass-current=\"3\"\n"
+                "\n"
+                "[db]\n"
+                "db-id=2\n"
+                "db-system-id=6626363367545678089\n"
+                "db-version=\"12\"\n"
+                "\n"
+                "[db:history]\n"
+                "1={\"db-id\":6625592122879095702,\"db-version\":\"9.4\"}\n"
+                "2={\"db-id\":6626363367545678089,\"db-version\":\"12\"}",
+                (int64_t)timeRotate),
+            .format = REPOSITORY_FORMAT_6, .header = true, .cipherSpec = TEST_CIPHER_SPEC);
+
+        // A retained history file is encrypted with key 1
+        HRN_STORAGE_PUT_Z(storageRepoIdxWrite(1), STORAGE_REPO_ARCHIVE "/12-2/00000002.history", "PGBR006K\x01" "1");
+
+        HRN_CFG_LOAD(cfgCmdExpire, argList);
+
+        TEST_RESULT_VOID(cmdExpire(), "expire");
+        TEST_RESULT_LOG(
+            "P00 DETAIL: repo2: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
+            "P00   INFO: repo2: 12-2 no archive to remove\n"
+            "P00   INFO: repo2: remove archive key id 0");
+
+        TEST_ASSIGN(
+            infoArchive, infoArchiveLoadFile(storageRepoIdx(1), INFO_ARCHIVE_PATH_FILE_STR, TEST_CIPHER_SPEC), "load archive info");
+        TEST_RESULT_UINT(cipherSpecMapSize(infoArchiveCipherSpecMap(infoArchive)), 3, "key 0 removed");
+
+        // Key 1 is removed once no retained history file is encrypted with it
+        HRN_STORAGE_REMOVE(storageRepoIdxWrite(1), STORAGE_REPO_ARCHIVE "/12-2/00000002.history");
+
+        TEST_RESULT_VOID(cmdExpire(), "expire");
+        TEST_RESULT_LOG(
+            "P00 DETAIL: repo2: 12-2 archive retention on backup 20181119-152850F, start = 000000010000000000000002\n"
+            "P00   INFO: repo2: 12-2 no archive to remove\n"
+            "P00   INFO: repo2: remove archive key id 1");
+
+        TEST_ASSIGN(
+            infoArchive, infoArchiveLoadFile(storageRepoIdx(1), INFO_ARCHIVE_PATH_FILE_STR, TEST_CIPHER_SPEC), "load archive info");
+        TEST_RESULT_UINT(cipherSpecMapSize(infoArchiveCipherSpecMap(infoArchive)), 2, "key 1 removed");
+        TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(infoArchive)), "3", "current key kept");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("error on info files at different formats");

@@ -984,7 +984,7 @@ testRun(void)
         // Backup files contain no key id, so the key goes under the default id
         CipherSpecMap *const cipherSpecMapNone = cipherSpecMapNew();
         CipherSpecMap *const cipherSpecMapPass = cipherSpecMapNew();
-        cipherSpecMapAdd(
+        cipherSpecMapAddP(
             cipherSpecMapPass, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
             cipherSpecNewP(cipherTypeAes256Cbc, BUFSTRDEF("pass"), .digest = hashTypeSha1));
 

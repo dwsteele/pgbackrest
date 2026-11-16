@@ -132,10 +132,26 @@ infoArchiveCipherRotate(InfoArchive *const this, const CipherSpec *const cipherS
 
         Info *const info = infoPgInfo(infoArchivePg(this));
 
-        infoCipherSpecAdd(info, id, cipherSpec);
-        infoCipherRotateTimeSet(info, rotateTime);
+        infoCipherSpecAdd(info, id, cipherSpec, rotateTime);
     }
     MEM_CONTEXT_TEMP_END();
+
+    FUNCTION_LOG_RETURN_VOID();
+}
+
+/**********************************************************************************************************************************/
+FN_EXTERN void
+infoArchiveCipherRemove(InfoArchive *const this, const String *const id)
+{
+    FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(INFO_ARCHIVE, this);
+        FUNCTION_LOG_PARAM(STRING, id);
+    FUNCTION_LOG_END();
+
+    ASSERT(this != NULL);
+    ASSERT(id != NULL);
+
+    infoCipherSpecRemove(infoPgInfo(infoArchivePg(this)), id);
 
     FUNCTION_LOG_RETURN_VOID();
 }

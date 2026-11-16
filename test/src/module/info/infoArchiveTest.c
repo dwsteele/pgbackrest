@@ -84,7 +84,7 @@ testRun(void)
 
         // Recreate from scratch with cipher
         CipherSpecMap *const cipherSpecMapSub = cipherSpecMapNew();
-        cipherSpecMapAdd(
+        cipherSpecMapAddP(
             cipherSpecMapSub, CIPHER_SPEC_MAP_ID_DEFAULT_STR,
             cipherSpecNewP(
                 cipherTypeAes256Cbc, BUFSTRDEF("zWa/6Xtp-IVZC5444yXB+cgFDFl7MxGlgkZSaoPvTGirhPygu4jOKOXf9LO4vjfO"),
@@ -141,11 +141,14 @@ testRun(void)
         TEST_RESULT_INT(infoArchiveCipherRotateTime(info), 1700000000, "rotation time");
 
         // Ids increment as numbers rather than as text
-        TEST_RESULT_VOID(infoCipherSpecAdd(infoPgInfo(infoArchivePg(info)), STRDEF("9"), cipherSpecRotate), "add key 9");
+        TEST_RESULT_VOID(infoCipherSpecAdd(infoPgInfo(infoArchivePg(info)), STRDEF("9"), cipherSpecRotate, 0), "add key 9");
         TEST_RESULT_VOID(infoArchiveCipherRotate(info, cipherSpecRotate, 1700086400), "rotate after key 9");
         TEST_RESULT_STR_Z(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(info)), "10", "key id after 9");
         TEST_RESULT_UINT(cipherSpecMapSize(infoArchiveCipherSpecMap(info)), 4, "all keys kept");
         TEST_RESULT_INT(infoArchiveCipherRotateTime(info), 1700086400, "rotation time");
+
+        TEST_RESULT_VOID(infoArchiveCipherRemove(info, STRDEF("9")), "remove key 9");
+        TEST_RESULT_UINT(cipherSpecMapSize(infoArchiveCipherSpecMap(info)), 3, "key 9 removed");
 
         // -------------------------------------------------------------------------------------------------------------------------
         TEST_TITLE("object free");

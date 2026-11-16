@@ -10,8 +10,10 @@ Expire Command
 #include "command/expire/expire.h"
 #include "command/stanza/common.h"
 #include "common/debug.h"
+#include "common/format/cipherBlockFormat.h"
 #include "common/regExp.h"
 #include "common/time.h"
+#include "common/type/convert.h"
 #include "common/type/list.h"
 #include "config/config.h"
 #include "info/helper.h"
@@ -572,9 +574,9 @@ expireArchiveId(
 }
 
 /***********************************************************************************************************************************
-Process archive retention
+Process archive retention. Returns true when all retained WAL is newer than the oldest retained backup.
 ***********************************************************************************************************************************/
-static void
+static bool
 removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFullRetention, const unsigned int repoIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
@@ -584,6 +586,8 @@ removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFul
     FUNCTION_LOG_END();
 
     ASSERT(infoBackup != NULL);
+
+    bool result = false;
 
     MEM_CONTEXT_TEMP_BEGIN()
     {
@@ -642,6 +646,9 @@ removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFul
             if (walExpireBefore != NULL ||
                 (!strLstEmpty(globalBackupRetentionList) && archiveRetention <= strLstSize(globalBackupRetentionList)))
             {
+                // WAL from the requested segment is retained when --archive-expire-before is set
+                result = walExpireBefore == NULL;
+
                 // Attempt to load the archive info file
                 const InfoArchive *const infoArchive = infoArchiveRepoIdx(repoIdx);
                 const InfoPg *const infoArchivePgData = infoArchivePg(infoArchive);
@@ -893,6 +900,9 @@ removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFul
                                 }
                             }
                         }
+                        // Else WAL for this archive id is not expired
+                        else
+                            result = false;
                     }
                 }
             }
@@ -900,7 +910,7 @@ removeExpiredArchive(const InfoBackup *const infoBackup, const bool timeBasedFul
     }
     MEM_CONTEXT_TEMP_END();
 
-    FUNCTION_LOG_RETURN_VOID();
+    FUNCTION_LOG_RETURN(BOOL, result);
 }
 
 /***********************************************************************************************************************************
@@ -1085,20 +1095,99 @@ removeExpiredHistory(const InfoBackup *const infoBackup, const unsigned int repo
 }
 
 /***********************************************************************************************************************************
-Rotate the archive key when it is older than the rotation period
+Remove archive keys not used by retained files and rotate the archive key when it is older than the rotation period. A key is
+removed when a newer key was added at least EXPIRE_ARCHIVE_KEY_GRACE before the oldest retained backup started and no retained
+history file is encrypted with it. Keys are only removed when keyRemove is true.
 ***********************************************************************************************************************************/
+#define EXPIRE_ARCHIVE_KEY_GRACE                                    (7 * SEC_PER_DAY)
+
 static void
-expireArchiveCipherRotate(const unsigned int repoIdx)
+expireArchiveCipher(const InfoBackup *const infoBackup, const bool keyRemove, const unsigned int repoIdx)
 {
     FUNCTION_LOG_BEGIN(logLevelDebug);
+        FUNCTION_LOG_PARAM(INFO_BACKUP, infoBackup);
+        FUNCTION_LOG_PARAM(BOOL, keyRemove);
         FUNCTION_LOG_PARAM(UINT, repoIdx);
     FUNCTION_LOG_END();
 
-    if (cfgOptionIdxTest(cfgOptRepoCipherRotate, repoIdx))
+    ASSERT(infoBackup != NULL);
+    ASSERT(!keyRemove || infoBackupDataTotal(infoBackup) > 0);
+
+    MEM_CONTEXT_TEMP_BEGIN()
     {
-        MEM_CONTEXT_TEMP_BEGIN()
+        InfoArchive *const infoArchive = infoArchiveRepoIdx(repoIdx);
+        bool save = false;
+
+        if (keyRemove)
         {
-            InfoArchive *const infoArchive = infoArchiveRepoIdx(repoIdx);
+            const CipherSpecMap *const cipherSpecMap = infoArchiveCipherSpecMap(infoArchive);
+            const time_t timeLimit = infoBackupData(infoBackup, 0).backupTimestampStart - EXPIRE_ARCHIVE_KEY_GRACE;
+            unsigned int keyIdLimit = 0;
+
+            // Find the newest key added before the time limit
+            for (unsigned int keyIdx = 0; keyIdx < cipherSpecMapSize(cipherSpecMap); keyIdx++)
+            {
+                const CipherSpecMapItem *const key = cipherSpecMapGetIdx(cipherSpecMap, keyIdx);
+                const unsigned int keyId = cvtZToUInt(strZ(key->id));
+
+                if (key->time < timeLimit && keyId > keyIdLimit)
+                    keyIdLimit = keyId;
+            }
+
+            // Keys older than that key can be removed
+            StringList *const keyIdList = strLstNew();
+
+            for (unsigned int keyIdx = 0; keyIdx < cipherSpecMapSize(cipherSpecMap); keyIdx++)
+            {
+                const CipherSpecMapItem *const key = cipherSpecMapGetIdx(cipherSpecMap, keyIdx);
+
+                if (cvtZToUInt(strZ(key->id)) < keyIdLimit)
+                    strLstAdd(keyIdList, key->id);
+            }
+
+            // Keep keys that encrypt retained history files
+            if (!strLstEmpty(keyIdList))
+            {
+                const StringList *const archiveIdList = storageListP(
+                    storageRepoIdx(repoIdx), STORAGE_REPO_ARCHIVE_STR, .expression = STRDEF(REGEX_ARCHIVE_DIR_DB_VERSION));
+
+                for (unsigned int archiveIdx = 0; archiveIdx < strLstSize(archiveIdList); archiveIdx++)
+                {
+                    const String *const archivePath = strNewFmt(
+                        STORAGE_REPO_ARCHIVE "/%s", strZ(strLstGet(archiveIdList, archiveIdx)));
+                    const StringList *const historyList = storageListP(
+                        storageRepoIdx(repoIdx), archivePath, .expression = WAL_TIMELINE_HISTORY_REGEXP_STR);
+
+                    // Read only as much of each file as the header requiries
+                    for (unsigned int historyIdx = 0; historyIdx < strLstSize(historyList); historyIdx++)
+                    {
+                        strLstRemove(
+                            keyIdList,
+                            cipherBlockFormatKeyId(
+                                storageGetP(
+                                    storageNewReadP(
+                                        storageRepoIdx(repoIdx),
+                                        strNewFmt("%s/%s", strZ(archivePath), strZ(strLstGet(historyList, historyIdx))),
+                                        .limit = VARUINT64(CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX)))));
+                    }
+                }
+            }
+
+            // Remove keys
+            for (unsigned int keyIdx = 0; keyIdx < strLstSize(keyIdList); keyIdx++)
+            {
+                infoArchiveCipherRemove(infoArchive, strLstGet(keyIdList, keyIdx));
+
+                LOG_INFO_FMT(
+                    "%s: remove archive key id %s", cfgOptionGroupName(cfgOptGrpRepo, repoIdx), strZ(strLstGet(keyIdList, keyIdx)));
+
+                save = true;
+            }
+        }
+
+        // Rotate the archive key when it is older than the rotation period
+        if (cfgOptionIdxTest(cfgOptRepoCipherRotate, repoIdx))
+        {
             const time_t timeNow = time(NULL);
 
             if (infoArchiveCipherRotateTime(infoArchive) <
@@ -1108,17 +1197,19 @@ expireArchiveCipherRotate(const unsigned int repoIdx)
                     infoArchive, cipherSpecGen(cfgOptionIdxStrId(cfgOptRepoCipherType, repoIdx), infoArchiveFormat(infoArchive)),
                     timeNow);
 
-                // Store the new archive info only if the dry-run mode is disabled
-                if (!cfgOptionValid(cfgOptDryRun) || !cfgOptionBool(cfgOptDryRun))
-                    infoArchiveRepoIdxSave(repoIdx);
-
                 LOG_INFO_FMT(
                     "%s: rotate archive key to id %s", cfgOptionGroupName(cfgOptGrpRepo, repoIdx),
                     strZ(cipherSpecMapIdCurrent(infoArchiveCipherSpecMap(infoArchive))));
+
+                save = true;
             }
         }
-        MEM_CONTEXT_TEMP_END();
+
+        // Store the new archive info only if the dry-run mode is disabled
+        if (save && (!cfgOptionValid(cfgOptDryRun) || !cfgOptionBool(cfgOptDryRun)))
+            infoArchiveRepoIdxSave(repoIdx);
     }
+    MEM_CONTEXT_TEMP_END();
 
     FUNCTION_LOG_RETURN_VOID();
 }
@@ -1277,11 +1368,11 @@ cmdExpire(void)
 
                 // Remove all files on disk that are now expired
                 removeExpiredBackup(infoBackup, adhocBackupLabel, repoIdx);
-                removeExpiredArchive(infoBackup, timeBasedFullRetention, repoIdx);
+                const bool archiveNewer = removeExpiredArchive(infoBackup, timeBasedFullRetention, repoIdx);
                 removeExpiredHistory(infoBackup, repoIdx);
 
-                // Rotate the archive key when it is due
-                expireArchiveCipherRotate(repoIdx);
+                // Remove archive keys when all retained WAL is newer than the oldest retained backup and rotate the archive key
+                expireArchiveCipher(infoBackup, archiveNewer, repoIdx);
 
                 // Check the oldest retained backup for page checksum errors and issue a warning if any
                 if (infoBackupDataTotal(infoBackup) > 0)

@@ -15,6 +15,8 @@ Object type
 ***********************************************************************************************************************************/
 typedef struct CipherSpecMap CipherSpecMap;
 
+#include <time.h>
+
 #include "common/crypto/spec.h"
 #include "common/type/list.h"
 #include "common/type/object.h"
@@ -42,6 +44,7 @@ typedef struct CipherSpecMapItem
 {
     const String *id;                                               // Id associated with the key
     const CipherSpec *cipherSpec;                                   // Key and the digest it derives with
+    time_t time;                                                    // Time the key was added, zero when not recorded
 } CipherSpecMapItem;
 
 typedef struct CipherSpecMapPub
@@ -87,6 +90,16 @@ cipherSpecMapIdCurrent(const CipherSpecMap *const this)
 // Set the current key id. The id must already be in the map.
 FN_EXTERN void cipherSpecMapIdCurrentSet(CipherSpecMap *this, const String *id);
 
+// Time a key was added, zero when not recorded. The id must already be in the map.
+FN_INLINE_ALWAYS time_t
+cipherSpecMapTime(const CipherSpecMap *const this, const String *const id)
+{
+    const CipherSpecMapItem *const item = lstFind(THIS_PUB(CipherSpecMap)->list, &id);
+    ASSERT_INLINE(item != NULL);
+
+    return item->time;
+}
+
 // Duplicate
 FN_EXTERN CipherSpecMap *cipherSpecMapDup(const CipherSpecMap *this);
 
@@ -94,9 +107,28 @@ FN_EXTERN CipherSpecMap *cipherSpecMapDup(const CipherSpecMap *this);
 Functions
 ***********************************************************************************************************************************/
 // Add a key and make it current, except for a key stored under CIPHER_SPEC_MAP_ID_DEFAULT. The id must be unique.
-FN_EXTERN void cipherSpecMapAdd(CipherSpecMap *this, const String *id, const CipherSpec *cipherSpec);
+typedef struct CipherSpecMapAddParam
+{
+    VAR_PARAM_HEADER;
+    time_t time;                                                    // Time the key was added, zero when not recorded
+} CipherSpecMapAddParam;
 
-// Write to a pack so it can be passed over a protocol
+#define cipherSpecMapAddP(this, id, cipherSpec, ...)                                                                               \
+    cipherSpecMapAdd(this, id, cipherSpec, (CipherSpecMapAddParam){VAR_PARAM_INIT, __VA_ARGS__})
+
+FN_EXTERN void cipherSpecMapAdd(CipherSpecMap *this, const String *id, const CipherSpec *cipherSpec, CipherSpecMapAddParam param);
+
+// Remove a key. The current key cannot be removed.
+FN_INLINE_ALWAYS void
+cipherSpecMapRemove(CipherSpecMap *const this, const String *const id)
+{
+    ASSERT_INLINE(!strEq(id, cipherSpecMapIdCurrent(this)));
+    ASSERT_INLINE(lstFind(THIS_PUB(CipherSpecMap)->list, &id) != NULL);
+
+    lstRemove(THIS_PUB(CipherSpecMap)->list, &id);
+}
+
+// Write to a pack so it can be passed over a protocol. Key add times are not included.
 FN_EXTERN void cipherSpecMapPack(PackWrite *packWrite, const CipherSpecMap *this);
 
 // Move to a new parent mem context

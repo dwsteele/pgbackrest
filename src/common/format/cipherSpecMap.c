@@ -114,12 +114,14 @@ cipherSpecMapGet(const CipherSpecMap *const this, const String *const id)
 
 /**********************************************************************************************************************************/
 FN_EXTERN void
-cipherSpecMapAdd(CipherSpecMap *const this, const String *const id, const CipherSpec *const cipherSpec)
+cipherSpecMapAdd(
+    CipherSpecMap *const this, const String *const id, const CipherSpec *const cipherSpec, const CipherSpecMapAddParam param)
 {
     FUNCTION_TEST_BEGIN();
         FUNCTION_TEST_PARAM(CIPHER_SPEC_MAP, this);
         FUNCTION_TEST_PARAM(STRING, id);
         FUNCTION_TEST_PARAM(CIPHER_SPEC, cipherSpec);
+        FUNCTION_TEST_PARAM(TIME, param.time);
     FUNCTION_TEST_END();
 
     ASSERT(this != NULL);
@@ -130,7 +132,7 @@ cipherSpecMapAdd(CipherSpecMap *const this, const String *const id, const Cipher
 
     MEM_CONTEXT_OBJ_BEGIN(this)
     {
-        const CipherSpecMapItem item = {.id = strDup(id), .cipherSpec = cipherSpecDupP(cipherSpec)};
+        const CipherSpecMapItem item = {.id = strDup(id), .cipherSpec = cipherSpecDupP(cipherSpec), .time = param.time};
 
         lstAdd(this->pub.list, &item);
         lstSort(this->pub.list, sortOrderAsc);
@@ -185,7 +187,7 @@ cipherSpecMapDup(const CipherSpecMap *const this)
     {
         const CipherSpecMapItem *const item = cipherSpecMapGetIdx(this, keyIdx);
 
-        cipherSpecMapAdd(result, item->id, item->cipherSpec);
+        cipherSpecMapAddP(result, item->id, item->cipherSpec, .time = item->time);
     }
 
     if (cipherSpecMapIdCurrent(this) != NULL)

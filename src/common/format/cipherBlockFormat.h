@@ -18,6 +18,11 @@ A file whose key cannot be determined from where the file is located stores the 
 #include "common/io/filter/group.h"
 
 /***********************************************************************************************************************************
+Max size of the format header: eight bytes, a length byte, and a key id of up to 255 bytes
+***********************************************************************************************************************************/
+#define CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX                         (8 + 1 + 255)
+
+/***********************************************************************************************************************************
 Filter type constants
 ***********************************************************************************************************************************/
 #define CIPHER_BLOCK_FORMAT_FILTER_TYPE                             STRID5("cipher-fmt", 0x28d36e45441230)
@@ -49,6 +54,13 @@ Getters/Setters
 ***********************************************************************************************************************************/
 // The format the header gave, which is what the header was read for
 FN_EXTERN unsigned int cipherBlockFormatResult(PackRead *packRead);
+
+/***********************************************************************************************************************************
+Functions
+***********************************************************************************************************************************/
+// Key id the file is encrypted with, read from the start of the file. CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX bytes are enough for any
+// header. CIPHER_SPEC_MAP_ID_DEFAULT when the file has no key id.
+FN_EXTERN String *cipherBlockFormatKeyId(const Buffer *buffer);
 
 /***********************************************************************************************************************************
 Helper functions
