@@ -1501,7 +1501,7 @@
                         <summary>Archive key rotation period.</summary>
 
                         <text>
-                            <p>When the key that encrypts archived WAL is older than this period, <cmd>expire</cmd> generates a new key and WAL archived after that is encrypted with it. WAL encrypted with an earlier key remains readable. An earlier key is removed by <cmd>expire</cmd> once a newer key was generated at least a week before the oldest retained backup started, unless a retained timeline history file is encrypted with it. If rotation is not desired then set the option to the max value.</p>
+                            <p>When the key that encrypts archived WAL is older than this period, <cmd>expire</cmd> generates a new key and WAL archived after that is encrypted with it. WAL encrypted with an earlier key remains readable. An earlier key is removed by <cmd>expire</cmd> once a newer key was generated at least a week before the oldest retained backup started, unless a retained timeline history file is encrypted with it or an earlier key. If rotation is not desired then set the option to the max value.</p>
                         </text>
 
                         <example>30d</example>

@@ -22,6 +22,7 @@ Expire Command
 #include "protocol/helper.h"
 #include "storage/helper.h"
 
+#include <limits.h>
 #include <stdlib.h>
 
 /***********************************************************************************************************************************
@@ -1096,8 +1097,8 @@ removeExpiredHistory(const InfoBackup *const infoBackup, const unsigned int repo
 
 /***********************************************************************************************************************************
 Remove archive keys not used by retained files and rotate the archive key when it is older than the rotation period. A key is
-removed when a newer key was added at least EXPIRE_ARCHIVE_KEY_GRACE before the oldest retained backup started and no retained
-history file is encrypted with it. Keys are only removed when keyRemove is true.
+removed when a newer key was added at least EXPIRE_ARCHIVE_KEY_GRACE before the oldest retained backup started and the key is older
+than every key that encrypts a retained history file. Keys are only removed when keyRemove is true.
 ***********************************************************************************************************************************/
 #define EXPIRE_ARCHIVE_KEY_GRACE                                    (7 * SEC_PER_DAY)
 
@@ -1123,8 +1124,9 @@ expireArchiveCipher(const InfoBackup *const infoBackup, const bool keyRemove, co
             const CipherSpecMap *const cipherSpecMap = infoArchiveCipherSpecMap(infoArchive);
             const time_t timeLimit = infoBackupData(infoBackup, 0).backupTimestampStart - EXPIRE_ARCHIVE_KEY_GRACE;
             unsigned int keyIdLimit = 0;
+            unsigned int keyIdMin = UINT_MAX;
 
-            // Find the newest key added before the time limit
+            // Find the newest key added before the time limit and the oldest key. Keys older than the limit can be removed.
             for (unsigned int keyIdx = 0; keyIdx < cipherSpecMapSize(cipherSpecMap); keyIdx++)
             {
                 const CipherSpecMapItem *const key = cipherSpecMapGetIdx(cipherSpecMap, keyIdx);
@@ -1132,21 +1134,14 @@ expireArchiveCipher(const InfoBackup *const infoBackup, const bool keyRemove, co
 
                 if (key->time < timeLimit && keyId > keyIdLimit)
                     keyIdLimit = keyId;
+
+                if (keyId < keyIdMin)
+                    keyIdMin = keyId;
             }
 
-            // Keys older than that key can be removed
-            StringList *const keyIdList = strLstNew();
-
-            for (unsigned int keyIdx = 0; keyIdx < cipherSpecMapSize(cipherSpecMap); keyIdx++)
-            {
-                const CipherSpecMapItem *const key = cipherSpecMapGetIdx(cipherSpecMap, keyIdx);
-
-                if (cvtZToUInt(strZ(key->id)) < keyIdLimit)
-                    strLstAdd(keyIdList, key->id);
-            }
-
-            // Keep keys that encrypt retained history files
-            if (!strLstEmpty(keyIdList))
+            // Keep the oldest key that encrypts a retained history file and every newer key. WAL on the timeline of a history file
+            // is encrypted with the key of the history file or a newer key.
+            if (keyIdMin < keyIdLimit)
             {
                 const StringList *const archiveIdList = storageListP(
                     storageRepoIdx(repoIdx), STORAGE_REPO_ARCHIVE_STR, .expression = STRDEF(REGEX_ARCHIVE_DIR_DB_VERSION));
@@ -1158,22 +1153,35 @@ expireArchiveCipher(const InfoBackup *const infoBackup, const bool keyRemove, co
                     const StringList *const historyList = storageListP(
                         storageRepoIdx(repoIdx), archivePath, .expression = WAL_TIMELINE_HISTORY_REGEXP_STR);
 
-                    // Read only as much of each file as the header requiries
+                    // Read only as much of each file as the header requires
                     for (unsigned int historyIdx = 0; historyIdx < strLstSize(historyList); historyIdx++)
                     {
-                        strLstRemove(
-                            keyIdList,
-                            cipherBlockFormatKeyId(
-                                storageGetP(
-                                    storageNewReadP(
-                                        storageRepoIdx(repoIdx),
-                                        strNewFmt("%s/%s", strZ(archivePath), strZ(strLstGet(historyList, historyIdx))),
-                                        .limit = VARUINT64(CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX)))));
+                        const unsigned int keyId = cvtZToUInt(
+                            strZ(
+                                cipherBlockFormatKeyId(
+                                    storageGetP(
+                                        storageNewReadP(
+                                            storageRepoIdx(repoIdx),
+                                            strNewFmt("%s/%s", strZ(archivePath), strZ(strLstGet(historyList, historyIdx))),
+                                            .limit = VARUINT64(CIPHER_BLOCK_FORMAT_HEADER_SIZE_MAX))))));
+
+                        if (keyId < keyIdLimit)
+                            keyIdLimit = keyId;
                     }
                 }
             }
 
-            // Remove keys
+            // Remove keys older than the limit
+            StringList *const keyIdList = strLstNew();
+
+            for (unsigned int keyIdx = 0; keyIdx < cipherSpecMapSize(cipherSpecMap); keyIdx++)
+            {
+                const CipherSpecMapItem *const key = cipherSpecMapGetIdx(cipherSpecMap, keyIdx);
+
+                if (cvtZToUInt(strZ(key->id)) < keyIdLimit)
+                    strLstAdd(keyIdList, key->id);
+            }
+
             for (unsigned int keyIdx = 0; keyIdx < strLstSize(keyIdList); keyIdx++)
             {
                 infoArchiveCipherRemove(infoArchive, strLstGet(keyIdList, keyIdx));
