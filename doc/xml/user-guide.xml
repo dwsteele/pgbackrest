@@ -594,6 +594,10 @@
         <execute-list host="{[br-install-host]}">
             <title>Install dependencies</title>
 
+            <execute if="{[os-type-is-debian]}" user="root" show="n" pre="y">
+                <exe-cmd>apt-get update</exe-cmd>
+            </execute>
+
             <execute if="{[os-type-is-debian]}" user="root" pre="y">
                 <exe-cmd>
                     apt-get install postgresql-client libxml2 libssh2-1</exe-cmd>
